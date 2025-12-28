@@ -5,8 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 )
+
+// Debug logging to file (since stdout is used by bubbletea)
+var debugFile *os.File
+
+func init() {
+	// Create debug log file in /tmp
+	var err error
+	debugFile, err = os.OpenFile("/tmp/keyforge-debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		debugFile = nil
+	}
+}
+
+func debugLog(format string, args ...interface{}) {
+	if debugFile != nil {
+		fmt.Fprintf(debugFile, format+"\n", args...)
+		debugFile.Sync()
+	}
+}
 
 // SocketServer handles JSON-RPC communication over a Unix socket
 type SocketServer struct {
@@ -80,6 +100,7 @@ func (s *SocketServer) IsConnected() bool {
 
 // acceptLoop waits for incoming connections
 func (s *SocketServer) acceptLoop() {
+	debugLog("acceptLoop started, waiting for connections on %s", s.socketPath)
 	for {
 		select {
 		case <-s.done:
@@ -93,10 +114,12 @@ func (s *SocketServer) acceptLoop() {
 			case <-s.done:
 				return
 			default:
+				debugLog("Accept error: %v", err)
 				continue
 			}
 		}
 
+		debugLog("Client connected!")
 		s.mu.Lock()
 		s.conn = conn
 		s.reader = bufio.NewReader(conn)
@@ -108,24 +131,29 @@ func (s *SocketServer) acceptLoop() {
 
 		// Send game ready notification
 		s.SendGameReady()
+		debugLog("Sent game_ready notification")
 	}
 }
 
 // readLoop continuously reads messages from the connection
 func (s *SocketServer) readLoop() {
+	debugLog("readLoop started")
 	for {
 		select {
 		case <-s.done:
+			debugLog("readLoop: done signal received")
 			return
 		default:
 		}
 
 		if s.reader == nil {
+			debugLog("readLoop: reader is nil")
 			return
 		}
 
 		line, err := s.reader.ReadBytes('\n')
 		if err != nil {
+			debugLog("readLoop: read error: %v", err)
 			s.mu.Lock()
 			s.connected = false
 			s.mu.Unlock()
@@ -136,9 +164,12 @@ func (s *SocketServer) readLoop() {
 			continue
 		}
 
+		debugLog("readLoop: received line: %s", string(line))
+
 		// Try to parse as a generic message first
 		var msg map[string]interface{}
 		if err := json.Unmarshal(line, &msg); err != nil {
+			debugLog("readLoop: JSON parse error: %v", err)
 			continue
 		}
 
@@ -149,12 +180,14 @@ func (s *SocketServer) readLoop() {
 				// Request (has ID)
 				var req Request
 				if err := json.Unmarshal(line, &req); err == nil {
+					debugLog("readLoop: parsed as Request, method=%s", req.Method)
 					s.incoming <- &req
 				}
 			} else {
 				// Notification (no ID)
 				var notif Notification
 				if err := json.Unmarshal(line, &notif); err == nil {
+					debugLog("readLoop: parsed as Notification, method=%s", notif.Method)
 					s.incoming <- &notif
 				}
 			}
@@ -261,12 +294,18 @@ func (s *SocketServer) handleRequest(req *Request) {
 }
 
 func (s *SocketServer) handleNotification(notif *Notification) {
+	// Debug: log received notifications
+	debugLog("handleNotification: method=%s", notif.Method)
+
 	switch notif.Method {
 	case MethodChallengeComplete:
+		debugLog("Processing challenge_complete")
 		if params, ok := notif.Params.(map[string]interface{}); ok {
 			cr := parseChallengeResult(params)
+			debugLog("Parsed result: request_id=%s success=%v", cr.RequestID, cr.Success)
 			if s.handler != nil {
 				s.handler.HandleChallengeComplete(cr)
+				debugLog("Called handler.HandleChallengeComplete")
 			}
 		}
 	case MethodConfigUpdate:

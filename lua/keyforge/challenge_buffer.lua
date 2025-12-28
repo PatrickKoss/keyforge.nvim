@@ -387,8 +387,12 @@ function M._send_result(request_id, result)
   result.request_id = request_id
 
   if not rpc.is_connected() then
-    vim.notify("Warning: RPC not connected, game may be stuck", vim.log.levels.WARN)
+    vim.notify("Warning: RPC not connected, game may be stuck. Socket: " .. tostring(rpc.get_socket_path()), vim.log.levels.WARN)
+    return
   end
+
+  -- Debug: show we're sending
+  vim.notify(string.format("Sending challenge_complete: id=%s success=%s", request_id, tostring(result.success)), vim.log.levels.DEBUG)
 
   rpc.notify("challenge_complete", result)
 end
