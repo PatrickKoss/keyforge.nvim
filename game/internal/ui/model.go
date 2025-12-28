@@ -39,6 +39,9 @@ type Model struct {
 	NvimChallengeID    string              // Current challenge request ID
 	NvimChallengeCount int                 // Counter for generating unique IDs
 	PrevGameState      engine.GameState    // Track state changes for notifications
+
+	// Pending RPC results (set by goroutines, processed in Update loop)
+	PendingChallengeResult *nvim.ChallengeResult
 }
 
 // NewModel creates a new game model
@@ -77,23 +80,14 @@ func (m *Model) InitNvimSocket(socketPath string) {
 // Handler interface implementation for nvim.Client
 
 // HandleChallengeComplete processes challenge results from Neovim
+// This is called from a goroutine, so we store the result for processing in the Update loop
 func (m *Model) HandleChallengeComplete(result *nvim.ChallengeResult) {
 	if result.RequestID != m.NvimChallengeID {
 		return // Stale result, ignore
 	}
 
-	if result.Success {
-		// Award gold - Neovim already calculated it
-		gold := result.GoldEarned
-		if gold < 1 {
-			gold = 1
-		}
-		m.Game.AddChallengeGold(gold)
-	}
-
-	// Clear challenge state
-	m.NvimChallengeID = ""
-	m.Game.EndChallenge()
+	// Store for processing in the main Update loop (thread-safe handoff)
+	m.PendingChallengeResult = result
 }
 
 // HandleConfigUpdate processes config updates from Neovim
@@ -176,6 +170,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		now := time.Time(msg)
 		dt := now.Sub(m.LastUpdate).Seconds()
 		m.LastUpdate = now
+
+		// Process pending challenge result from RPC (set by goroutine)
+		if m.PendingChallengeResult != nil {
+			result := m.PendingChallengeResult
+			m.PendingChallengeResult = nil
+
+			if result.Success {
+				// Award gold - Neovim already calculated it
+				gold := result.GoldEarned
+				if gold < 1 {
+					gold = 1
+				}
+				m.Game.AddChallengeGold(gold)
+			}
+
+			// Clear challenge state and resume game
+			m.NvimChallengeID = ""
+			m.Game.EndChallenge()
+		}
 
 		// Store previous state before update
 		prevState := m.Game.State
