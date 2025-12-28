@@ -88,7 +88,13 @@ function M.notify(method, params)
   }
 
   local data = encode(msg)
-  M._socket:write(data)
+  M._socket:write(data, function(err)
+    if err then
+      vim.schedule(function()
+        vim.notify("RPC write error: " .. tostring(err), vim.log.levels.ERROR)
+      end)
+    end
+  end)
 end
 
 --- Send a response to an incoming request

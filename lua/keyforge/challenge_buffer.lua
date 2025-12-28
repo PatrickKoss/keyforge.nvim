@@ -371,6 +371,11 @@ end
 function M._send_result(request_id, result)
   local rpc = require("keyforge.rpc")
   result.request_id = request_id
+
+  if not rpc.is_connected() then
+    vim.notify("Warning: RPC not connected, game may be stuck", vim.log.levels.WARN)
+  end
+
   rpc.notify("challenge_complete", result)
 end
 

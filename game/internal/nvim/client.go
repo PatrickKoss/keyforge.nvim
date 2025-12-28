@@ -386,6 +386,12 @@ func parseChallengeResult(params map[string]interface{}) *ChallengeResult {
 	if v, ok := params["efficiency"].(float64); ok {
 		cr.Efficiency = v
 	}
+	if v, ok := params["speed_bonus"].(float64); ok {
+		cr.SpeedBonus = v
+	}
+	if v, ok := params["gold_earned"].(float64); ok {
+		cr.GoldEarned = int(v)
+	}
 	return cr
 }
 

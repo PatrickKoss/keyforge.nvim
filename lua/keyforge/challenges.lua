@@ -381,14 +381,17 @@ function processForm(data) {
     name = "Go to Definition",
     category = "lsp-navigation",
     difficulty = 2,
-    description = "Use gd to go to the definition",
+    description = "Use gd to go to the definition of getUserName",
+    filetype = "javascript",
     initial_buffer = [[
 function getUserName(user) {
   return user.name;
 }
 
 const name = getUserName(currentUser);]],
-    validation_type = "different",
+    cursor_start = { 4, 13 }, -- On "getUserName" in the call
+    validation_type = "cursor_position",
+    expected_cursor = { 0, 9 }, -- At "getUserName" in the definition (line 0, col 9)
     par_keystrokes = 2,
     gold_base = 50,
   },
