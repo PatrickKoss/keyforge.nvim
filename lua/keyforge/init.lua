@@ -120,13 +120,12 @@ function M.start()
   M._launch_game()
 end
 
---- Launch the game in a terminal split
+--- Launch the game in a fullscreen tab
 function M._launch_game()
   local binary = get_binary_path()
 
-  -- Create a new split for the game
-  vim.cmd("botright split")
-  vim.cmd("resize 20")
+  -- Create a new tab for fullscreen game
+  vim.cmd("tabnew")
 
   -- Create terminal buffer
   M._term_buf = vim.api.nvim_get_current_buf()
