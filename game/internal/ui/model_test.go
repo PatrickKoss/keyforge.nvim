@@ -1,0 +1,538 @@
+package ui
+
+import (
+	"encoding/json"
+	"net"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/keyforge/keyforge/internal/engine"
+	"github.com/keyforge/keyforge/internal/nvim"
+)
+
+// MockRPCClient implements nvim.RPCClient for testing
+type MockRPCClient struct {
+	ChallengeRequests []ChallengeRequestRecord
+}
+
+type ChallengeRequestRecord struct {
+	RequestID  string
+	Category   string
+	Difficulty int
+}
+
+func (m *MockRPCClient) RequestChallenge(requestID, category string, difficulty int) error {
+	m.ChallengeRequests = append(m.ChallengeRequests, ChallengeRequestRecord{
+		RequestID:  requestID,
+		Category:   category,
+		Difficulty: difficulty,
+	})
+	return nil
+}
+
+func (m *MockRPCClient) SendGameState(state string, wave, gold, health, enemies, towers int) error {
+	return nil
+}
+
+func (m *MockRPCClient) SendGameReady() error {
+	return nil
+}
+
+func (m *MockRPCClient) SendGoldUpdate(gold, earned int, source string, speedBonus float64) error {
+	return nil
+}
+
+func (m *MockRPCClient) SendChallengeAvailable(count, nextReward int, nextCategory string) error {
+	return nil
+}
+
+func (m *MockRPCClient) SendGameOver(wave, gold, towers, health int) error {
+	return nil
+}
+
+func (m *MockRPCClient) SendVictory(wave, gold, towers, health int) error {
+	return nil
+}
+
+// TestChallengeResultChannel tests that challenge results are properly
+// communicated via channel even when Model is copied (as Bubbletea does)
+func TestChallengeResultChannel(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.NvimRPC = &MockRPCClient{}
+
+	// Simulate starting a challenge (this sets NvimChallengeID)
+	model.NvimChallengeCount++
+	model.NvimChallengeID = "challenge_1"
+	model.Game.StartChallengeWaiting()
+
+	if model.Game.State != engine.StateChallengeWaiting {
+		t.Fatalf("Expected StateChallengeWaiting, got %v", model.Game.State)
+	}
+
+	// Send a challenge result to the channel (simulating RPC handler)
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 50,
+	}
+
+	select {
+	case model.ChallengeResultChan <- result:
+		// OK
+	default:
+		t.Fatal("Failed to send to channel")
+	}
+
+	// Now simulate Bubbletea's Update cycle with a TickMsg
+	// Note: Update returns a NEW model (value copy)
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := model.Update(tickMsg)
+
+	// The returned model should have processed the challenge result
+	updatedModel := newModel.(Model)
+
+	if updatedModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after processing result, got %v", updatedModel.Game.State)
+	}
+
+	if updatedModel.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID to be cleared, got %s", updatedModel.NvimChallengeID)
+	}
+}
+
+// TestChallengeResultChannelWithCopy tests that even when we work with a copy
+// of the model (as Bubbletea does), the channel still works
+func TestChallengeResultChannelWithCopy(t *testing.T) {
+	// Create original model
+	original := NewModel()
+	original.NvimMode = true
+	original.NvimRPC = &MockRPCClient{}
+
+	// Start a challenge on the original
+	original.NvimChallengeCount++
+	original.NvimChallengeID = "challenge_1"
+	original.Game.StartChallengeWaiting()
+
+	// Create a copy (simulating what Bubbletea does)
+	modelCopy := original
+
+	// The copy should share the same channel (channels are reference types)
+	if modelCopy.ChallengeResultChan != original.ChallengeResultChan {
+		t.Fatal("Channel should be shared between original and copy")
+	}
+
+	// Send result to the ORIGINAL's channel (simulating RPC handler)
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 75,
+	}
+
+	select {
+	case original.ChallengeResultChan <- result:
+		// OK
+	default:
+		t.Fatal("Failed to send to channel")
+	}
+
+	// Process on the COPY (simulating Bubbletea's Update)
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := modelCopy.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	// Should have processed the result
+	if updatedModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying, got %v", updatedModel.Game.State)
+	}
+}
+
+// TestChallengeResultMismatchedID tests that stale results are ignored
+func TestChallengeResultMismatchedID(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.NvimRPC = &MockRPCClient{}
+
+	// Start challenge with ID "challenge_2"
+	model.NvimChallengeCount = 2
+	model.NvimChallengeID = "challenge_2"
+	model.Game.StartChallengeWaiting()
+
+	initialGold := model.Game.Gold
+
+	// Send a stale result with wrong ID
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1", // Wrong ID!
+		Success:    true,
+		GoldEarned: 100,
+	}
+
+	select {
+	case model.ChallengeResultChan <- result:
+	default:
+		t.Fatal("Failed to send to channel")
+	}
+
+	// Process
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := model.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	// Should NOT have processed - state should still be waiting
+	if updatedModel.Game.State != engine.StateChallengeWaiting {
+		t.Errorf("Expected StateChallengeWaiting (stale result ignored), got %v", updatedModel.Game.State)
+	}
+
+	// Gold should not have changed
+	if updatedModel.Game.Gold != initialGold {
+		t.Errorf("Gold should not change for stale result, expected %d, got %d", initialGold, updatedModel.Game.Gold)
+	}
+}
+
+// TestChallengeResultGoldAwarded tests that gold is properly awarded on success
+func TestChallengeResultGoldAwarded(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.NvimRPC = &MockRPCClient{}
+
+	model.NvimChallengeID = "challenge_1"
+	model.Game.StartChallengeWaiting()
+
+	initialGold := model.Game.Gold
+
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 42,
+	}
+
+	model.ChallengeResultChan <- result
+
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := model.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	expectedGold := initialGold + 42
+	if updatedModel.Game.Gold != expectedGold {
+		t.Errorf("Expected gold %d, got %d", expectedGold, updatedModel.Game.Gold)
+	}
+}
+
+// TestChallengeResultNoGoldOnFailure tests that no gold is awarded on failure
+func TestChallengeResultNoGoldOnFailure(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.NvimRPC = &MockRPCClient{}
+
+	model.NvimChallengeID = "challenge_1"
+	model.Game.StartChallengeWaiting()
+
+	initialGold := model.Game.Gold
+
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    false, // Failed
+		GoldEarned: 0,
+	}
+
+	model.ChallengeResultChan <- result
+
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := model.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	// Gold should remain unchanged
+	if updatedModel.Game.Gold != initialGold {
+		t.Errorf("Expected gold %d (unchanged), got %d", initialGold, updatedModel.Game.Gold)
+	}
+
+	// But game should resume
+	if updatedModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after failed challenge, got %v", updatedModel.Game.State)
+	}
+}
+
+// TestHandleChallengeCompleteViaPointer simulates the real scenario:
+// - Original model is passed to socket server as pointer
+// - Bubbletea works with value copies
+// - Handler is called on original, but Update runs on copy
+func TestHandleChallengeCompleteViaPointer(t *testing.T) {
+	// Create model and get a pointer (like socket server does)
+	original := NewModel()
+	original.NvimMode = true
+	original.NvimRPC = &MockRPCClient{}
+
+	// Pointer to original (this is what socket server holds)
+	handlerPtr := &original
+
+	// Bubbletea makes a copy for its Update loop
+	btCopy := original
+
+	// Start challenge - but this happens on a PREVIOUS copy, not handlerPtr
+	// In real code, this is the issue: the ID is set on a Bubbletea copy,
+	// but handlerPtr still points to the original with empty ID
+
+	// Simulate: Bubbletea's copy starts the challenge
+	btCopy.NvimChallengeID = "challenge_1"
+	btCopy.Game.StartChallengeWaiting()
+
+	// The original (handlerPtr) does NOT have the challenge ID set!
+	// This is the root cause of the bug.
+	if handlerPtr.NvimChallengeID == "challenge_1" {
+		t.Log("Note: In this test, original and copy are the same struct, so this passes")
+		t.Log("In real Bubbletea, they would diverge after Update returns a new value")
+	}
+
+	// Now simulate RPC handler being called on the original pointer
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 50,
+	}
+
+	// Handler sends to channel (this works because channels are reference types)
+	handlerPtr.HandleChallengeComplete(result)
+
+	// Now btCopy processes in its Update loop
+	// The btCopy has the correct NvimChallengeID
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := btCopy.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying, got %v", updatedModel.Game.State)
+	}
+}
+
+// TestMultipleTicksDoNotDuplicateProcessing ensures we don't process
+// the same result multiple times
+func TestMultipleTicksDoNotDuplicateProcessing(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.NvimRPC = &MockRPCClient{}
+
+	model.NvimChallengeID = "challenge_1"
+	model.Game.StartChallengeWaiting()
+
+	initialGold := model.Game.Gold
+
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 25,
+	}
+
+	model.ChallengeResultChan <- result
+
+	// First tick processes the result
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := model.Update(tickMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.Game.Gold != initialGold+25 {
+		t.Fatalf("First tick should add gold, expected %d, got %d", initialGold+25, updatedModel.Game.Gold)
+	}
+
+	// Second tick should not add more gold (channel is empty)
+	tickMsg2 := TickMsg(time.Now())
+	newModel2, _ := updatedModel.Update(tickMsg2)
+	finalModel := newModel2.(Model)
+
+	if finalModel.Game.Gold != initialGold+25 {
+		t.Errorf("Second tick should not add more gold, expected %d, got %d", initialGold+25, finalModel.Game.Gold)
+	}
+}
+
+// TestRealisticBubbleteaFlow simulates the exact Bubbletea flow:
+// 1. Model created, socket server initialized with pointer to model
+// 2. Model passed to tea.NewProgram (by value)
+// 3. Challenge started via Update (returns new model)
+// 4. RPC handler called on ORIGINAL pointer
+// 5. Update called on BUBBLETEA'S copy
+func TestRealisticBubbleteaFlow(t *testing.T) {
+	// Step 1: Create model (like in main.go)
+	model := NewModel()
+	model.NvimMode = true
+
+	// Step 2: Socket server gets pointer to model
+	// In real code: model.InitNvimSocket(socketPath)
+	// The socket server stores &model as the handler
+	handlerPointer := &model
+
+	// Step 3: Bubbletea gets a copy (tea.NewProgram(model, ...))
+	// After this, Bubbletea works with copies, not the original
+	bubbleteaCopy := model
+
+	// Simulate RPC client on the copy (in reality this happens during init)
+	bubbleteaCopy.NvimRPC = &MockRPCClient{}
+
+	// Step 4: User presses 'c' to start challenge
+	// This happens in Bubbletea's Update, which returns a NEW copy
+	bubbleteaCopy.NvimChallengeCount++
+	bubbleteaCopy.NvimChallengeID = "challenge_1"
+	bubbleteaCopy.Game.StartChallengeWaiting()
+
+	// CRITICAL: The original model (handlerPointer) does NOT have the challenge ID!
+	// This is because Go structs are value types.
+	// However, the channel IS shared (reference type).
+
+	t.Logf("Handler pointer NvimChallengeID: '%s'", handlerPointer.NvimChallengeID)
+	t.Logf("Bubbletea copy NvimChallengeID: '%s'", bubbleteaCopy.NvimChallengeID)
+
+	// The handler pointer has empty ID because it's the original, before challenge started
+	if handlerPointer.NvimChallengeID != "" {
+		t.Log("Note: In this simple test they're the same memory, but conceptually they diverge")
+	}
+
+	// Step 5: RPC notification arrives, handler called on original pointer
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 50,
+	}
+	handlerPointer.HandleChallengeComplete(result)
+
+	// Step 6: Bubbletea's Update processes the tick
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := bubbleteaCopy.Update(tickMsg)
+	finalModel := newModel.(Model)
+
+	// Verify challenge was processed
+	if finalModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying, got %v", finalModel.Game.State)
+	}
+
+	if finalModel.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID cleared, got '%s'", finalModel.NvimChallengeID)
+	}
+
+	t.Logf("Final game state: %v, Gold: %d", finalModel.Game.State, finalModel.Game.Gold)
+}
+
+// TestSocketServerHandlerWithSeparateModels tests the exact problem:
+// socket server has pointer to original, but Bubbletea evolves separately
+func TestSocketServerHandlerWithSeparateModels(t *testing.T) {
+	// Create the original model
+	original := NewModel()
+	original.NvimMode = true
+	original.NvimRPC = &MockRPCClient{}
+
+	// Socket server holds a pointer
+	socketHandler := &original
+
+	// Bubbletea gets value copy and evolves it
+	btModel := original
+	btModel.NvimChallengeID = "challenge_1"
+	btModel.Game.StartChallengeWaiting()
+
+	// Verify they're now different (in real code they would be)
+	// Note: In this test, since we modified btModel after copy,
+	// they ARE different
+
+	// Send result via the socket handler
+	result := &nvim.ChallengeResult{
+		RequestID:  "challenge_1",
+		Success:    true,
+		GoldEarned: 100,
+	}
+
+	// This sends to the channel (which is shared)
+	socketHandler.HandleChallengeComplete(result)
+
+	// Process on Bubbletea's model
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := btModel.Update(tickMsg)
+	finalModel := newModel.(Model)
+
+	if finalModel.Game.State != engine.StatePlaying {
+		t.Errorf("Game should resume after challenge, got state %v", finalModel.Game.State)
+	}
+}
+
+// TestIntegrationWithRealSocketServer tests the FULL integration:
+// - Real SocketServer
+// - Real Model with channel
+// - Simulated Bubbletea Update loop
+// - Real socket client (simulating Neovim)
+func TestIntegrationWithRealSocketServer(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_integration.sock")
+	defer os.Remove(socketPath)
+
+	// Create model
+	model := NewModel()
+	model.NvimMode = true
+
+	// Initialize socket server (this stores &model as handler)
+	model.InitNvimSocket(socketPath)
+	defer model.NvimSocket.Stop()
+
+	// Wait for server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect as client (simulating Neovim)
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	// Wait for connection
+	time.Sleep(100 * time.Millisecond)
+
+	// Consume the game_ready notification
+	buf := make([]byte, 4096)
+	conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	conn.Read(buf)
+
+	// Now simulate Bubbletea's copy of the model starting a challenge
+	btModel := model
+	btModel.NvimChallengeCount++
+	btModel.NvimChallengeID = "int_test_1"
+	btModel.Game.StartChallengeWaiting()
+
+	t.Logf("Started challenge, state=%v, id=%s", btModel.Game.State, btModel.NvimChallengeID)
+
+	if btModel.Game.State != engine.StateChallengeWaiting {
+		t.Fatalf("Expected StateChallengeWaiting, got %v", btModel.Game.State)
+	}
+
+	// Client sends challenge_complete (Neovim finished the challenge)
+	response := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "challenge_complete",
+		"params": map[string]interface{}{
+			"request_id":  "int_test_1",
+			"success":     true,
+			"gold_earned": 88.0,
+		},
+	}
+	data, _ := json.Marshal(response)
+	_, err = conn.Write(append(data, '\n'))
+	if err != nil {
+		t.Fatalf("Failed to write: %v", err)
+	}
+
+	// Wait for RPC to be processed
+	time.Sleep(200 * time.Millisecond)
+
+	// Now simulate Bubbletea's Update tick on btModel
+	initialGold := btModel.Game.Gold
+	tickMsg := TickMsg(time.Now())
+	newModel, _ := btModel.Update(tickMsg)
+	finalModel := newModel.(Model)
+
+	t.Logf("After tick: state=%v, gold=%d (was %d)", finalModel.Game.State, finalModel.Game.Gold, initialGold)
+
+	// CRITICAL: This is where the bug would manifest
+	if finalModel.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after challenge complete, got %v", finalModel.Game.State)
+	}
+
+	expectedGold := initialGold + 88
+	if finalModel.Game.Gold != expectedGold {
+		t.Errorf("Expected gold %d, got %d", expectedGold, finalModel.Game.Gold)
+	}
+}
