@@ -40,21 +40,22 @@ type Model struct {
 	NvimChallengeCount int                 // Counter for generating unique IDs
 	PrevGameState      engine.GameState    // Track state changes for notifications
 
-	// Pending RPC results (set by goroutines, processed in Update loop)
-	PendingChallengeResult *nvim.ChallengeResult
+	// Channel for receiving RPC results from goroutines (thread-safe)
+	ChallengeResultChan chan *nvim.ChallengeResult
 }
 
 // NewModel creates a new game model
 func NewModel() Model {
 	cm, _ := engine.NewChallengeManager()
 	return Model{
-		Game:             engine.NewGame(GridWidth, GridHeight),
-		LastUpdate:       time.Now(),
-		Width:            GridWidth,
-		Height:           GridHeight,
-		Quitting:         false,
-		ChallengeManager: cm,
-		CurrentChallenge: nil,
+		Game:                engine.NewGame(GridWidth, GridHeight),
+		LastUpdate:          time.Now(),
+		Width:               GridWidth,
+		Height:              GridHeight,
+		Quitting:            false,
+		ChallengeManager:    cm,
+		CurrentChallenge:    nil,
+		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10), // Buffered channel for RPC results
 	}
 }
 
@@ -80,14 +81,19 @@ func (m *Model) InitNvimSocket(socketPath string) {
 // Handler interface implementation for nvim.Client
 
 // HandleChallengeComplete processes challenge results from Neovim
-// This is called from a goroutine, so we store the result for processing in the Update loop
+// This is called from a goroutine, so we send to a channel for processing in the Update loop
 func (m *Model) HandleChallengeComplete(result *nvim.ChallengeResult) {
 	if result.RequestID != m.NvimChallengeID {
 		return // Stale result, ignore
 	}
 
-	// Store for processing in the main Update loop (thread-safe handoff)
-	m.PendingChallengeResult = result
+	// Send to channel for processing in the main Update loop (thread-safe)
+	select {
+	case m.ChallengeResultChan <- result:
+		// Successfully sent
+	default:
+		// Channel full, drop the result (shouldn't happen with buffered channel)
+	}
 }
 
 // HandleConfigUpdate processes config updates from Neovim
@@ -171,11 +177,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		dt := now.Sub(m.LastUpdate).Seconds()
 		m.LastUpdate = now
 
-		// Process pending challenge result from RPC (set by goroutine)
-		if m.PendingChallengeResult != nil {
-			result := m.PendingChallengeResult
-			m.PendingChallengeResult = nil
-
+		// Process pending challenge results from RPC channel (non-blocking)
+		select {
+		case result := <-m.ChallengeResultChan:
 			if result.Success {
 				// Award gold - Neovim already calculated it
 				gold := result.GoldEarned
@@ -188,6 +192,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Clear challenge state and resume game
 			m.NvimChallengeID = ""
 			m.Game.EndChallenge()
+		default:
+			// No pending result, continue
 		}
 
 		// Store previous state before update
