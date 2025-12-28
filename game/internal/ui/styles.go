@@ -1,0 +1,188 @@
+package ui
+
+import "github.com/charmbracelet/lipgloss"
+
+// Color palette
+var (
+	ColorPrimary    = lipgloss.Color("#22c55e") // green
+	ColorSecondary  = lipgloss.Color("#8b5cf6") // purple
+	ColorWarning    = lipgloss.Color("#f59e0b") // amber
+	ColorDanger     = lipgloss.Color("#ef4444") // red
+	ColorMuted      = lipgloss.Color("#6b7280") // gray
+	ColorBackground = lipgloss.Color("#1f2937") // dark gray
+	ColorBorder     = lipgloss.Color("#374151") // medium gray
+	ColorPath       = lipgloss.Color("#4b5563") // path color
+	ColorCursor     = lipgloss.Color("#fbbf24") // yellow for cursor
+	ColorGold       = lipgloss.Color("#fbbf24") // gold
+	ColorHealth     = lipgloss.Color("#ef4444") // health red
+)
+
+// Styles
+var (
+	// Box styles
+	BorderStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ColorBorder)
+
+	TitleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ColorPrimary).
+			Padding(0, 1)
+
+	// HUD styles
+	HUDStyle = lipgloss.NewStyle().
+			Padding(0, 1)
+
+	GoldStyle = lipgloss.NewStyle().
+			Foreground(ColorGold).
+			Bold(true)
+
+	HealthStyle = lipgloss.NewStyle().
+			Foreground(ColorHealth).
+			Bold(true)
+
+	WaveStyle = lipgloss.NewStyle().
+			Foreground(ColorSecondary).
+			Bold(true)
+
+	// Cell styles
+	EmptyCellStyle = lipgloss.NewStyle().
+			Foreground(ColorMuted)
+
+	PathCellStyle = lipgloss.NewStyle().
+			Foreground(ColorPath)
+
+	CursorStyle = lipgloss.NewStyle().
+			Background(ColorCursor).
+			Foreground(lipgloss.Color("#000000"))
+
+	// Tower styles
+	TowerArrowStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#22c55e"))
+
+	TowerLSPStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#8b5cf6"))
+
+	TowerRefactorStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#f59e0b"))
+
+	// Enemy styles
+	EnemyBugStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#ef4444"))
+
+	EnemyGremlinStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#f97316"))
+
+	EnemyDaemonStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#dc2626"))
+
+	EnemyBossStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7c2d12")).
+			Bold(true)
+
+	// Projectile style
+	ProjectileStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#fef08a"))
+
+	// Status styles
+	PausedStyle = lipgloss.NewStyle().
+			Foreground(ColorWarning).
+			Bold(true)
+
+	GameOverStyle = lipgloss.NewStyle().
+			Foreground(ColorDanger).
+			Bold(true)
+
+	VictoryStyle = lipgloss.NewStyle().
+			Foreground(ColorPrimary).
+			Bold(true)
+
+	// Shop styles
+	ShopItemStyle = lipgloss.NewStyle().
+			Padding(0, 1)
+
+	ShopItemDisabledStyle = lipgloss.NewStyle().
+				Padding(0, 1).
+				Foreground(ColorMuted)
+
+	SelectedStyle = lipgloss.NewStyle().
+			Background(ColorPrimary).
+			Foreground(lipgloss.Color("#000000"))
+
+	// Help text
+	HelpStyle = lipgloss.NewStyle().
+			Foreground(ColorMuted).
+			Italic(true)
+)
+
+// Characters for rendering
+const (
+	// Box drawing
+	BoxTopLeft     = "╔"
+	BoxTopRight    = "╗"
+	BoxBottomLeft  = "╚"
+	BoxBottomRight = "╝"
+	BoxHorizontal  = "═"
+	BoxVertical    = "║"
+
+	// Path characters
+	PathHorizontal = "─"
+	PathVertical   = "│"
+	PathCornerTL   = "┌"
+	PathCornerTR   = "┐"
+	PathCornerBL   = "└"
+	PathCornerBR   = "┘"
+
+	// Entity characters (with emoji fallbacks)
+	TowerArrowChar    = "🏹"
+	TowerLSPChar      = "🔮"
+	TowerRefactorChar = "⚡"
+
+	EnemyBugChar     = "🐛"
+	EnemyGremlinChar = "👹"
+	EnemyDaemonChar  = "👿"
+	EnemyBossChar    = "💀"
+
+	ProjectileChar = "•"
+
+	// Fallback ASCII
+	TowerCharASCII      = "T"
+	EnemyCharASCII      = "E"
+	ProjectileCharASCII = "*"
+
+	// UI characters
+	EmptyCell  = "·"
+	CursorChar = "█"
+	PathChar   = "░"
+
+	// Health bar
+	HealthFull  = "█"
+	HealthHalf  = "▓"
+	HealthLow   = "▒"
+	HealthEmpty = "░"
+)
+
+// RenderHealthBar creates a visual health bar
+func RenderHealthBar(current, max int, width int) string {
+	if max <= 0 {
+		return ""
+	}
+	ratio := float64(current) / float64(max)
+	filled := int(ratio * float64(width))
+
+	bar := ""
+	for i := 0; i < width; i++ {
+		if i < filled {
+			if ratio > 0.6 {
+				bar += HealthStyle.Render(HealthFull)
+			} else if ratio > 0.3 {
+				bar += lipgloss.NewStyle().Foreground(ColorWarning).Render(HealthHalf)
+			} else {
+				bar += lipgloss.NewStyle().Foreground(ColorDanger).Render(HealthLow)
+			}
+		} else {
+			bar += EmptyCellStyle.Render(HealthEmpty)
+		}
+	}
+	return bar
+}

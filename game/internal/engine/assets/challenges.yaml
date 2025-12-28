@@ -1,0 +1,645 @@
+# Keyforge Challenge Definitions
+# Each challenge is a kata-style editing task
+
+challenges:
+  # ============================================
+  # MOVEMENT CHALLENGES
+  # ============================================
+
+  # Basic Movement
+  - id: movement_end_of_line
+    name: "Jump to End"
+    category: movement
+    difficulty: 1
+    description: "Move to the end of the line using $"
+    filetype: text
+    initial_buffer: |
+      The quick brown fox jumps over the lazy dog
+    validation_type: cursor_position
+    expected_cursor: [0, 43]
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: movement_start_of_line
+    name: "Jump to Start"
+    category: movement
+    difficulty: 1
+    description: "Move to the first non-blank character using ^"
+    filetype: text
+    initial_buffer: |
+          indented text here
+    validation_type: cursor_position
+    expected_cursor: [0, 4]
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: movement_word_forward
+    name: "Word Hop"
+    category: movement
+    difficulty: 1
+    description: "Move forward 5 words using 5w"
+    filetype: text
+    initial_buffer: |
+      one two three four five six seven eight
+    validation_type: cursor_position
+    expected_cursor: [0, 24]
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: movement_find_char
+    name: "Find the X"
+    category: movement
+    difficulty: 1
+    description: "Jump to the letter 'x' using f"
+    filetype: text
+    initial_buffer: |
+      The fox jumped over the box
+    validation_type: cursor_position
+    expected_cursor: [0, 6]
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: movement_goto_line
+    name: "Line Jump"
+    category: movement
+    difficulty: 1
+    description: "Go to line 5 using 5G or :5"
+    filetype: text
+    initial_buffer: |
+      Line 1
+      Line 2
+      Line 3
+      Line 4
+      Target line here
+      Line 6
+    validation_type: cursor_position
+    expected_cursor: [4, 0]
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: movement_paragraph
+    name: "Paragraph Skip"
+    category: movement
+    difficulty: 2
+    description: "Jump to the next paragraph using }"
+    filetype: text
+    initial_buffer: |
+      First paragraph with
+      multiple lines of
+      text here.
+
+      Second paragraph starts
+      on this line.
+    validation_type: cursor_position
+    expected_cursor: [4, 0]
+    par_keystrokes: 1
+    gold_base: 30
+
+  - id: movement_matching_bracket
+    name: "Bracket Match"
+    category: movement
+    difficulty: 2
+    description: "Jump to the matching bracket using %"
+    filetype: javascript
+    initial_buffer: |
+      function example() {
+        if (condition) {
+          doSomething();
+        }
+      }
+    cursor_start: [0, 19]
+    validation_type: cursor_position
+    expected_cursor: [4, 0]
+    par_keystrokes: 1
+    gold_base: 35
+
+  - id: movement_search
+    name: "Search Mission"
+    category: movement
+    difficulty: 2
+    description: "Search for 'error' using /error"
+    filetype: javascript
+    initial_buffer: |
+      function process(data) {
+        if (!data) {
+          throw new Error("Invalid");
+        }
+        if (data.error) {
+          console.log("Found error");
+        }
+      }
+    validation_type: cursor_position
+    expected_cursor: [4, 11]
+    par_keystrokes: 7
+    gold_base: 40
+
+  - id: movement_screen_top
+    name: "Top of Screen"
+    category: movement
+    difficulty: 2
+    description: "Move to the top of the screen using H"
+    filetype: text
+    initial_buffer: |
+      Line 1 - target
+      Line 2
+      Line 3
+      Line 4
+      Line 5
+      Line 6
+      Line 7
+      Line 8
+    cursor_start: [7, 0]
+    validation_type: cursor_position
+    expected_cursor: [0, 0]
+    par_keystrokes: 1
+    gold_base: 25
+
+  - id: movement_mark_jump
+    name: "Mark and Return"
+    category: movement
+    difficulty: 3
+    description: "Set mark 'a', go to line 5, then return to mark with 'a"
+    filetype: text
+    initial_buffer: |
+      Start here
+      Line 2
+      Line 3
+      Line 4
+      Line 5
+      Line 6
+    validation_type: cursor_position
+    expected_cursor: [0, 0]
+    par_keystrokes: 6
+    gold_base: 50
+
+  # ============================================
+  # TEXT OBJECT CHALLENGES
+  # ============================================
+
+  - id: text_change_word
+    name: "Change Word"
+    category: text-objects
+    difficulty: 1
+    description: "Change 'hello' to 'world' using ciw"
+    filetype: text
+    initial_buffer: |
+      Say hello to everyone
+    expected_buffer: |
+      Say world to everyone
+    validation_type: exact_match
+    par_keystrokes: 9
+    gold_base: 35
+
+  - id: text_change_inner_quotes
+    name: "Change Inside Quotes"
+    category: text-objects
+    difficulty: 2
+    description: "Change the text inside quotes to 'updated'"
+    filetype: javascript
+    initial_buffer: |
+      const message = "old value";
+    expected_buffer: |
+      const message = "updated";
+    validation_type: exact_match
+    par_keystrokes: 12
+    gold_base: 45
+
+  - id: text_delete_around_parens
+    name: "Delete Parentheses"
+    category: text-objects
+    difficulty: 2
+    description: "Delete the parentheses and their contents using da("
+    filetype: javascript
+    initial_buffer: |
+      console.log(getValue());
+    expected_buffer: |
+      console.log;
+    cursor_start: [0, 12]
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 40
+
+  - id: text_change_inner_tag
+    name: "Change Tag Content"
+    category: text-objects
+    difficulty: 2
+    description: "Change the text inside the <p> tag to 'New content'"
+    filetype: html
+    initial_buffer: |
+      <p>Old content here</p>
+    expected_buffer: |
+      <p>New content</p>
+    validation_type: exact_match
+    par_keystrokes: 15
+    gold_base: 50
+
+  - id: text_delete_inner_bracket
+    name: "Clear Array"
+    category: text-objects
+    difficulty: 2
+    description: "Delete everything inside the brackets using di["
+    filetype: javascript
+    initial_buffer: |
+      const items = [1, 2, 3, 4, 5];
+    expected_buffer: |
+      const items = [];
+    cursor_start: [0, 15]
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 40
+
+  - id: text_change_sentence
+    name: "Rewrite Sentence"
+    category: text-objects
+    difficulty: 2
+    description: "Change the first sentence to 'Hello there.'"
+    filetype: text
+    initial_buffer: |
+      This is the old sentence. Keep this one.
+    expected_buffer: |
+      Hello there. Keep this one.
+    validation_type: exact_match
+    par_keystrokes: 16
+    gold_base: 50
+
+  - id: text_yank_paragraph
+    name: "Copy Paragraph"
+    category: text-objects
+    difficulty: 2
+    description: "Yank the first paragraph and paste it at the end"
+    filetype: text
+    initial_buffer: |
+      First paragraph
+      with two lines.
+
+      Second paragraph.
+    expected_buffer: |
+      First paragraph
+      with two lines.
+
+      Second paragraph.
+
+      First paragraph
+      with two lines.
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 55
+
+  - id: text_change_inside_braces
+    name: "Empty Function Body"
+    category: text-objects
+    difficulty: 2
+    description: "Delete everything inside the function braces"
+    filetype: javascript
+    initial_buffer: |
+      function cleanup() {
+        const temp = getData();
+        processTemp(temp);
+        return temp;
+      }
+    expected_buffer: |
+      function cleanup() {
+      }
+    cursor_start: [0, 20]
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 45
+
+  - id: text_select_function
+    name: "Select Function"
+    category: text-objects
+    difficulty: 3
+    description: "Delete the entire function using daf (requires vim-textobj-function or similar)"
+    filetype: javascript
+    initial_buffer: |
+      const x = 1;
+
+      function toDelete() {
+        return 42;
+      }
+
+      const y = 2;
+    expected_buffer: |
+      const x = 1;
+
+
+      const y = 2;
+    validation_type: exact_match
+    par_keystrokes: 4
+    gold_base: 60
+
+  - id: text_surround_word
+    name: "Surround with Quotes"
+    category: text-objects
+    difficulty: 3
+    description: "Surround 'hello' with double quotes (using vim-surround: ysiw\")"
+    filetype: text
+    initial_buffer: |
+      Say hello to the world
+    expected_buffer: |
+      Say "hello" to the world
+    cursor_start: [0, 4]
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 55
+
+  # ============================================
+  # LSP NAVIGATION CHALLENGES
+  # ============================================
+
+  - id: lsp_goto_definition
+    name: "Find Definition"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Use gd to go to the definition of getUserName"
+    filetype: javascript
+    initial_buffer: |
+      function getUserName(user) {
+        return user.name;
+      }
+
+      function displayUser(user) {
+        const name = getUserName(user);
+        console.log(name);
+      }
+    cursor_start: [5, 17]
+    validation_type: cursor_position
+    expected_cursor: [0, 9]
+    par_keystrokes: 2
+    gold_base: 50
+
+  - id: lsp_find_references
+    name: "Find All References"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Use gr to find all references to 'count'"
+    filetype: javascript
+    initial_buffer: |
+      let count = 0;
+
+      function increment() {
+        count++;
+      }
+
+      function getCount() {
+        return count;
+      }
+    cursor_start: [0, 4]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 55
+
+  - id: lsp_hover_info
+    name: "Check Type Info"
+    category: lsp-navigation
+    difficulty: 1
+    description: "Use K to view hover information for the function"
+    filetype: typescript
+    initial_buffer: |
+      function calculateSum(a: number, b: number): number {
+        return a + b;
+      }
+
+      const result = calculateSum(5, 3);
+    cursor_start: [4, 17]
+    validation_type: different
+    par_keystrokes: 1
+    gold_base: 40
+
+  - id: lsp_rename_symbol
+    name: "Rename Variable"
+    category: lsp-navigation
+    difficulty: 3
+    description: "Rename 'oldName' to 'newName' using LSP rename"
+    filetype: javascript
+    initial_buffer: |
+      const oldName = "test";
+      console.log(oldName);
+      process(oldName);
+    expected_buffer: |
+      const newName = "test";
+      console.log(newName);
+      process(newName);
+    cursor_start: [0, 6]
+    validation_type: exact_match
+    par_keystrokes: 12
+    gold_base: 70
+
+  - id: lsp_code_action
+    name: "Quick Fix"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Use code action to add missing import"
+    filetype: typescript
+    initial_buffer: |
+      const result = someFunction();
+    validation_type: contains
+    expected_content: "import"
+    par_keystrokes: 5
+    gold_base: 60
+
+  # ============================================
+  # SEARCH AND REPLACE CHALLENGES
+  # ============================================
+
+  - id: search_simple_replace
+    name: "Simple Replace"
+    category: search-replace
+    difficulty: 1
+    description: "Replace 'foo' with 'bar' using :s/foo/bar/"
+    filetype: text
+    initial_buffer: |
+      The foo is here
+    expected_buffer: |
+      The bar is here
+    validation_type: exact_match
+    par_keystrokes: 13
+    gold_base: 35
+
+  - id: search_global_replace
+    name: "Global Replace"
+    category: search-replace
+    difficulty: 2
+    description: "Replace all 'old' with 'new' using :%s/old/new/g"
+    filetype: text
+    initial_buffer: |
+      old value here
+      another old one
+      old again
+    expected_buffer: |
+      new value here
+      another new one
+      new again
+    validation_type: exact_match
+    par_keystrokes: 16
+    gold_base: 50
+
+  - id: search_line_replace
+    name: "Line Replace All"
+    category: search-replace
+    difficulty: 2
+    description: "Replace all 'a' with 'X' on the current line only"
+    filetype: text
+    initial_buffer: |
+      banana and apple
+      another line with a
+    expected_buffer: |
+      bXnXnX Xnd Xpple
+      another line with a
+    validation_type: exact_match
+    par_keystrokes: 12
+    gold_base: 45
+
+  - id: search_confirm_replace
+    name: "Confirm Each Replace"
+    category: search-replace
+    difficulty: 2
+    description: "Replace 'TODO' with 'DONE' but only the first two using :s/TODO/DONE/gc"
+    filetype: text
+    initial_buffer: |
+      TODO: first task
+      TODO: second task
+      TODO: keep this one
+    expected_buffer: |
+      DONE: first task
+      DONE: second task
+      TODO: keep this one
+    validation_type: exact_match
+    par_keystrokes: 20
+    gold_base: 55
+
+  - id: search_regex_replace
+    name: "Regex Replace"
+    category: search-replace
+    difficulty: 3
+    description: "Use regex to convert snake_case to camelCase for 'user_name'"
+    filetype: javascript
+    initial_buffer: |
+      const user_name = "John";
+    expected_buffer: |
+      const userName = "John";
+    validation_type: exact_match
+    par_keystrokes: 25
+    gold_base: 70
+
+  - id: search_delete_lines
+    name: "Delete Matching Lines"
+    category: search-replace
+    difficulty: 2
+    description: "Delete all lines containing 'debug' using :g/debug/d"
+    filetype: javascript
+    initial_buffer: |
+      console.log("start");
+      console.debug("debug info");
+      process();
+      console.debug("more debug");
+      console.log("end");
+    expected_buffer: |
+      console.log("start");
+      process();
+      console.log("end");
+    validation_type: exact_match
+    par_keystrokes: 12
+    gold_base: 50
+
+  # ============================================
+  # REFACTORING CHALLENGES
+  # ============================================
+
+  - id: refactor_extract_variable
+    name: "Extract Variable"
+    category: refactoring
+    difficulty: 2
+    description: "Extract the calculation into a variable called 'total'"
+    filetype: javascript
+    initial_buffer: |
+      function getPrice(items) {
+        return items.reduce((a, b) => a + b.price, 0) * 1.1;
+      }
+    expected_buffer: |
+      function getPrice(items) {
+        const total = items.reduce((a, b) => a + b.price, 0);
+        return total * 1.1;
+      }
+    validation_type: contains
+    expected_content: "const total"
+    par_keystrokes: 40
+    gold_base: 80
+
+  - id: refactor_inline_variable
+    name: "Inline Variable"
+    category: refactoring
+    difficulty: 2
+    description: "Inline the 'temp' variable"
+    filetype: javascript
+    initial_buffer: |
+      function process(x) {
+        const temp = x * 2;
+        return temp;
+      }
+    expected_buffer: |
+      function process(x) {
+        return x * 2;
+      }
+    validation_type: exact_match
+    par_keystrokes: 15
+    gold_base: 55
+
+  - id: refactor_extract_function
+    name: "Extract Function"
+    category: refactoring
+    difficulty: 3
+    description: "Extract the validation logic into a function called 'validateEmail'"
+    filetype: javascript
+    initial_buffer: |
+      function processForm(data) {
+        if (!data.email || !data.email.includes('@')) {
+          throw new Error('Invalid email');
+        }
+        saveData(data);
+      }
+    validation_type: function_exists
+    function_name: validateEmail
+    par_keystrokes: 60
+    gold_base: 100
+
+  - id: refactor_rename_function
+    name: "Rename Function"
+    category: refactoring
+    difficulty: 2
+    description: "Rename 'fn' to 'calculateTotal'"
+    filetype: javascript
+    initial_buffer: |
+      function fn(items) {
+        return items.reduce((a, b) => a + b, 0);
+      }
+
+      const result = fn([1, 2, 3]);
+    expected_buffer: |
+      function calculateTotal(items) {
+        return items.reduce((a, b) => a + b, 0);
+      }
+
+      const result = calculateTotal([1, 2, 3]);
+    validation_type: exact_match
+    par_keystrokes: 30
+    gold_base: 70
+
+  - id: refactor_add_parameter
+    name: "Add Parameter"
+    category: refactoring
+    difficulty: 2
+    description: "Add a 'multiplier' parameter with default value 1"
+    filetype: javascript
+    initial_buffer: |
+      function calculate(value) {
+        return value * 2;
+      }
+    expected_buffer: |
+      function calculate(value, multiplier = 1) {
+        return value * multiplier;
+      }
+    validation_type: contains
+    expected_content: "multiplier"
+    par_keystrokes: 35
+    gold_base: 65
