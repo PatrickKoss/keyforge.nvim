@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/keyforge/keyforge/internal/engine"
 	"github.com/keyforge/keyforge/internal/entities"
+	"github.com/keyforge/keyforge/internal/vim"
 )
 
 // RenderGame renders the complete game view
@@ -25,9 +26,15 @@ func RenderGame(m *Model) string {
 	b.WriteString(renderGrid(m))
 	b.WriteString("\n")
 
-	// Shop
-	b.WriteString(renderShop(m))
-	b.WriteString("\n")
+	// Challenge display (when active)
+	if m.Game.State == engine.StateChallengeActive && m.CurrentChallenge != nil {
+		b.WriteString(renderChallenge(m))
+		b.WriteString("\n")
+	} else {
+		// Shop
+		b.WriteString(renderShop(m))
+		b.WriteString("\n")
+	}
 
 	// Help
 	b.WriteString(renderHelp(m))
@@ -69,7 +76,7 @@ func renderHUD(m *Model) string {
 	// Challenge hint when not in challenge
 	var challengeHint string
 	if g.State == engine.StatePlaying && !g.ChallengeActive {
-		challengeHint = HelpStyle.Render("  [Press <leader>kn for challenge]")
+		challengeHint = HelpStyle.Render("  [Press c for challenge]")
 	}
 
 	hud := fmt.Sprintf("%s    %s    %s%s%s", waveInfo, goldInfo, healthInfo, status, challengeHint)
@@ -291,8 +298,194 @@ func renderShop(m *Model) string {
 	return strings.Join(items, "  ")
 }
 
+func renderChallenge(m *Model) string {
+	c := m.CurrentChallenge
+	if c == nil {
+		return ""
+	}
+
+	var b strings.Builder
+
+	// Challenge header
+	header := fmt.Sprintf("Challenge: %s (%s)", c.Name, c.Category)
+	b.WriteString(ChallengeStyle.Render(header))
+	b.WriteString("\n")
+
+	// Description
+	b.WriteString(HelpStyle.Render(c.Description))
+	b.WriteString("\n\n")
+
+	// Render vim editor if available, otherwise show static buffer
+	if m.VimEditor != nil {
+		b.WriteString(renderVimBuffer(m.VimEditor))
+		b.WriteString("\n\n")
+
+		// Mode line
+		b.WriteString(renderModeLine(m.VimEditor, c))
+	} else if c.InitialBuffer != "" {
+		b.WriteString(HelpStyle.Render("Buffer:"))
+		b.WriteString("\n")
+		bufferStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#ffffff")).
+			Background(lipgloss.Color("#333333")).
+			Padding(0, 1)
+		b.WriteString(bufferStyle.Render(strings.TrimSpace(c.InitialBuffer)))
+		b.WriteString("\n\n")
+
+		// Gold reward
+		goldInfo := fmt.Sprintf("Reward: %dg  |  Par: %d keystrokes", c.GoldBase, c.ParKeystrokes)
+		b.WriteString(GoldStyle.Render(goldInfo))
+	}
+
+	return b.String()
+}
+
+// renderVimBuffer renders the vim buffer with cursor
+func renderVimBuffer(e *vim.Editor) string {
+	state := e.GetRenderState()
+	var b strings.Builder
+
+	bufferBg := lipgloss.NewStyle().
+		Background(lipgloss.Color("#1a1a1a")).
+		Padding(0, 1)
+
+	var lines []string
+	for lineNum, line := range state.Lines {
+		renderedLine := renderVimLine(line, lineNum, state)
+		lines = append(lines, renderedLine)
+	}
+
+	content := strings.Join(lines, "\n")
+	b.WriteString(bufferBg.Render(content))
+
+	return b.String()
+}
+
+// renderVimLine renders a single line with cursor highlighting
+func renderVimLine(line string, lineNum int, state vim.RenderState) string {
+	runes := []rune(line)
+
+	// Handle empty line
+	if len(runes) == 0 {
+		if lineNum == state.CursorLine {
+			// Show cursor on empty line
+			if state.Mode == vim.ModeInsert {
+				return InsertCursorStyle.Render("|")
+			}
+			return NormalCursorStyle.Render(" ")
+		}
+		return " " // Empty line placeholder
+	}
+
+	// Not the cursor line - check for visual selection
+	if lineNum != state.CursorLine {
+		if state.IsInVisualSelection(lineNum, 0) {
+			// Entire line is in selection
+			return VisualSelectionStyle.Render(line)
+		}
+		return line
+	}
+
+	// This is the cursor line
+	col := state.CursorCol
+	if col >= len(runes) {
+		col = len(runes) - 1
+	}
+	if col < 0 {
+		col = 0
+	}
+
+	// Build line with cursor
+	var result strings.Builder
+
+	// Handle visual selection on cursor line
+	if state.VisualStart != nil && state.VisualEnd != nil {
+		selStart := state.VisualStart.Col
+		selEnd := state.VisualEnd.Col
+		if selStart > selEnd {
+			selStart, selEnd = selEnd, selStart
+		}
+
+		for i, r := range runes {
+			inSelection := i >= selStart && i <= selEnd
+			isCursor := i == col
+
+			char := string(r)
+			if isCursor {
+				if state.Mode == vim.ModeVisual || state.Mode == vim.ModeVisualLine {
+					result.WriteString(VisualCursorStyle.Render(char))
+				} else {
+					result.WriteString(NormalCursorStyle.Render(char))
+				}
+			} else if inSelection {
+				result.WriteString(VisualSelectionStyle.Render(char))
+			} else {
+				result.WriteString(char)
+			}
+		}
+		return result.String()
+	}
+
+	// Normal cursor rendering
+	before := string(runes[:col])
+	cursorChar := string(runes[col])
+	after := ""
+	if col+1 < len(runes) {
+		after = string(runes[col+1:])
+	}
+
+	result.WriteString(before)
+
+	switch state.Mode {
+	case vim.ModeInsert:
+		result.WriteString(InsertCursorStyle.Render("|"))
+		result.WriteString(cursorChar)
+	case vim.ModeVisual, vim.ModeVisualLine:
+		result.WriteString(VisualCursorStyle.Render(cursorChar))
+	default:
+		result.WriteString(NormalCursorStyle.Render(cursorChar))
+	}
+
+	result.WriteString(after)
+	return result.String()
+}
+
+// renderModeLine renders the vim mode line
+func renderModeLine(e *vim.Editor, c *engine.Challenge) string {
+	state := e.GetRenderState()
+	var parts []string
+
+	// Mode indicator
+	modeStyle := lipgloss.NewStyle().Bold(true)
+	switch state.Mode {
+	case vim.ModeInsert:
+		modeStyle = modeStyle.Foreground(lipgloss.Color("#22c55e"))
+	case vim.ModeVisual, vim.ModeVisualLine:
+		modeStyle = modeStyle.Foreground(lipgloss.Color("#8b5cf6"))
+	default:
+		modeStyle = modeStyle.Foreground(lipgloss.Color("#60a5fa"))
+	}
+	parts = append(parts, modeStyle.Render(fmt.Sprintf("-- %s --", state.ModeString)))
+
+	// Pending command
+	if state.Count != "" || state.PendingCmd != "" {
+		parts = append(parts, HelpStyle.Render(state.Count+state.PendingCmd))
+	}
+
+	// Keystroke count
+	parts = append(parts, HelpStyle.Render(fmt.Sprintf("Keys: %d", e.KeystrokeCount)))
+
+	// Reward and par
+	parts = append(parts, GoldStyle.Render(fmt.Sprintf("Reward: %dg | Par: %d", c.GoldBase, c.ParKeystrokes)))
+
+	return strings.Join(parts, "  ")
+}
+
 func renderHelp(m *Model) string {
-	help := "[hjkl/arrows] Move  [space] Place tower  [p] Pause  [q] Quit"
+	if m.Game.State == engine.StateChallengeActive {
+		return HelpStyle.Render("[Ctrl+S] Submit  [Esc] Cancel  |  Use vim commands to edit")
+	}
+	help := "[hjkl/arrows] Move  [space] Place tower  [c] Challenge  [p] Pause  [q] Quit"
 	return HelpStyle.Render(help)
 }
 

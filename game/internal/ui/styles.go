@@ -117,6 +117,22 @@ var (
 	HelpStyle = lipgloss.NewStyle().
 			Foreground(ColorMuted).
 			Italic(true)
+
+	// Vim editor cursor styles
+	NormalCursorStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#fbbf24")).
+				Foreground(lipgloss.Color("#000000"))
+
+	InsertCursorStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#22c55e")).
+				Bold(true)
+
+	VisualCursorStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#8b5cf6")).
+				Foreground(lipgloss.Color("#ffffff"))
+
+	VisualSelectionStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#4c1d95"))
 )
 
 // Characters for rendering
