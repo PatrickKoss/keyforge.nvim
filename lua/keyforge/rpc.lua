@@ -206,4 +206,69 @@ function M.on_stdout(data)
   end
 end
 
+-- Register default handlers for Keyforge-specific methods
+
+--- Handler for gold_update notifications from the game
+---@param params table GoldUpdate params
+function M.handle_gold_update(params)
+  local gold = params.gold or 0
+  local earned = params.earned or 0
+  local source = params.source or "unknown"
+  local speed_bonus = params.speed_bonus or 1.0
+
+  -- Show notification to user
+  local msg
+  if source == "challenge" then
+    msg = string.format("+%dg from challenge (%.1fx speed bonus)", earned, speed_bonus)
+  elseif source == "mob" then
+    msg = string.format("+%dg from defeating enemy", earned)
+  elseif source == "wave_bonus" then
+    msg = string.format("+%dg wave completion bonus!", earned)
+  else
+    msg = string.format("+%dg", earned)
+  end
+
+  vim.schedule(function()
+    vim.notify(msg, vim.log.levels.INFO)
+  end)
+end
+
+--- Handler for challenge_available notifications from the game
+---@param params table ChallengeAvailable params
+function M.handle_challenge_available(params)
+  local count = params.count or 0
+  local next_reward = params.next_reward or 0
+  local next_category = params.next_category or "general"
+
+  if count > 0 then
+    vim.schedule(function()
+      vim.notify(
+        string.format("Challenges available: %d (next: ~%dg from %s)", count, next_reward, next_category),
+        vim.log.levels.INFO
+      )
+    end)
+  end
+end
+
+--- Handler for request_challenge requests from the game
+---@param params table ChallengeRequest params
+---@return table result
+function M.handle_request_challenge(params)
+  local challenge_queue = require("keyforge.challenge_queue")
+
+  vim.schedule(function()
+    -- Try to start the next challenge
+    challenge_queue.request_next()
+  end)
+
+  return { ok = true }
+end
+
+--- Register the default handlers
+function M.register_handlers()
+  M.on("gold_update", M.handle_gold_update)
+  M.on("challenge_available", M.handle_challenge_available)
+  M.on("request_challenge", M.handle_request_challenge)
+end
+
 return M

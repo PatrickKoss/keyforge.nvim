@@ -47,6 +47,12 @@ type Game struct {
 	WaveComplete  bool
 	WaveCountdown float64 // countdown between waves
 
+	// Economy configuration
+	Economy EconomyConfig
+
+	// Challenge state
+	ChallengeActive bool // indicates a challenge is being solved
+
 	// ID counters
 	nextEnemyID int
 	nextTowerID int
@@ -54,28 +60,35 @@ type Game struct {
 
 // NewGame creates a new game with default settings
 func NewGame(width, height int) *Game {
+	return NewGameWithEconomy(width, height, DefaultEconomyConfig())
+}
+
+// NewGameWithEconomy creates a new game with a specific economy configuration
+func NewGameWithEconomy(width, height int, economy EconomyConfig) *Game {
 	g := &Game{
-		State:         StatePlaying,
-		Width:         width,
-		Height:        height,
-		Gold:          200,
-		Health:        100,
-		MaxHealth:     100,
-		Wave:          1,
-		TotalWaves:    10,
-		Towers:        make([]*entities.Tower, 0),
-		Enemies:       make([]*entities.Enemy, 0),
-		Projectiles:   make([]*entities.Projectile, 0),
-		Effects:       entities.NewEffectManager(),
-		CursorX:       width / 2,
-		CursorY:       height / 2,
-		SelectedTower: entities.TowerArrow,
-		WaveTimer:     0,
-		SpawnIndex:    0,
-		WaveComplete:  false,
-		WaveCountdown: 3.0,
-		nextEnemyID:   0,
-		nextTowerID:   0,
+		State:           StatePlaying,
+		Width:           width,
+		Height:          height,
+		Gold:            200,
+		Health:          100,
+		MaxHealth:       100,
+		Wave:            1,
+		TotalWaves:      10,
+		Towers:          make([]*entities.Tower, 0),
+		Enemies:         make([]*entities.Enemy, 0),
+		Projectiles:     make([]*entities.Projectile, 0),
+		Effects:         entities.NewEffectManager(),
+		CursorX:         width / 2,
+		CursorY:         height / 2,
+		SelectedTower:   entities.TowerArrow,
+		WaveTimer:       0,
+		SpawnIndex:      0,
+		WaveComplete:    false,
+		WaveCountdown:   3.0,
+		Economy:         economy,
+		ChallengeActive: false,
+		nextEnemyID:     0,
+		nextTowerID:     0,
 	}
 	g.Path = g.createDefaultPath()
 	return g
@@ -221,7 +234,8 @@ func (g *Game) Update(dt float64) {
 	// Always update effects (even when paused for visual continuity)
 	g.Effects.Update(dt)
 
-	if g.State != StatePlaying {
+	// Game continues during challenges (ChallengeActive state) but not when paused
+	if g.State != StatePlaying && g.State != StateChallengeActive {
 		return
 	}
 
@@ -241,6 +255,27 @@ func (g *Game) Update(dt float64) {
 	g.checkGameEnd()
 }
 
+// StartChallenge marks a challenge as active (game continues running)
+func (g *Game) StartChallenge() {
+	if g.State == StatePlaying {
+		g.State = StateChallengeActive
+		g.ChallengeActive = true
+	}
+}
+
+// EndChallenge returns to normal playing state
+func (g *Game) EndChallenge() {
+	if g.State == StateChallengeActive {
+		g.State = StatePlaying
+		g.ChallengeActive = false
+	}
+}
+
+// AddChallengeGold adds gold from completing a challenge
+func (g *Game) AddChallengeGold(gold int) {
+	g.Gold += gold
+}
+
 func (g *Game) updateWaveSpawning(dt float64) {
 	if g.WaveComplete {
 		g.WaveCountdown -= dt
@@ -258,7 +293,8 @@ func (g *Game) updateWaveSpawning(dt float64) {
 		// Check if wave is complete (all enemies dead)
 		if len(g.Enemies) == 0 {
 			g.WaveComplete = true
-			g.Gold += wave.BonusGold
+			// Apply economy multiplier to wave bonus
+			g.Gold += g.Economy.CalculateWaveBonus(wave.BonusGold)
 		}
 		return
 	}
@@ -324,7 +360,9 @@ func (g *Game) updateProjectiles(dt float64) {
 					// Add hit effect
 					g.Effects.Add(entities.EffectHit, enemy.Pos)
 					if killed {
-						g.Gold += enemy.Info().GoldValue
+						// Apply economy multiplier to mob gold
+						baseGold := enemy.Info().GoldValue
+						g.Gold += g.Economy.CalculateMobGold(baseGold)
 						// Add explosion effect for kill
 						g.Effects.Add(entities.EffectExplosion, enemy.Pos)
 					}

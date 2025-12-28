@@ -12,21 +12,22 @@ var challengesFS embed.FS
 
 // Challenge represents a single kata challenge
 type Challenge struct {
-	ID              string   `yaml:"id"`
-	Name            string   `yaml:"name"`
-	Category        string   `yaml:"category"`
-	Difficulty      int      `yaml:"difficulty"`
-	Description     string   `yaml:"description"`
-	Filetype        string   `yaml:"filetype"`
-	InitialBuffer   string   `yaml:"initial_buffer"`
-	ExpectedBuffer  string   `yaml:"expected_buffer,omitempty"`
-	ValidationType  string   `yaml:"validation_type"`
-	ExpectedCursor  []int    `yaml:"expected_cursor,omitempty"`
-	ExpectedContent string   `yaml:"expected_content,omitempty"`
-	FunctionName    string   `yaml:"function_name,omitempty"`
-	CursorStart     []int    `yaml:"cursor_start,omitempty"`
-	ParKeystrokes   int      `yaml:"par_keystrokes"`
-	GoldBase        int      `yaml:"gold_base"`
+	ID              string `yaml:"id"`
+	Name            string `yaml:"name"`
+	Category        string `yaml:"category"`
+	Difficulty      int    `yaml:"difficulty"`
+	Description     string `yaml:"description"`
+	Filetype        string `yaml:"filetype"`
+	InitialBuffer   string `yaml:"initial_buffer"`
+	ExpectedBuffer  string `yaml:"expected_buffer,omitempty"`
+	ValidationType  string `yaml:"validation_type"`
+	ExpectedCursor  []int  `yaml:"expected_cursor,omitempty"`
+	ExpectedContent string `yaml:"expected_content,omitempty"`
+	FunctionName    string `yaml:"function_name,omitempty"`
+	CursorStart     []int  `yaml:"cursor_start,omitempty"`
+	ParKeystrokes   int    `yaml:"par_keystrokes"`
+	GoldBase        int    `yaml:"gold_base"`
+	RequiredPlugin  string `yaml:"required_plugin,omitempty"`
 }
 
 // ChallengeFile represents the YAML file structure

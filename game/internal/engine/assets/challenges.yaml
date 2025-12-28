@@ -643,3 +643,293 @@ challenges:
     expected_content: "multiplier"
     par_keystrokes: 35
     gold_base: 65
+
+  # ============================================
+  # WINDOW AND BUFFER NAVIGATION
+  # ============================================
+
+  - id: window_split_horizontal
+    name: "Horizontal Split"
+    category: movement
+    difficulty: 1
+    description: "Create a horizontal split using :split or <C-w>s"
+    filetype: text
+    initial_buffer: |
+      Split me horizontally
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 30
+
+  - id: window_split_vertical
+    name: "Vertical Split"
+    category: movement
+    difficulty: 1
+    description: "Create a vertical split using :vsplit or <C-w>v"
+    filetype: text
+    initial_buffer: |
+      Split me vertically
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 30
+
+  - id: buffer_next
+    name: "Next Buffer"
+    category: movement
+    difficulty: 1
+    description: "Switch to the next buffer using :bn or your configured keybind"
+    filetype: text
+    initial_buffer: |
+      Current buffer - switch to next
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 25
+
+  - id: buffer_previous
+    name: "Previous Buffer"
+    category: movement
+    difficulty: 1
+    description: "Switch to the previous buffer using :bp or your configured keybind"
+    filetype: text
+    initial_buffer: |
+      Current buffer - switch to previous
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 25
+
+  # ============================================
+  # TELESCOPE CHALLENGES (requires telescope)
+  # ============================================
+
+  - id: telescope_find_files
+    name: "Fuzzy Find File"
+    category: lsp-navigation
+    difficulty: 1
+    description: "Use Telescope to find a file (hint: check your keybindings)"
+    filetype: text
+    initial_buffer: |
+      Use your fuzzy finder to locate any file in the project.
+      This challenge validates when you open the Telescope picker.
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 40
+    required_plugin: telescope
+
+  - id: telescope_live_grep
+    name: "Search in Files"
+    category: search-replace
+    difficulty: 2
+    description: "Use Telescope live_grep to search for a pattern in the project"
+    filetype: text
+    initial_buffer: |
+      Use live grep to search for the word 'function' across all files.
+      This tests your project-wide search capabilities.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 50
+    required_plugin: telescope
+
+  - id: telescope_buffers
+    name: "Buffer Picker"
+    category: movement
+    difficulty: 1
+    description: "Use Telescope buffers to switch between open buffers"
+    filetype: text
+    initial_buffer: |
+      Open the buffer picker and select a different buffer.
+      Much faster than :ls and :b!
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+    required_plugin: telescope
+
+  - id: telescope_help_tags
+    name: "Help Search"
+    category: lsp-navigation
+    difficulty: 1
+    description: "Use Telescope help_tags to search vim help"
+    filetype: text
+    initial_buffer: |
+      Search for help on 'nvim_buf_set_lines' using your help picker.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 35
+    required_plugin: telescope
+
+  # ============================================
+  # GIT CHALLENGES
+  # ============================================
+
+  - id: git_status
+    name: "Git Status"
+    category: git-operations
+    difficulty: 1
+    description: "View git status using :Git status or gitsigns"
+    filetype: text
+    initial_buffer: |
+      Check the current git status of this file.
+      Use your git integration to view changes.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 35
+
+  - id: git_diff
+    name: "View Diff"
+    category: git-operations
+    difficulty: 2
+    description: "View the diff for the current file"
+    filetype: javascript
+    initial_buffer: |
+      function modified() {
+        return "changed";
+      }
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 40
+
+  - id: git_blame
+    name: "Git Blame"
+    category: git-operations
+    difficulty: 2
+    description: "Toggle git blame to see who wrote each line"
+    filetype: text
+    initial_buffer: |
+      Who wrote this line?
+      Use git blame to find out.
+      Toggle blame view on.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+
+  - id: git_stage_hunk
+    name: "Stage Hunk"
+    category: git-operations
+    difficulty: 2
+    description: "Stage the current hunk using gitsigns or fugitive"
+    filetype: javascript
+    initial_buffer: |
+      const unstaged = "new code";
+      // Stage this change using your git integration
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 50
+    required_plugin: gitsigns
+
+  # ============================================
+  # FILE EXPLORER CHALLENGES
+  # ============================================
+
+  - id: file_explorer_open
+    name: "Open Explorer"
+    category: movement
+    difficulty: 1
+    description: "Open your file explorer (nvim-tree, neo-tree, or oil)"
+    filetype: text
+    initial_buffer: |
+      Open the file explorer sidebar.
+      Navigate to a different directory.
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 30
+
+  - id: file_explorer_create
+    name: "Create File"
+    category: movement
+    difficulty: 2
+    description: "Create a new file using your file explorer"
+    filetype: text
+    initial_buffer: |
+      Use your file explorer to create a new file.
+      Most explorers use 'a' or 'n' for this.
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 45
+
+  # ============================================
+  # SURROUND CHALLENGES (requires surround plugin)
+  # ============================================
+
+  - id: surround_change_quotes
+    name: "Change Quotes"
+    category: text-objects
+    difficulty: 2
+    description: "Change single quotes to double quotes using cs'\""
+    filetype: javascript
+    initial_buffer: |
+      const msg = 'hello world';
+    expected_buffer: |
+      const msg = "hello world";
+    cursor_start: [0, 12]
+    validation_type: exact_match
+    par_keystrokes: 4
+    gold_base: 45
+    required_plugin: nvim-surround
+
+  - id: surround_delete_parens
+    name: "Delete Surrounding"
+    category: text-objects
+    difficulty: 2
+    description: "Delete the surrounding parentheses using ds("
+    filetype: javascript
+    initial_buffer: |
+      const result = (value + 10);
+    expected_buffer: |
+      const result = value + 10;
+    cursor_start: [0, 16]
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 40
+    required_plugin: nvim-surround
+
+  - id: surround_add_brackets
+    name: "Add Brackets"
+    category: text-objects
+    difficulty: 2
+    description: "Wrap the array items in brackets using ysiW]"
+    filetype: javascript
+    initial_buffer: |
+      const arr = 1, 2, 3;
+    expected_buffer: |
+      const arr = [1, 2, 3];
+    cursor_start: [0, 12]
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 50
+    required_plugin: nvim-surround
+
+  # ============================================
+  # QUICK MOTION CHALLENGES
+  # ============================================
+
+  - id: quick_motion_word
+    name: "Quick Word Jump"
+    category: movement
+    difficulty: 2
+    description: "Jump to the word 'target' using flash/leap/hop or search"
+    filetype: text
+    initial_buffer: |
+      There are many words here
+      but you need to find the target word
+      hidden in this text somewhere.
+    validation_type: cursor_position
+    expected_cursor: [1, 27]
+    par_keystrokes: 4
+    gold_base: 45
+
+  - id: quick_motion_line
+    name: "Quick Line Jump"
+    category: movement
+    difficulty: 2
+    description: "Jump to line 5 as fast as possible"
+    filetype: text
+    initial_buffer: |
+      Line 1
+      Line 2
+      Line 3
+      Line 4
+      Target line 5
+      Line 6
+      Line 7
+    validation_type: cursor_position
+    expected_cursor: [4, 0]
+    par_keystrokes: 2
+    gold_base: 35

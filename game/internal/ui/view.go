@@ -63,10 +63,16 @@ func renderHUD(m *Model) string {
 	case engine.StateVictory:
 		status = VictoryStyle.Render("  [VICTORY!]")
 	case engine.StateChallengeActive:
-		status = WaveStyle.Render("  [CHALLENGE]")
+		status = ChallengeStyle.Render("  [CHALLENGE ACTIVE - Game continues!]")
 	}
 
-	hud := fmt.Sprintf("%s    %s    %s%s", waveInfo, goldInfo, healthInfo, status)
+	// Challenge hint when not in challenge
+	var challengeHint string
+	if g.State == engine.StatePlaying && !g.ChallengeActive {
+		challengeHint = HelpStyle.Render("  [Press <leader>kn for challenge]")
+	}
+
+	hud := fmt.Sprintf("%s    %s    %s%s%s", waveInfo, goldInfo, healthInfo, status, challengeHint)
 	return HUDStyle.Render(hud)
 }
 

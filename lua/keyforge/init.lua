@@ -1,5 +1,8 @@
 ---@class KeyforgeConfig
 ---@field keybind string Keybind to launch game (default: "<leader>kf")
+---@field keybind_next_challenge string Keybind to start next challenge (default: "<leader>kn")
+---@field keybind_complete string Keybind to complete challenge (default: "<leader>kc")
+---@field keybind_skip string Keybind to skip challenge (default: "<leader>ks")
 ---@field difficulty string Difficulty level: "easy", "normal", "hard" (default: "normal")
 ---@field use_nerd_fonts boolean Use Nerd Font icons (default: true)
 ---@field starting_gold number Initial gold amount (default: 200)
@@ -11,6 +14,9 @@ local M = {}
 ---@type KeyforgeConfig
 local default_config = {
   keybind = "<leader>kf",
+  keybind_next_challenge = "<leader>kn",
+  keybind_complete = "<leader>kc",
+  keybind_skip = "<leader>ks",
   difficulty = "normal",
   use_nerd_fonts = true,
   starting_gold = 200,
@@ -168,10 +174,29 @@ function M.stop()
   M._term_win = nil
 end
 
---- Complete the current challenge (placeholder for future RPC)
+--- Start the next challenge (user-triggered)
+function M.next_challenge()
+  local challenge_queue = require("keyforge.challenge_queue")
+  challenge_queue.request_next()
+end
+
+--- Complete the current challenge
 function M.complete_challenge()
-  -- This will be expanded when RPC is implemented
-  vim.notify("Challenge completion not yet implemented", vim.log.levels.INFO)
+  local challenge_queue = require("keyforge.challenge_queue")
+  challenge_queue.complete_current()
+end
+
+--- Skip the current challenge
+function M.skip_challenge()
+  local challenge_queue = require("keyforge.challenge_queue")
+  challenge_queue.skip_current()
+end
+
+--- Get challenge statistics
+---@return table stats
+function M.get_challenge_stats()
+  local challenge_queue = require("keyforge.challenge_queue")
+  return challenge_queue.get_stats()
 end
 
 --- Setup the plugin with user configuration
@@ -179,12 +204,37 @@ end
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", default_config, opts or {})
 
-  -- Register keybind
+  -- Register keybind for starting the game
   if M.config.keybind and M.config.keybind ~= "" then
     vim.keymap.set("n", M.config.keybind, function()
       M.start()
     end, { desc = "Start Keyforge" })
   end
+
+  -- Register keybind for next challenge
+  if M.config.keybind_next_challenge and M.config.keybind_next_challenge ~= "" then
+    vim.keymap.set("n", M.config.keybind_next_challenge, function()
+      M.next_challenge()
+    end, { desc = "Keyforge: Next challenge" })
+  end
+
+  -- Register keybind for completing challenge
+  if M.config.keybind_complete and M.config.keybind_complete ~= "" then
+    vim.keymap.set("n", M.config.keybind_complete, function()
+      M.complete_challenge()
+    end, { desc = "Keyforge: Complete challenge" })
+  end
+
+  -- Register keybind for skipping challenge
+  if M.config.keybind_skip and M.config.keybind_skip ~= "" then
+    vim.keymap.set("n", M.config.keybind_skip, function()
+      M.skip_challenge()
+    end, { desc = "Keyforge: Skip challenge" })
+  end
+
+  -- Initialize challenge queue
+  local challenge_queue = require("keyforge.challenge_queue")
+  challenge_queue.init()
 end
 
 return M

@@ -201,6 +201,7 @@ end
 
 --- Sample challenges for testing
 M.sample_challenges = {
+  -- Movement challenges
   {
     id = "movement_basics_1",
     name = "Jump to End",
@@ -213,6 +214,29 @@ M.sample_challenges = {
     gold_base = 25,
   },
   {
+    id = "movement_word_hop",
+    name = "Word Hop",
+    category = "movement",
+    difficulty = 1,
+    description = "Move forward 5 words using 5w",
+    initial_buffer = "one two three four five six seven eight",
+    validation_type = "different",
+    par_keystrokes = 2,
+    gold_base = 25,
+  },
+  {
+    id = "movement_find_char",
+    name = "Find the X",
+    category = "movement",
+    difficulty = 1,
+    description = "Jump to the letter 'x' using fx",
+    initial_buffer = "The fox jumped over the box",
+    validation_type = "different",
+    par_keystrokes = 2,
+    gold_base = 25,
+  },
+  -- Text object challenges
+  {
     id = "text_object_1",
     name = "Change Inside Quotes",
     category = "text-objects",
@@ -223,6 +247,18 @@ M.sample_challenges = {
     validation_type = "exact_match",
     par_keystrokes = 9, -- ci"world<Esc>
     gold_base = 50,
+  },
+  {
+    id = "text_object_2",
+    name = "Delete Inside Parens",
+    category = "text-objects",
+    difficulty = 2,
+    description = "Delete everything inside the parentheses using di(",
+    initial_buffer = "console.log(getValue());",
+    expected_buffer = "console.log();",
+    validation_type = "exact_match",
+    par_keystrokes = 3,
+    gold_base = 40,
   },
   {
     id = "delete_line_1",
@@ -243,6 +279,32 @@ function hello() {
     par_keystrokes = 3, -- jdd
     gold_base = 30,
   },
+  -- Search and replace
+  {
+    id = "search_replace_1",
+    name = "Simple Replace",
+    category = "search-replace",
+    difficulty = 1,
+    description = "Replace 'foo' with 'bar' using :s/foo/bar/",
+    initial_buffer = "The foo is here",
+    expected_buffer = "The bar is here",
+    validation_type = "exact_match",
+    par_keystrokes = 13,
+    gold_base = 35,
+  },
+  {
+    id = "search_replace_global",
+    name = "Global Replace",
+    category = "search-replace",
+    difficulty = 2,
+    description = "Replace all 'old' with 'new' using :%s/old/new/g",
+    initial_buffer = "old value here\nanother old one\nold again",
+    expected_buffer = "new value here\nanother new one\nnew again",
+    validation_type = "exact_match",
+    par_keystrokes = 16,
+    gold_base = 50,
+  },
+  -- Refactoring
   {
     id = "extract_function_1",
     name = "Extract Function",
@@ -260,6 +322,74 @@ function processForm(data) {
     function_name = "validateEmail",
     par_keystrokes = 50,
     gold_base = 100,
+  },
+  -- LSP Navigation
+  {
+    id = "lsp_goto_def",
+    name = "Go to Definition",
+    category = "lsp-navigation",
+    difficulty = 2,
+    description = "Use gd to go to the definition",
+    initial_buffer = [[
+function getUserName(user) {
+  return user.name;
+}
+
+const name = getUserName(currentUser);]],
+    validation_type = "different",
+    par_keystrokes = 2,
+    gold_base = 50,
+  },
+  -- Telescope challenges (require plugin)
+  {
+    id = "telescope_find_files",
+    name = "Fuzzy Find File",
+    category = "lsp-navigation",
+    difficulty = 1,
+    description = "Use Telescope to find a file",
+    initial_buffer = "Use your fuzzy finder to locate any file.",
+    validation_type = "different",
+    par_keystrokes = 3,
+    gold_base = 40,
+    required_plugin = "telescope",
+  },
+  {
+    id = "telescope_live_grep",
+    name = "Search in Files",
+    category = "search-replace",
+    difficulty = 2,
+    description = "Use Telescope live_grep to search across files",
+    initial_buffer = "Use live grep to search for patterns.",
+    validation_type = "different",
+    par_keystrokes = 4,
+    gold_base = 50,
+    required_plugin = "telescope",
+  },
+  -- Surround challenges (require plugin)
+  {
+    id = "surround_change_quotes",
+    name = "Change Quotes",
+    category = "text-objects",
+    difficulty = 2,
+    description = "Change single quotes to double quotes using cs'\"",
+    initial_buffer = "const msg = 'hello world';",
+    expected_buffer = 'const msg = "hello world";',
+    validation_type = "exact_match",
+    par_keystrokes = 4,
+    gold_base = 45,
+    required_plugin = "nvim-surround",
+  },
+  -- Git operations
+  {
+    id = "git_status",
+    name = "Git Status",
+    category = "git-operations",
+    difficulty = 1,
+    description = "View git status using :Git or gitsigns",
+    initial_buffer = "Check the current git status.",
+    validation_type = "different",
+    par_keystrokes = 4,
+    gold_base = 35,
   },
 }
 

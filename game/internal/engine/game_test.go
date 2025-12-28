@@ -322,3 +322,186 @@ func TestSelectTower(t *testing.T) {
 		t.Error("Expected TowerRefactor to be selected")
 	}
 }
+
+// Tests for concurrent challenge/gameplay (game continues during challenges)
+
+func TestChallengeActiveGameContinues(t *testing.T) {
+	g := NewGame(20, 14)
+
+	// Spawn an enemy
+	g.SpawnEnemy(entities.EnemyBug)
+	initialPos := g.Enemies[0].Pos
+
+	// Start a challenge
+	g.StartChallenge()
+
+	if g.State != StateChallengeActive {
+		t.Errorf("Expected StateChallengeActive, got %v", g.State)
+	}
+
+	if !g.ChallengeActive {
+		t.Error("Expected ChallengeActive to be true")
+	}
+
+	// Update game - enemy should still move during challenge
+	g.Update(0.1)
+
+	if g.Enemies[0].Pos == initialPos {
+		t.Error("Enemy should move during challenge active state")
+	}
+}
+
+func TestEndChallenge(t *testing.T) {
+	g := NewGame(20, 14)
+
+	g.StartChallenge()
+	if g.State != StateChallengeActive {
+		t.Error("Expected StateChallengeActive after StartChallenge")
+	}
+
+	g.EndChallenge()
+	if g.State != StatePlaying {
+		t.Errorf("Expected StatePlaying after EndChallenge, got %v", g.State)
+	}
+
+	if g.ChallengeActive {
+		t.Error("Expected ChallengeActive to be false after EndChallenge")
+	}
+}
+
+func TestAddChallengeGold(t *testing.T) {
+	g := NewGame(20, 14)
+	initialGold := g.Gold
+
+	g.AddChallengeGold(100)
+
+	if g.Gold != initialGold+100 {
+		t.Errorf("Expected gold %d, got %d", initialGold+100, g.Gold)
+	}
+}
+
+func TestStartChallengeOnlyFromPlaying(t *testing.T) {
+	g := NewGame(20, 14)
+
+	// Should work from playing state
+	g.StartChallenge()
+	if g.State != StateChallengeActive {
+		t.Error("Should be able to start challenge from playing state")
+	}
+
+	// End challenge
+	g.EndChallenge()
+
+	// Pause the game
+	g.TogglePause()
+	if g.State != StatePaused {
+		t.Error("Game should be paused")
+	}
+
+	// Try to start challenge from paused state
+	g.StartChallenge()
+	if g.State != StatePaused {
+		t.Error("Should not be able to start challenge from paused state")
+	}
+}
+
+func TestTowersFireDuringChallenge(t *testing.T) {
+	g := NewGame(20, 14)
+
+	// Place a tower right next to the path start (path starts at 0,3)
+	g.CursorX = 0
+	g.CursorY = 2 // One cell above the path at (0,3)
+	if !g.PlaceTower() {
+		t.Fatal("Failed to place tower")
+	}
+
+	// Spawn an enemy - it will be at the path start
+	g.SpawnEnemy(entities.EnemyBug)
+
+	// Start challenge
+	g.StartChallenge()
+
+	if g.State != StateChallengeActive {
+		t.Fatalf("Expected StateChallengeActive, got %v", g.State)
+	}
+
+	// Stop wave spawning from adding more enemies
+	g.SpawnIndex = 100 // Mark all spawns as done
+	g.WaveComplete = true
+
+	// Update many times to allow tower to fire and projectile to reach
+	for i := 0; i < 50; i++ {
+		g.Update(0.1)
+	}
+
+	// Tower should have fired during challenge - enemy should be dead
+	hasLivingEnemies := false
+	enemyDamaged := false
+	for _, e := range g.Enemies {
+		if !e.Dead {
+			hasLivingEnemies = true
+			if e.Health < e.MaxHealth {
+				enemyDamaged = true
+			}
+		}
+	}
+	hasProjectiles := len(g.Projectiles) > 0
+
+	// Either enemy was damaged, enemy died, or there are projectiles in flight
+	if hasLivingEnemies && !enemyDamaged && !hasProjectiles {
+		t.Error("Tower should fire during challenge active state")
+	}
+}
+
+func TestGameOverCanHappenDuringChallenge(t *testing.T) {
+	g := NewGame(20, 14)
+	g.Health = 1
+
+	// Start challenge
+	g.StartChallenge()
+
+	// Simulate enemy reaching end
+	g.SpawnEnemy(entities.EnemyBug)
+	g.Enemies[0].PathIndex = len(g.Path) - 2
+	g.Enemies[0].PathProg = 0.99
+
+	// Update to trigger enemy reaching end
+	g.Update(0.5)
+
+	// Game should be over even though challenge was active
+	if g.State != StateGameOver {
+		t.Errorf("Expected StateGameOver during challenge, got %v", g.State)
+	}
+}
+
+func TestMobGoldReducedWithEconomy(t *testing.T) {
+	g := NewGame(20, 14)
+
+	// Place a tower
+	g.CursorX = 1
+	g.CursorY = 4
+	g.PlaceTower()
+
+	// Spawn a weak enemy that will die
+	g.SpawnEnemy(entities.EnemyBug)
+	g.Enemies[0].Health = 1
+
+	initialGold := g.Gold
+
+	// Update until enemy dies
+	for i := 0; i < 100 && len(g.Enemies) > 0 && !g.Enemies[0].Dead; i++ {
+		g.Update(0.1)
+	}
+
+	// Calculate expected gold: base * 0.25
+	baseGold := entities.EnemyTypes[entities.EnemyBug].GoldValue
+	expectedGold := g.Economy.CalculateMobGold(baseGold)
+	actualGold := g.Gold - initialGold
+
+	if actualGold != expectedGold && actualGold != 0 {
+		// If enemy died, we should have gotten reduced gold
+		if g.Enemies[0].Dead {
+			t.Errorf("Expected reduced gold %d, got %d (base was %d)", expectedGold, actualGold, baseGold)
+		}
+	}
+}

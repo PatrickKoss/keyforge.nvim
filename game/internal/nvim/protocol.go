@@ -60,6 +60,21 @@ type GameStateUpdate struct {
 	Towers   int    `json:"towers"`
 }
 
+// GoldUpdate notifies Neovim of gold changes from challenges
+type GoldUpdate struct {
+	Gold       int     `json:"gold"`        // New gold total
+	Earned     int     `json:"earned"`      // Gold earned from this action
+	Source     string  `json:"source"`      // "challenge", "mob", "wave_bonus"
+	SpeedBonus float64 `json:"speed_bonus"` // Speed bonus multiplier if from challenge
+}
+
+// ChallengeAvailable notifies Neovim that challenges are available
+type ChallengeAvailable struct {
+	Count         int `json:"count"`          // Number of available challenges
+	NextReward    int `json:"next_reward"`    // Estimated reward for next challenge
+	NextCategory  string `json:"next_category"` // Category of next challenge
+}
+
 // Neovim -> Game message types
 
 // ChallengeResult contains the result of a completed challenge
@@ -70,6 +85,13 @@ type ChallengeResult struct {
 	KeystrokeCount int     `json:"keystroke_count,omitempty"`
 	TimeMs         int     `json:"time_ms,omitempty"`
 	Efficiency     float64 `json:"efficiency,omitempty"`
+	SpeedBonus     float64 `json:"speed_bonus,omitempty"`  // Speed bonus multiplier
+	GoldEarned     int     `json:"gold_earned,omitempty"`  // Gold earned from challenge
+}
+
+// StartChallengeRequest is sent when user triggers a new challenge
+type StartChallengeRequest struct {
+	// Empty for now, but can be extended with category preferences
 }
 
 // ConfigUpdate contains configuration from Neovim
@@ -83,12 +105,15 @@ type ConfigUpdate struct {
 // Method names
 const (
 	// Game -> Neovim
-	MethodRequestChallenge = "request_challenge"
-	MethodGameStateUpdate  = "game_state_update"
-	MethodGameReady        = "game_ready"
+	MethodRequestChallenge    = "request_challenge"
+	MethodGameStateUpdate     = "game_state_update"
+	MethodGameReady           = "game_ready"
+	MethodGoldUpdate          = "gold_update"
+	MethodChallengeAvailable  = "challenge_available"
 
 	// Neovim -> Game
 	MethodChallengeComplete = "challenge_complete"
+	MethodStartChallenge    = "start_challenge"
 	MethodConfigUpdate      = "config_update"
 	MethodPauseGame         = "pause_game"
 	MethodResumeGame        = "resume_game"

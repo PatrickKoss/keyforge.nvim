@@ -97,6 +97,10 @@ var (
 			Foreground(ColorPrimary).
 			Bold(true)
 
+	ChallengeStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#60a5fa")). // blue
+			Bold(true)
+
 	// Shop styles
 	ShopItemStyle = lipgloss.NewStyle().
 			Padding(0, 1)

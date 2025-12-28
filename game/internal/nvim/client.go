@@ -35,6 +35,7 @@ type Handler interface {
 	HandleConfigUpdate(config *ConfigUpdate)
 	HandlePause()
 	HandleResume()
+	HandleStartChallenge()
 }
 
 // NewClient creates a new RPC client using stdin/stdout
@@ -199,6 +200,11 @@ func (c *Client) handleRequest(req *Request) {
 			c.handler.HandleResume()
 		}
 		result = map[string]bool{"ok": true}
+	case MethodStartChallenge:
+		if c.handler != nil {
+			c.handler.HandleStartChallenge()
+		}
+		result = map[string]bool{"ok": true}
 	default:
 		rpcErr = NewError(ErrCodeMethodNotFound, fmt.Sprintf("method not found: %s", req.Method))
 	}
@@ -232,6 +238,10 @@ func (c *Client) handleNotification(notif *Notification) {
 	case MethodResumeGame:
 		if c.handler != nil {
 			c.handler.HandleResume()
+		}
+	case MethodStartChallenge:
+		if c.handler != nil {
+			c.handler.HandleStartChallenge()
 		}
 	}
 }
@@ -302,6 +312,25 @@ func (c *Client) SendGameState(state string, wave, gold, health, enemies, towers
 // SendGameReady notifies Neovim that the game is ready
 func (c *Client) SendGameReady() error {
 	return c.Notify(MethodGameReady, nil)
+}
+
+// SendGoldUpdate notifies Neovim of gold changes
+func (c *Client) SendGoldUpdate(gold, earned int, source string, speedBonus float64) error {
+	return c.Notify(MethodGoldUpdate, &GoldUpdate{
+		Gold:       gold,
+		Earned:     earned,
+		Source:     source,
+		SpeedBonus: speedBonus,
+	})
+}
+
+// SendChallengeAvailable notifies Neovim that challenges are available
+func (c *Client) SendChallengeAvailable(count, nextReward int, nextCategory string) error {
+	return c.Notify(MethodChallengeAvailable, &ChallengeAvailable{
+		Count:        count,
+		NextReward:   nextReward,
+		NextCategory: nextCategory,
+	})
 }
 
 // Helper functions to parse params

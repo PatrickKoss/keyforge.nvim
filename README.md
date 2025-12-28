@@ -5,8 +5,11 @@ A tower defense game integrated into Neovim that gamifies learning vim keybindin
 ## Features
 
 - **Tower Defense Gameplay**: Place towers, defeat enemies, survive waves
-- **Vim Skill Training**: Challenges cover movement, text objects, LSP navigation, and more
-- **Efficiency Scoring**: Earn more gold by completing challenges with fewer keystrokes
+- **Challenge-Based Economy**: Gold primarily comes from completing vim kata challenges
+- **Speed Bonuses**: Complete challenges faster for up to 2x gold multiplier
+- **Plugin-Aware Challenges**: Challenges adapt to your installed plugins (Telescope, nvim-surround, etc.)
+- **Keymap Hints**: See your actual keybindings in challenge hints, not just defaults
+- **Difficulty Presets**: Easy (50% mob gold), Normal (25%), Hard (0% - challenges only)
 - **Beautiful TUI**: Smooth 60fps rendering with emoji support
 - **30+ Challenges**: Covering movement, text objects, LSP, search/replace, and refactoring
 
@@ -74,6 +77,8 @@ make build
 
 ### Controls
 
+#### In-Game (Tower Defense)
+
 | Key | Action |
 |-----|--------|
 | `h/j/k/l` or Arrow Keys | Move cursor |
@@ -83,6 +88,14 @@ make build
 | `p` | Pause/Resume game |
 | `q` | Quit game |
 | `r` | Restart (on game over) |
+
+#### Challenge Controls
+
+| Key | Action |
+|-----|--------|
+| `<leader>kn` | Start next challenge |
+| `<leader>kc` | Complete current challenge (validate) |
+| `<leader>ks` | Skip current challenge |
 
 ### Tower Types
 
@@ -100,12 +113,61 @@ make build
 4. **Search & Replace**: `/`, `:s`, `:g`
 5. **Refactoring**: Extract function, inline variable
 
+### Plugin-Aware Challenges
+
+Keyforge detects your installed plugins and shows challenges tailored to your setup:
+
+| Plugin | Challenges Unlocked |
+|--------|---------------------|
+| Telescope | Fuzzy find files, live grep, buffer search |
+| nvim-surround / mini.surround | Change quotes, add/remove surroundings |
+| fugitive / gitsigns | Git status, stage hunks, blame |
+| nvim-tree / neo-tree | File navigation, create/delete files |
+
+Challenge hints show **your actual keybindings**, not just defaults!
+
+## Economy System
+
+Keyforge uses a challenge-based economy where completing vim kata challenges is the primary source of gold:
+
+### Gold Sources
+
+| Source | Normal Difficulty |
+|--------|-------------------|
+| Mob Kills | 25% of base gold value |
+| Wave Completion | 75% of bonus |
+| **Challenge Completion** | **100% (primary source)** |
+
+### Speed Bonus
+
+Complete challenges faster for bonus gold:
+
+| Speed | Bonus Multiplier |
+|-------|------------------|
+| Slower than par | 1.0x |
+| At par | 1.0x |
+| 2x faster | 1.5x |
+| 4x+ faster | 2.0x (max) |
+
+### Difficulty Presets
+
+| Difficulty | Mob Gold | Description |
+|------------|----------|-------------|
+| Easy | 50% | Good for learning, some buffer from mobs |
+| **Normal** | **25%** | Balanced, challenges are main income |
+| Hard | 0% | Pure challenge mode, no mob gold |
+
 ## Configuration
 
 ```lua
 require("keyforge").setup({
   -- Keybind to launch game (set to "" to disable)
   keybind = "<leader>kf",
+
+  -- Challenge keybinds
+  keybind_next_challenge = "<leader>kn",
+  keybind_complete = "<leader>kc",
+  keybind_skip = "<leader>ks",
 
   -- Difficulty level: "easy", "normal", "hard"
   difficulty = "normal",
