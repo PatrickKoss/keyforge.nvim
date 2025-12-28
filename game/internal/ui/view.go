@@ -164,8 +164,14 @@ func renderGrid(m *Model) string {
 	for y := 0; y < g.Height; y++ {
 		b.WriteString(BoxVertical)
 		for x := 0; x < g.Width; x++ {
-			b.WriteString(grid[y][x])
-			b.WriteString(" ") // spacing between cells
+			cell := grid[y][x]
+			b.WriteString(cell)
+			// Pad to fixed width (2 chars per cell)
+			// Emojis are width 2, regular chars are width 1
+			cellWidth := lipgloss.Width(cell)
+			if cellWidth < 2 {
+				b.WriteString(" ")
+			}
 		}
 		b.WriteString(BoxVertical)
 		b.WriteString("\n")
