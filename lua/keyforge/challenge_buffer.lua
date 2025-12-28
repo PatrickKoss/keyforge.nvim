@@ -82,6 +82,12 @@ local function create_info_window(challenge)
   local keyforge = require("keyforge")
   local config = keyforge.config
 
+  -- Determine cancel keybind to show (use <leader>q if <Esc> is configured)
+  local cancel_key = config.keybind_cancel
+  if cancel_key == "<Esc>" then
+    cancel_key = "<leader>q"
+  end
+
   -- Build info content
   local lines = {
     "Challenge: " .. (challenge.name or "Unknown"),
@@ -90,7 +96,7 @@ local function create_info_window(challenge)
     "",
     string.format("Par: %d keystrokes | Reward: %dg", challenge.par_keystrokes or 10, challenge.gold_base or 50),
     "",
-    string.format("Submit: %s (normal mode) | Cancel: %s", config.keybind_submit, config.keybind_cancel),
+    string.format("Submit: %s (normal mode) | Cancel: %s", config.keybind_submit, cancel_key),
   }
 
   -- Calculate window size
@@ -152,9 +158,17 @@ local function setup_keymaps(buf)
     M.submit_challenge()
   end, { buffer = buf, desc = "Submit challenge" })
 
-  -- Cancel keymap (default <Esc>)
-  -- Note: We use a different approach for Escape to avoid conflicts
-  vim.keymap.set("n", config.keybind_cancel, function()
+  -- Cancel keymap - use <leader>ks (skip) instead of <Esc> to avoid conflicts
+  -- <Esc> is needed for normal Vim operations (canceling motions, exiting insert mode)
+  -- Only set if it's not <Esc>
+  if config.keybind_cancel and config.keybind_cancel ~= "<Esc>" then
+    vim.keymap.set("n", config.keybind_cancel, function()
+      M.cancel_challenge()
+    end, { buffer = buf, desc = "Cancel challenge" })
+  end
+
+  -- Always provide <leader>q as a cancel option
+  vim.keymap.set("n", "<leader>q", function()
     M.cancel_challenge()
   end, { buffer = buf, desc = "Cancel challenge" })
 end
