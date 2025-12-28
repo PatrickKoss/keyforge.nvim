@@ -11,7 +11,8 @@ const (
 	StateMenu GameState = iota
 	StatePlaying
 	StatePaused
-	StateChallengeActive
+	StateChallengeActive  // Internal challenge (standalone mode) - game continues
+	StateChallengeWaiting // Nvim challenge - game paused while user edits
 	StateWaveComplete
 	StateGameOver
 	StateVictory
@@ -256,6 +257,7 @@ func (g *Game) Update(dt float64) {
 }
 
 // StartChallenge marks a challenge as active (game continues running)
+// Used for standalone mode where internal vim editor handles the challenge
 func (g *Game) StartChallenge() {
 	if g.State == StatePlaying {
 		g.State = StateChallengeActive
@@ -263,9 +265,18 @@ func (g *Game) StartChallenge() {
 	}
 }
 
+// StartChallengeWaiting marks a challenge as waiting (game paused)
+// Used for nvim mode where user edits in a real Neovim buffer
+func (g *Game) StartChallengeWaiting() {
+	if g.State == StatePlaying {
+		g.State = StateChallengeWaiting
+		g.ChallengeActive = true
+	}
+}
+
 // EndChallenge returns to normal playing state
 func (g *Game) EndChallenge() {
-	if g.State == StateChallengeActive {
+	if g.State == StateChallengeActive || g.State == StateChallengeWaiting {
 		g.State = StatePlaying
 		g.ChallengeActive = false
 	}

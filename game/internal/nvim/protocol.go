@@ -105,11 +105,13 @@ type ConfigUpdate struct {
 // Method names
 const (
 	// Game -> Neovim
-	MethodRequestChallenge    = "request_challenge"
-	MethodGameStateUpdate     = "game_state_update"
-	MethodGameReady           = "game_ready"
-	MethodGoldUpdate          = "gold_update"
-	MethodChallengeAvailable  = "challenge_available"
+	MethodRequestChallenge   = "request_challenge"
+	MethodGameStateUpdate    = "game_state_update"
+	MethodGameReady          = "game_ready"
+	MethodGoldUpdate         = "gold_update"
+	MethodChallengeAvailable = "challenge_available"
+	MethodGameOver           = "game_over"
+	MethodVictory            = "victory"
 
 	// Neovim -> Game
 	MethodChallengeComplete = "challenge_complete"
@@ -117,7 +119,24 @@ const (
 	MethodConfigUpdate      = "config_update"
 	MethodPauseGame         = "pause_game"
 	MethodResumeGame        = "resume_game"
+	MethodRestartGame       = "restart_game"
 )
+
+// GameOverParams contains game over notification data
+type GameOverParams struct {
+	Wave    int `json:"wave"`
+	Gold    int `json:"gold"`
+	Towers  int `json:"towers"`
+	Health  int `json:"health"`
+}
+
+// VictoryParams contains victory notification data
+type VictoryParams struct {
+	Wave    int `json:"wave"`
+	Gold    int `json:"gold"`
+	Towers  int `json:"towers"`
+	Health  int `json:"health"`
+}
 
 // NewRequest creates a new JSON-RPC request
 func NewRequest(id int, method string, params interface{}) *Request {

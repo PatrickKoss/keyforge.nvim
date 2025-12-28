@@ -34,8 +34,9 @@ type Model struct {
 	// Neovim integration
 	NvimMode           bool
 	NvimClient         *nvim.Client
-	NvimChallengeID    string // Current challenge request ID
-	NvimChallengeCount int    // Counter for generating unique IDs
+	NvimChallengeID    string       // Current challenge request ID
+	NvimChallengeCount int          // Counter for generating unique IDs
+	PrevGameState      engine.GameState // Track state changes for notifications
 }
 
 // NewModel creates a new game model
@@ -106,6 +107,40 @@ func (m *Model) HandleStartChallenge() {
 	m.startChallenge()
 }
 
+// HandleRestart handles restart requests from Neovim
+func (m *Model) HandleRestart() {
+	m.Game = engine.NewGame(GridWidth, GridHeight)
+	m.LastUpdate = time.Now()
+	m.CurrentChallenge = nil
+	m.VimEditor = nil
+	m.NvimChallengeID = ""
+	m.PrevGameState = engine.StatePlaying
+}
+
+// sendStateNotification sends game state notifications to Neovim
+func (m *Model) sendStateNotification() {
+	if m.NvimClient == nil {
+		return
+	}
+
+	switch m.Game.State {
+	case engine.StateGameOver:
+		m.NvimClient.SendGameOver(
+			m.Game.Wave,
+			m.Game.Gold,
+			len(m.Game.Towers),
+			m.Game.Health,
+		)
+	case engine.StateVictory:
+		m.NvimClient.SendVictory(
+			m.Game.Wave,
+			m.Game.Gold,
+			len(m.Game.Towers),
+			m.Game.Health,
+		)
+	}
+}
+
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
 	return tickCmd()
@@ -128,7 +163,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		now := time.Time(msg)
 		dt := now.Sub(m.LastUpdate).Seconds()
 		m.LastUpdate = now
+
+		// Store previous state before update
+		prevState := m.Game.State
 		m.Game.Update(dt)
+
+		// Check for state changes and send notifications in nvim mode
+		if m.NvimMode && m.NvimClient != nil && m.Game.State != prevState {
+			m.sendStateNotification()
+		}
+		m.PrevGameState = m.Game.State
+
 		return m, tickCmd()
 
 	case tea.WindowSizeMsg:
@@ -168,6 +213,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handlePausedKeys(msg)
 	case engine.StateChallengeActive:
 		return m.handleChallengeKeys(msg)
+	case engine.StateChallengeWaiting:
+		return m.handleChallengeWaitingKeys(msg)
 	}
 
 	return m, nil
@@ -228,7 +275,7 @@ func (m *Model) startChallenge() {
 		m.NvimChallengeCount++
 		m.NvimChallengeID = fmt.Sprintf("challenge_%d", m.NvimChallengeCount)
 
-		// Request challenge from Neovim - game continues running!
+		// Request challenge from Neovim - game PAUSES while user edits
 		difficulty := 1
 		if m.Game.Wave >= 4 {
 			difficulty = 2
@@ -238,7 +285,7 @@ func (m *Model) startChallenge() {
 		}
 
 		m.NvimClient.RequestChallenge(m.NvimChallengeID, category, difficulty)
-		m.Game.StartChallenge()
+		m.Game.StartChallengeWaiting() // Use waiting state (paused) for nvim mode
 		return
 	}
 
@@ -281,15 +328,22 @@ func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleChallengeWaitingKeys handles input while waiting for nvim challenge result
+// Game is paused - only allow cancel via Escape
+func (m Model) handleChallengeWaitingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Only allow cancel via Escape (user cancelled in Neovim or wants to cancel here)
+	if msg.String() == "esc" || msg.Type == tea.KeyEscape {
+		m.NvimChallengeID = ""
+		m.Game.EndChallenge()
+	}
+	return m, nil
+}
+
 func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// In nvim mode, challenge is handled externally in Neovim
-	// Game continues running, just wait for RPC result
+	// This is for standalone mode only now
+	// Nvim mode uses handleChallengeWaitingKeys
 	if m.NvimMode {
-		// Only allow cancel via Escape
-		if msg.String() == "esc" || msg.Type == tea.KeyEscape {
-			m.NvimChallengeID = ""
-			m.Game.EndChallenge()
-		}
+		// Should not reach here in nvim mode, but handle gracefully
 		return m, nil
 	}
 

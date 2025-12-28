@@ -254,19 +254,71 @@ end
 ---@param params table ChallengeRequest params
 ---@return table result
 function M.handle_request_challenge(params)
-  local challenge_queue = require("keyforge.challenge_queue")
+  local challenge_buffer = require("keyforge.challenge_buffer")
   local keyforge = require("keyforge")
 
   vim.schedule(function()
     -- Store the challenge ID for the response
     keyforge._current_challenge_id = params.request_id
+    keyforge._game_state = "challenge_waiting"
 
-    -- Try to start the next challenge
-    -- Pass category hint from game if available
-    challenge_queue.request_next(params.category)
+    -- Start the challenge using the new file-based buffer system
+    challenge_buffer.start_challenge(params.request_id, params.category, params.difficulty)
   end)
 
   return { ok = true }
+end
+
+--- Handler for game_state_update notifications from the game
+---@param params table GameStateUpdate params
+function M.handle_game_state_update(params)
+  local keyforge = require("keyforge")
+
+  vim.schedule(function()
+    local state = params.state or "playing"
+    keyforge._game_state = state
+
+    -- Handle game over or victory states
+    if state == "game_over" or state == "victory" then
+      local game_over = require("keyforge.game_over")
+      game_over.show(params)
+    end
+  end)
+end
+
+--- Handler for game_over notification from the game
+---@param params table GameOver params
+function M.handle_game_over(params)
+  local keyforge = require("keyforge")
+  local game_over = require("keyforge.game_over")
+
+  vim.schedule(function()
+    keyforge._game_state = "game_over"
+    game_over.show(vim.tbl_extend("force", params, { state = "game_over" }))
+  end)
+end
+
+--- Handler for victory notification from the game
+---@param params table Victory params
+function M.handle_victory(params)
+  local keyforge = require("keyforge")
+  local game_over = require("keyforge.game_over")
+
+  vim.schedule(function()
+    keyforge._game_state = "victory"
+    game_over.show(vim.tbl_extend("force", params, { state = "victory" }))
+  end)
+end
+
+--- Handler for game_ready notification from the game
+---@param params table GameReady params
+function M.handle_game_ready(params)
+  local keyforge = require("keyforge")
+
+  vim.schedule(function()
+    keyforge._game_state = "playing"
+    vim.notify("Keyforge ready!", vim.log.levels.INFO)
+  end)
 end
 
 --- Register the default handlers
@@ -274,6 +326,10 @@ function M.register_handlers()
   M.on("gold_update", M.handle_gold_update)
   M.on("challenge_available", M.handle_challenge_available)
   M.on("request_challenge", M.handle_request_challenge)
+  M.on("game_state_update", M.handle_game_state_update)
+  M.on("game_over", M.handle_game_over)
+  M.on("victory", M.handle_victory)
+  M.on("game_ready", M.handle_game_ready)
 end
 
 return M

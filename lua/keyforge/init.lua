@@ -3,11 +3,14 @@
 ---@field keybind_next_challenge string Keybind to start next challenge (default: "<leader>kn")
 ---@field keybind_complete string Keybind to complete challenge (default: "<leader>kc")
 ---@field keybind_skip string Keybind to skip challenge (default: "<leader>ks")
+---@field keybind_submit string Keybind to submit challenge in buffer (default: "<CR>")
+---@field keybind_cancel string Keybind to cancel challenge in buffer (default: "<Esc>")
 ---@field difficulty string Difficulty level: "easy", "normal", "hard" (default: "normal")
 ---@field use_nerd_fonts boolean Use Nerd Font icons (default: true)
 ---@field starting_gold number Initial gold amount (default: 200)
 ---@field starting_health number Initial health (default: 100)
 ---@field auto_build boolean Auto-build binary on first run (default: true)
+---@field challenge_timeout number Challenge timeout in seconds (default: 300)
 
 local M = {}
 
@@ -17,11 +20,14 @@ local default_config = {
   keybind_next_challenge = "<leader>kn",
   keybind_complete = "<leader>kc",
   keybind_skip = "<leader>ks",
+  keybind_submit = "<CR>",
+  keybind_cancel = "<Esc>",
   difficulty = "normal",
   use_nerd_fonts = true,
   starting_gold = 200,
   starting_health = 100,
   auto_build = true,
+  challenge_timeout = 300,
 }
 
 ---@type KeyforgeConfig
@@ -31,7 +37,10 @@ M.config = vim.deepcopy(default_config)
 M._job_id = nil
 M._term_buf = nil
 M._term_win = nil
+M._term_tab = nil
 M._plugin_dir = nil
+M._current_challenge_id = nil
+M._game_state = "idle" -- idle, playing, paused, challenge_waiting, game_over, victory
 
 --- Get the plugin directory path
 ---@return string
@@ -120,26 +129,45 @@ function M.start()
   M._launch_game()
 end
 
---- Launch the game in a fullscreen tab
+--- Launch the game in a fullscreen tab with nvim-mode enabled
 function M._launch_game()
   local binary = get_binary_path()
+  local rpc = require("keyforge.rpc")
 
   -- Create a new tab for fullscreen game
   vim.cmd("tabnew")
+  M._term_tab = vim.api.nvim_get_current_tabpage()
 
   -- Create terminal buffer
   M._term_buf = vim.api.nvim_get_current_buf()
   M._term_win = vim.api.nvim_get_current_win()
 
-  -- Start the game process (standalone mode - challenges use internal vim emulator)
-  M._job_id = vim.fn.termopen(binary, {
+  -- Start the game process with --nvim-mode for RPC communication
+  -- The game uses stderr for RPC output so stdout remains free for terminal rendering
+  M._job_id = vim.fn.termopen(binary .. " --nvim-mode", {
     on_exit = function(_, code)
-      M._job_id = nil
-      if code ~= 0 then
-        vim.notify("Keyforge exited with code " .. code, vim.log.levels.WARN)
-      end
+      vim.schedule(function()
+        M._job_id = nil
+        M._game_state = "idle"
+        rpc.disconnect()
+        if code ~= 0 then
+          vim.notify("Keyforge exited with code " .. code, vim.log.levels.WARN)
+        end
+      end)
+    end,
+    on_stderr = function(_, data)
+      -- RPC messages come through stderr
+      vim.schedule(function()
+        rpc.on_stdout(data)
+      end)
     end,
   })
+
+  -- Connect RPC to this job for sending messages
+  rpc.connect(M._job_id)
+
+  -- Register RPC handlers
+  rpc.register_handlers()
 
   -- Set buffer options
   vim.api.nvim_buf_set_name(M._term_buf, "keyforge://game")
@@ -147,6 +175,9 @@ function M._launch_game()
 
   -- Enter terminal mode
   vim.cmd("startinsert")
+
+  -- Update game state
+  M._game_state = "playing"
 
   -- Set up autocmd to clean up when buffer is closed
   vim.api.nvim_create_autocmd("BufWipeout", {
@@ -160,10 +191,14 @@ end
 
 --- Stop the game
 function M.stop()
+  local rpc = require("keyforge.rpc")
+
   if M._job_id then
     vim.fn.jobstop(M._job_id)
     M._job_id = nil
   end
+
+  rpc.disconnect()
 
   if M._term_buf and vim.api.nvim_buf_is_valid(M._term_buf) then
     vim.api.nvim_buf_delete(M._term_buf, { force = true })
@@ -171,6 +206,38 @@ function M.stop()
 
   M._term_buf = nil
   M._term_win = nil
+  M._term_tab = nil
+  M._game_state = "idle"
+  M._current_challenge_id = nil
+end
+
+--- Get the game tab page
+---@return number|nil
+function M.get_game_tab()
+  if M._term_tab and vim.api.nvim_tabpage_is_valid(M._term_tab) then
+    return M._term_tab
+  end
+  return nil
+end
+
+--- Focus the game tab
+function M.focus_game_tab()
+  local tab = M.get_game_tab()
+  if tab then
+    vim.api.nvim_set_current_tabpage(tab)
+    if M._term_win and vim.api.nvim_win_is_valid(M._term_win) then
+      vim.api.nvim_set_current_win(M._term_win)
+      vim.cmd("startinsert")
+    end
+  end
+end
+
+--- Send a message to the game via RPC
+---@param method string
+---@param params? table
+function M.send_to_game(method, params)
+  local rpc = require("keyforge.rpc")
+  rpc.notify(method, params)
 end
 
 --- Start the next challenge (user-triggered)

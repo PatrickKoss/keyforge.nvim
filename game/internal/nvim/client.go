@@ -36,6 +36,7 @@ type Handler interface {
 	HandlePause()
 	HandleResume()
 	HandleStartChallenge()
+	HandleRestart()
 }
 
 // NewClient creates a new RPC client using stdin for reading and stderr for writing
@@ -206,6 +207,11 @@ func (c *Client) handleRequest(req *Request) {
 			c.handler.HandleStartChallenge()
 		}
 		result = map[string]bool{"ok": true}
+	case MethodRestartGame:
+		if c.handler != nil {
+			c.handler.HandleRestart()
+		}
+		result = map[string]bool{"ok": true}
 	default:
 		rpcErr = NewError(ErrCodeMethodNotFound, fmt.Sprintf("method not found: %s", req.Method))
 	}
@@ -243,6 +249,10 @@ func (c *Client) handleNotification(notif *Notification) {
 	case MethodStartChallenge:
 		if c.handler != nil {
 			c.handler.HandleStartChallenge()
+		}
+	case MethodRestartGame:
+		if c.handler != nil {
+			c.handler.HandleRestart()
 		}
 	}
 }
@@ -331,6 +341,26 @@ func (c *Client) SendChallengeAvailable(count, nextReward int, nextCategory stri
 		Count:        count,
 		NextReward:   nextReward,
 		NextCategory: nextCategory,
+	})
+}
+
+// SendGameOver notifies Neovim that the game is over
+func (c *Client) SendGameOver(wave, gold, towers, health int) error {
+	return c.Notify(MethodGameOver, &GameOverParams{
+		Wave:   wave,
+		Gold:   gold,
+		Towers: towers,
+		Health: health,
+	})
+}
+
+// SendVictory notifies Neovim that the player has won
+func (c *Client) SendVictory(wave, gold, towers, health int) error {
+	return c.Notify(MethodVictory, &VictoryParams{
+		Wave:   wave,
+		Gold:   gold,
+		Towers: towers,
+		Health: health,
 	})
 }
 
