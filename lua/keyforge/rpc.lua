@@ -255,10 +255,15 @@ end
 ---@return table result
 function M.handle_request_challenge(params)
   local challenge_queue = require("keyforge.challenge_queue")
+  local keyforge = require("keyforge")
 
   vim.schedule(function()
+    -- Store the challenge ID for the response
+    keyforge._current_challenge_id = params.request_id
+
     -- Try to start the next challenge
-    challenge_queue.request_next()
+    -- Pass category hint from game if available
+    challenge_queue.request_next(params.category)
   end)
 
   return { ok = true }

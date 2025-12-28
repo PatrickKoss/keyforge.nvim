@@ -132,9 +132,10 @@ function M.is_challenge_active()
   return M._state.current ~= nil
 end
 
---- Request the next challenge (user-triggered)
+--- Request the next challenge (user-triggered or game-triggered via RPC)
+---@param category? string Optional category hint from the game
 ---@return table|nil challenge The started challenge, or nil if none available
-function M.request_next()
+function M.request_next(category)
   -- Don't start a new challenge if one is active
   if M.is_challenge_active() then
     vim.notify("A challenge is already active. Complete it first!", vim.log.levels.WARN)

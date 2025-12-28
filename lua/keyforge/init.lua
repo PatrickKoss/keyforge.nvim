@@ -120,9 +120,11 @@ function M.start()
   M._launch_game()
 end
 
---- Launch the game in a fullscreen tab
+--- Launch the game in a fullscreen tab with RPC integration
 function M._launch_game()
   local binary = get_binary_path()
+  local rpc = require("keyforge.rpc")
+  local challenge_queue = require("keyforge.challenge_queue")
 
   -- Create a new tab for fullscreen game
   vim.cmd("tabnew")
@@ -131,15 +133,41 @@ function M._launch_game()
   M._term_buf = vim.api.nvim_get_current_buf()
   M._term_win = vim.api.nvim_get_current_win()
 
-  -- Start the game process
-  M._job_id = vim.fn.termopen(binary, {
+  -- Start the game process with --nvim-mode flag
+  M._job_id = vim.fn.termopen({ binary, "--nvim-mode" }, {
     on_exit = function(_, code)
       M._job_id = nil
+      rpc.disconnect()
       if code ~= 0 then
         vim.notify("Keyforge exited with code " .. code, vim.log.levels.WARN)
       end
     end,
+    on_stdout = function(_, data)
+      -- Handle RPC messages from stdout
+      rpc.on_stdout(data)
+    end,
   })
+
+  -- Connect RPC to the job
+  rpc.connect(M._job_id)
+  rpc.register_handlers()
+
+  -- Set up challenge callbacks to send results back to game via RPC
+  challenge_queue.on_challenge_complete(function(result)
+    if rpc.is_connected() then
+      rpc.notify("challenge_complete", {
+        request_id = M._current_challenge_id or "",
+        success = result.success,
+        skipped = result.skipped or false,
+        keystroke_count = result.keystroke_count or 0,
+        time_ms = result.time_ms or 0,
+        efficiency = result.efficiency or 0,
+        speed_bonus = result.speed_bonus or 1.0,
+        gold_earned = result.gold_earned or 0,
+      })
+    end
+    M._current_challenge_id = nil
+  end)
 
   -- Set buffer options
   vim.api.nvim_buf_set_name(M._term_buf, "keyforge://game")
@@ -157,6 +185,9 @@ function M._launch_game()
     once = true,
   })
 end
+
+--- Store current challenge ID for RPC response
+M._current_challenge_id = nil
 
 --- Stop the game
 function M.stop()

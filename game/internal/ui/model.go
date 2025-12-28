@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/keyforge/keyforge/internal/engine"
 	"github.com/keyforge/keyforge/internal/entities"
+	"github.com/keyforge/keyforge/internal/nvim"
 	"github.com/keyforge/keyforge/internal/vim"
 )
 
@@ -28,6 +30,12 @@ type Model struct {
 	ChallengeManager *engine.ChallengeManager
 	CurrentChallenge *engine.Challenge
 	VimEditor        *vim.Editor
+
+	// Neovim integration
+	NvimMode           bool
+	NvimClient         *nvim.Client
+	NvimChallengeID    string // Current challenge request ID
+	NvimChallengeCount int    // Counter for generating unique IDs
 }
 
 // NewModel creates a new game model
@@ -42,6 +50,60 @@ func NewModel() Model {
 		ChallengeManager: cm,
 		CurrentChallenge: nil,
 	}
+}
+
+// InitNvimClient initializes the Neovim RPC client
+func (m *Model) InitNvimClient() {
+	m.NvimClient = nvim.NewClient(m)
+	m.NvimClient.Start()
+	// Notify Neovim that game is ready
+	m.NvimClient.SendGameReady()
+}
+
+// Handler interface implementation for nvim.Client
+
+// HandleChallengeComplete processes challenge results from Neovim
+func (m *Model) HandleChallengeComplete(result *nvim.ChallengeResult) {
+	if result.RequestID != m.NvimChallengeID {
+		return // Stale result, ignore
+	}
+
+	if result.Success {
+		// Award gold - Neovim already calculated it
+		gold := result.GoldEarned
+		if gold < 1 {
+			gold = 1
+		}
+		m.Game.AddChallengeGold(gold)
+	}
+
+	// Clear challenge state
+	m.NvimChallengeID = ""
+	m.Game.EndChallenge()
+}
+
+// HandleConfigUpdate processes config updates from Neovim
+func (m *Model) HandleConfigUpdate(config *nvim.ConfigUpdate) {
+	// Could apply difficulty settings etc.
+}
+
+// HandlePause pauses the game
+func (m *Model) HandlePause() {
+	if m.Game.State == engine.StatePlaying {
+		m.Game.TogglePause()
+	}
+}
+
+// HandleResume resumes the game
+func (m *Model) HandleResume() {
+	if m.Game.State == engine.StatePaused {
+		m.Game.TogglePause()
+	}
+}
+
+// HandleStartChallenge handles user-triggered challenge requests from Neovim
+func (m *Model) HandleStartChallenge() {
+	m.startChallenge()
 }
 
 // Init initializes the model
@@ -147,9 +209,9 @@ func (m Model) handlePlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// startChallenge starts a new challenge in standalone mode
+// startChallenge starts a new challenge
 func (m *Model) startChallenge() {
-	if m.ChallengeManager == nil || m.Game.ChallengeActive {
+	if m.Game.ChallengeActive {
 		return
 	}
 
@@ -159,6 +221,30 @@ func (m *Model) startChallenge() {
 	if tower != nil {
 		info := tower.Info()
 		category = info.Category
+	}
+
+	// In Neovim mode, delegate to Neovim via RPC
+	if m.NvimMode && m.NvimClient != nil {
+		m.NvimChallengeCount++
+		m.NvimChallengeID = fmt.Sprintf("challenge_%d", m.NvimChallengeCount)
+
+		// Request challenge from Neovim - game continues running!
+		difficulty := 1
+		if m.Game.Wave >= 4 {
+			difficulty = 2
+		}
+		if m.Game.Wave >= 7 {
+			difficulty = 3
+		}
+
+		m.NvimClient.RequestChallenge(m.NvimChallengeID, category, difficulty)
+		m.Game.StartChallenge()
+		return
+	}
+
+	// Standalone mode: use internal vim editor
+	if m.ChallengeManager == nil {
+		return
 	}
 
 	// Get a random challenge (matching tower category if available)
@@ -196,6 +282,18 @@ func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// In nvim mode, challenge is handled externally in Neovim
+	// Game continues running, just wait for RPC result
+	if m.NvimMode {
+		// Only allow cancel via Escape
+		if msg.String() == "esc" || msg.Type == tea.KeyEscape {
+			m.NvimChallengeID = ""
+			m.Game.EndChallenge()
+		}
+		return m, nil
+	}
+
+	// Standalone mode: use internal vim editor
 	if m.VimEditor == nil {
 		return m, nil
 	}

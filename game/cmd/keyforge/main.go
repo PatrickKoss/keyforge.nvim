@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -9,8 +10,19 @@ import (
 )
 
 func main() {
+	nvimMode := flag.Bool("nvim-mode", false, "Enable Neovim integration mode with RPC")
+	flag.Parse()
+
+	model := ui.NewModel()
+	model.NvimMode = *nvimMode
+
+	// In nvim mode, start the RPC client
+	if *nvimMode {
+		model.InitNvimClient()
+	}
+
 	p := tea.NewProgram(
-		ui.NewModel(),
+		model,
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
 	)
