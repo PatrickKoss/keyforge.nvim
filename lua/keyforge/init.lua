@@ -41,6 +41,7 @@ M._term_tab = nil
 M._plugin_dir = nil
 M._current_challenge_id = nil
 M._game_state = "idle" -- idle, playing, paused, challenge_waiting, game_over, victory
+M._socket_path = nil   -- Unix socket path for RPC
 
 --- Get the plugin directory path
 ---@return string
@@ -129,10 +130,65 @@ function M.start()
   M._launch_game()
 end
 
---- Launch the game in a fullscreen tab with nvim-mode enabled
+--- Generate a unique socket path for RPC
+---@return string
+local function generate_socket_path()
+  local pid = vim.fn.getpid()
+  local timestamp = vim.fn.localtime()
+  return string.format("/tmp/keyforge-%d-%d.sock", pid, timestamp)
+end
+
+--- Clean up stale socket files
+local function cleanup_stale_sockets()
+  local pattern = "/tmp/keyforge-*.sock"
+  local files = vim.fn.glob(pattern, false, true)
+  for _, file in ipairs(files) do
+    -- Try to remove stale sockets (ignore errors)
+    pcall(vim.fn.delete, file)
+  end
+end
+
+--- Connect to the game's RPC socket with retry
+---@param socket_path string
+---@param max_attempts? number
+local function connect_rpc_with_retry(socket_path, max_attempts)
+  max_attempts = max_attempts or 20
+  local attempt = 0
+  local delay = 100 -- Start with 100ms
+
+  local rpc = require("keyforge.rpc")
+  rpc.register_handlers()
+
+  local function try_connect()
+    attempt = attempt + 1
+    rpc.connect(socket_path, function()
+      -- Success
+      vim.notify("Keyforge RPC connected!", vim.log.levels.INFO)
+    end, function(err)
+      -- Error
+      if attempt < max_attempts then
+        -- Retry with exponential backoff
+        delay = math.min(delay * 1.5, 1000)
+        vim.defer_fn(try_connect, delay)
+      else
+        vim.notify("Failed to connect to Keyforge RPC: " .. tostring(err), vim.log.levels.WARN)
+      end
+    end)
+  end
+
+  -- Initial delay to give the game time to start its socket server
+  vim.defer_fn(try_connect, 200)
+end
+
+--- Launch the game in a fullscreen tab
 function M._launch_game()
   local binary = get_binary_path()
-  local rpc = require("keyforge.rpc")
+
+  -- Clean up any stale socket files
+  cleanup_stale_sockets()
+
+  -- Generate unique socket path
+  M._socket_path = generate_socket_path()
 
   -- Create a new tab for fullscreen game
   vim.cmd("tabnew")
@@ -142,32 +198,30 @@ function M._launch_game()
   M._term_buf = vim.api.nvim_get_current_buf()
   M._term_win = vim.api.nvim_get_current_win()
 
-  -- Start the game process with --nvim-mode for RPC communication
-  -- The game uses stderr for RPC output so stdout remains free for terminal rendering
-  M._job_id = vim.fn.termopen(binary .. " --nvim-mode", {
+  -- Start the game process in nvim mode with socket RPC
+  -- Terminal handles display + input, socket handles RPC
+  local cmd = string.format("%s --nvim-mode --rpc-socket %s", binary, M._socket_path)
+  M._job_id = vim.fn.termopen(cmd, {
     on_exit = function(_, code)
       vim.schedule(function()
         M._job_id = nil
         M._game_state = "idle"
+
+        -- Disconnect RPC and clean up socket
+        local rpc = require("keyforge.rpc")
         rpc.disconnect()
+
+        if M._socket_path then
+          pcall(vim.fn.delete, M._socket_path)
+          M._socket_path = nil
+        end
+
         if code ~= 0 then
           vim.notify("Keyforge exited with code " .. code, vim.log.levels.WARN)
         end
       end)
     end,
-    on_stderr = function(_, data)
-      -- RPC messages come through stderr
-      vim.schedule(function()
-        rpc.on_stdout(data)
-      end)
-    end,
   })
-
-  -- Connect RPC to this job for sending messages
-  rpc.connect(M._job_id)
-
-  -- Register RPC handlers
-  rpc.register_handlers()
 
   -- Set buffer options
   vim.api.nvim_buf_set_name(M._term_buf, "keyforge://game")
@@ -178,6 +232,9 @@ function M._launch_game()
 
   -- Update game state
   M._game_state = "playing"
+
+  -- Connect to RPC socket with retry
+  connect_rpc_with_retry(M._socket_path)
 
   -- Set up autocmd to clean up when buffer is closed
   vim.api.nvim_create_autocmd("BufWipeout", {
@@ -191,17 +248,23 @@ end
 
 --- Stop the game
 function M.stop()
+  -- Disconnect RPC first
   local rpc = require("keyforge.rpc")
+  rpc.disconnect()
 
   if M._job_id then
     vim.fn.jobstop(M._job_id)
     M._job_id = nil
   end
 
-  rpc.disconnect()
-
   if M._term_buf and vim.api.nvim_buf_is_valid(M._term_buf) then
     vim.api.nvim_buf_delete(M._term_buf, { force = true })
+  end
+
+  -- Clean up socket file
+  if M._socket_path then
+    pcall(vim.fn.delete, M._socket_path)
+    M._socket_path = nil
   end
 
   M._term_buf = nil

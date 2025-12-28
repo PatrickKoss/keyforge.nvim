@@ -2,6 +2,18 @@ package nvim
 
 // JSON-RPC 2.0 message types for Neovim communication
 
+// RPCClient is the interface for sending RPC messages to Neovim
+// Both Client (stdin/stderr) and SocketServer implement this
+type RPCClient interface {
+	RequestChallenge(requestID, category string, difficulty int) error
+	SendGameState(state string, wave, gold, health, enemies, towers int) error
+	SendGameReady() error
+	SendGoldUpdate(gold, earned int, source string, speedBonus float64) error
+	SendChallengeAvailable(count, nextReward int, nextCategory string) error
+	SendGameOver(wave, gold, towers, health int) error
+	SendVictory(wave, gold, towers, health int) error
+}
+
 // Request represents a JSON-RPC request
 type Request struct {
 	JSONRPC string      `json:"jsonrpc"`

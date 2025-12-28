@@ -1,60 +1,57 @@
-## 1. Enable nvim-mode in plugin launch
+## 1. Unix Socket RPC Architecture
 
-- [x] 1.1 Update `lua/keyforge/init.lua` to pass `--nvim-mode` flag to game binary
-- [x] 1.2 Update `lua/keyforge/init.lua` to use `termopen` with stderr handler for RPC
-- [x] 1.3 Register RPC handlers for `request_challenge`, `game_state`, and `game_over`
-- [x] 1.4 Build passes, game launches with RPC communication
+- [x] 1.1 Create `game/internal/nvim/socket.go` with SocketServer implementation
+- [x] 1.2 Add `RPCClient` interface to `protocol.go` for polymorphism
+- [x] 1.3 Add `--rpc-socket` CLI flag to `main.go`
+- [x] 1.4 Add `InitNvimSocket()` method to `model.go`
+- [x] 1.5 Update RPC calls in `model.go` to use `NvimRPC` interface
 
-## 2. Implement game pause during challenge
+## 2. Lua Socket Client
 
-- [x] 2.1 Add `StateChallengeWaiting` state to game engine (distinct from `StateChallengeActive`)
-- [x] 2.2 Update `startChallenge()` in `model.go` to use `StartChallengeWaiting()` in nvim mode
-- [x] 2.3 Add `handleChallengeWaitingKeys()` for nvim mode (only allows Escape to cancel)
-- [x] 2.4 Game loop already skips updates when not in StatePlaying or StateChallengeActive
-- [x] 2.5 Add "CHALLENGE IN PROGRESS - Game paused" status to game view
+- [x] 2.1 Refactor `lua/keyforge/rpc.lua` to use `vim.loop.new_pipe()` for socket
+- [x] 2.2 Implement `connect(socket_path, on_connect, on_error)` function
+- [x] 2.3 Implement `disconnect()` with proper cleanup
+- [x] 2.4 Keep handler registration unchanged (`M.on()`, `M.register_handlers()`)
 
-## 3. Rewrite challenge buffer to use real files
+## 3. Neovim Plugin Integration
 
-- [x] 3.1 Create `lua/keyforge/challenge_buffer.lua` module for file-based challenge buffers
-- [x] 3.2 Implement `create_temp_file()` - writes content to temp file with correct extension
-- [x] 3.3 Implement `start_challenge()` - opens file in new tab with keymaps
-- [x] 3.4 Set up `BufWipeout` autocmd for challenge completion/cancel
-- [x] 3.5 Implement `submit_challenge()` - reads file, validates, sends result
-- [x] 3.6 Implement `_cleanup()` - deletes temp file, returns to game tab
-- [x] 3.7 Add challenge info floating window (top-right corner)
+- [x] 3.1 Generate unique socket path (`/tmp/keyforge-{pid}-{time}.sock`)
+- [x] 3.2 Pass `--nvim-mode --rpc-socket <path>` to game binary
+- [x] 3.3 Implement connection retry with exponential backoff (200ms start, 1s max)
+- [x] 3.4 Clean up socket file in `M.stop()` and on game exit
+- [x] 3.5 Clean up stale sockets on plugin load
 
-## 4. Update validation for file-based buffers
+## 4. Game Engine Updates (from prior work)
 
-- [x] 4.1 `challenge_buffer.lua` reads from file path and validates via `challenges.lua`
-- [x] 4.2 Keystroke tracking via existing `challenges.start_tracking()` / `stop_tracking()`
-- [x] 4.3 Keystroke tracking uses `vim.on_key()` which works across tabs
-- [x] 4.4 Add timeout handling (configurable via `challenge_timeout`, default 300s)
+- [x] 4.1 `StateChallengeWaiting` state for pausing during challenges
+- [x] 4.2 `HandleChallengeComplete` processes results from Neovim
+- [x] 4.3 Game over/victory RPC notifications implemented
+- [x] 4.4 "CHALLENGE IN PROGRESS" status in game view
 
-## 5. Handle game state restoration
+## 5. Challenge Buffer System (from prior work)
 
-- [x] 5.1 `HandleChallengeComplete` already exists and calls `Game.EndChallenge()`
-- [x] 5.2 Game state is frozen during challenge (no enemy movement)
-- [x] 5.3 Edge case handled - game can't end during StateChallengeWaiting
-- [x] 5.4 `focus_game_tab()` returns to game and calls `startinsert`
+- [x] 5.1 `challenge_buffer.lua` creates real temp files for challenges
+- [x] 5.2 Opens file in new tab with proper filetype for LSP
+- [x] 5.3 Keystroke tracking via `challenges.lua`
+- [x] 5.4 Submit/cancel keymaps with validation
+- [x] 5.5 Info floating window with challenge details
 
-## 6. Add game over/victory detection
+## 6. Game Over/Victory UI (from prior work)
 
-- [x] 6.1 Add `game_over` and `victory` RPC notifications in `protocol.go` and `client.go`
-- [x] 6.2 Create `lua/keyforge/game_over.lua` module for end-game UI
-- [x] 6.3 Display game over/victory screen with ASCII art and stats
-- [x] 6.4 Handle restart command (`HandleRestart()` in Go, `restart_game` RPC)
+- [x] 6.1 `game_over.lua` displays ASCII art for end states
+- [x] 6.2 Stats shown: wave, gold, health, towers
+- [x] 6.3 Restart/quit prompts visible
 
-## 7. Configuration and keymaps
+## 7. Build Verification
 
-- [x] 7.1 Add config options `keybind_submit` (default `<CR>`) and `keybind_cancel` (default `<Esc>`)
-- [x] 7.2 Add config option `challenge_timeout` (default 300 seconds)
-- [x] 7.3 Game pause behavior is default in nvim mode (no config needed)
-- [x] 7.4 Documentation deferred to separate task
+- [x] 7.1 Go tests pass (`make test`)
+- [x] 7.2 Go build passes (`make build`)
 
-## 8. Testing and cleanup
+## 8. Manual Testing (requires user)
 
-- [x] 8.1 Go tests pass (`make test`)
-- [x] 8.2 Go build passes (`make build`)
-- [ ] 8.3 Manual testing with actual Neovim integration (requires user testing)
-- [ ] 8.4 Test with multiple LSP servers (requires user testing)
-- [ ] 8.5 Test game over during challenge scenario (requires user testing)
+- [ ] 8.1 Launch game with `:Keyforge`, verify movement (h/j/k/l)
+- [ ] 8.2 Press 'c' to start challenge, verify buffer opens in new tab
+- [ ] 8.3 Verify LSP works in challenge buffer (K for hover, gd for definition)
+- [ ] 8.4 Verify `:5` and other ex commands work
+- [ ] 8.5 Submit challenge and verify return to game with gold award
+- [ ] 8.6 Test game over notification displays properly

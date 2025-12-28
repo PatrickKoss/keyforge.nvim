@@ -12,8 +12,10 @@ local M = {}
 M._request_id = 0
 M._pending_requests = {}
 M._handlers = {}
-M._job_id = nil
+M._socket = nil
 M._buffer = ""
+M._connected = false
+M._socket_path = nil
 
 --- Generate a unique request ID
 ---@return number
@@ -52,7 +54,7 @@ end
 ---@param params? table
 ---@param callback function Called with (error, result)
 function M.request(method, params, callback)
-  if not M._job_id then
+  if not M._connected or not M._socket then
     callback({ message = "RPC not connected" }, nil)
     return
   end
@@ -68,14 +70,14 @@ function M.request(method, params, callback)
   M._pending_requests[id] = callback
 
   local data = encode(msg)
-  vim.fn.chansend(M._job_id, data)
+  M._socket:write(data)
 end
 
 --- Send a notification (no response expected)
 ---@param method string
 ---@param params? table
 function M.notify(method, params)
-  if not M._job_id then
+  if not M._connected or not M._socket then
     return
   end
 
@@ -86,7 +88,7 @@ function M.notify(method, params)
   }
 
   local data = encode(msg)
-  vim.fn.chansend(M._job_id, data)
+  M._socket:write(data)
 end
 
 --- Send a response to an incoming request
@@ -94,7 +96,7 @@ end
 ---@param result? any
 ---@param error? table
 local function respond(id, result, error)
-  if not M._job_id then
+  if not M._connected or not M._socket then
     return
   end
 
@@ -110,7 +112,7 @@ local function respond(id, result, error)
   end
 
   local data = encode(msg)
-  vim.fn.chansend(M._job_id, data)
+  M._socket:write(data)
 end
 
 --- Handle incoming data
@@ -171,18 +173,73 @@ function M._handle_message(msg)
   end
 end
 
---- Connect to an RPC channel (job ID)
----@param job_id number
-function M.connect(job_id)
-  M._job_id = job_id
+--- Connect to a Unix socket
+---@param socket_path string Path to the Unix socket
+---@param on_connect? function Called on successful connection
+---@param on_error? function Called on connection error
+function M.connect(socket_path, on_connect, on_error)
+  if M._connected then
+    M.disconnect()
+  end
+
+  M._socket_path = socket_path
   M._buffer = ""
   M._pending_requests = {}
+
+  -- Create a new pipe (Unix socket client)
+  M._socket = vim.loop.new_pipe(false)
+
+  M._socket:connect(socket_path, function(err)
+    vim.schedule(function()
+      if err then
+        M._connected = false
+        if on_error then
+          on_error(err)
+        end
+        return
+      end
+
+      M._connected = true
+
+      -- Start reading from the socket
+      M._socket:read_start(function(read_err, data)
+        vim.schedule(function()
+          if read_err then
+            M.disconnect()
+            return
+          end
+
+          if data then
+            handle_data(data)
+          else
+            -- EOF - socket closed
+            M.disconnect()
+          end
+        end)
+      end)
+
+      if on_connect then
+        on_connect()
+      end
+    end)
+  end)
 end
 
 --- Disconnect RPC
 function M.disconnect()
-  M._job_id = nil
+  M._connected = false
+
+  if M._socket then
+    if not M._socket:is_closing() then
+      M._socket:read_stop()
+      M._socket:close()
+    end
+    M._socket = nil
+  end
+
   M._buffer = ""
+  M._socket_path = nil
+
   -- Cancel pending requests
   for id, callback in pairs(M._pending_requests) do
     callback({ message = "RPC disconnected" }, nil)
@@ -193,17 +250,31 @@ end
 --- Check if connected
 ---@return boolean
 function M.is_connected()
-  return M._job_id ~= nil
+  return M._connected and M._socket ~= nil
 end
 
---- Handle stdout data from job
+--- Get the socket path
+---@return string|nil
+function M.get_socket_path()
+  return M._socket_path
+end
+
+-- Legacy compatibility functions (for existing code)
+
+--- Connect to an RPC channel (job ID) - DEPRECATED
+--- This is kept for backward compatibility but no longer used
+---@param job_id number
+---@deprecated Use M.connect(socket_path) instead
+function M.connect_job(job_id)
+  -- No-op - socket connection replaces job-based RPC
+  vim.notify("rpc.connect_job is deprecated, use socket connection", vim.log.levels.WARN)
+end
+
+--- Handle stdout data from job - DEPRECATED
 ---@param data string[]
+---@deprecated Socket-based RPC handles data internally
 function M.on_stdout(data)
-  if data then
-    for _, line in ipairs(data) do
-      handle_data(line .. "\n")
-    end
-  end
+  -- No-op - socket connection handles data internally
 end
 
 -- Register default handlers for Keyforge-specific methods

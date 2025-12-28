@@ -11,14 +11,21 @@ import (
 
 func main() {
 	nvimMode := flag.Bool("nvim-mode", false, "Enable Neovim integration mode with RPC")
+	rpcSocket := flag.String("rpc-socket", "", "Unix socket path for RPC communication")
 	flag.Parse()
 
 	model := ui.NewModel()
 	model.NvimMode = *nvimMode
 
-	// In nvim mode, start the RPC client
+	// In nvim mode, start the RPC server/client
 	if *nvimMode {
-		model.InitNvimClient()
+		if *rpcSocket != "" {
+			// Use Unix socket for RPC (preferred)
+			model.InitNvimSocket(*rpcSocket)
+		} else {
+			// Fallback to stdin/stderr (legacy)
+			model.InitNvimClient()
+		}
 	}
 
 	p := tea.NewProgram(

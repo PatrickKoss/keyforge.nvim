@@ -33,10 +33,12 @@ type Model struct {
 
 	// Neovim integration
 	NvimMode           bool
-	NvimClient         *nvim.Client
-	NvimChallengeID    string       // Current challenge request ID
-	NvimChallengeCount int          // Counter for generating unique IDs
-	PrevGameState      engine.GameState // Track state changes for notifications
+	NvimClient         *nvim.Client        // Legacy stdin/stderr RPC
+	NvimSocket         *nvim.SocketServer  // Unix socket RPC (preferred)
+	NvimRPC            nvim.RPCClient      // Interface to whichever is active
+	NvimChallengeID    string              // Current challenge request ID
+	NvimChallengeCount int                 // Counter for generating unique IDs
+	PrevGameState      engine.GameState    // Track state changes for notifications
 }
 
 // NewModel creates a new game model
@@ -53,12 +55,23 @@ func NewModel() Model {
 	}
 }
 
-// InitNvimClient initializes the Neovim RPC client
+// InitNvimClient initializes the Neovim RPC client (legacy stdin/stderr)
 func (m *Model) InitNvimClient() {
 	m.NvimClient = nvim.NewClient(m)
 	m.NvimClient.Start()
+	m.NvimRPC = m.NvimClient // Use Client as the RPC interface
 	// Notify Neovim that game is ready
 	m.NvimClient.SendGameReady()
+}
+
+// InitNvimSocket initializes the Neovim RPC via Unix socket
+func (m *Model) InitNvimSocket(socketPath string) {
+	m.NvimSocket = nvim.NewSocketServer(socketPath, m)
+	if err := m.NvimSocket.Start(); err != nil {
+		// Fall back to no RPC - game still works standalone
+		return
+	}
+	m.NvimRPC = m.NvimSocket // Use SocketServer as the RPC interface
 }
 
 // Handler interface implementation for nvim.Client
@@ -119,20 +132,20 @@ func (m *Model) HandleRestart() {
 
 // sendStateNotification sends game state notifications to Neovim
 func (m *Model) sendStateNotification() {
-	if m.NvimClient == nil {
+	if m.NvimRPC == nil {
 		return
 	}
 
 	switch m.Game.State {
 	case engine.StateGameOver:
-		m.NvimClient.SendGameOver(
+		m.NvimRPC.SendGameOver(
 			m.Game.Wave,
 			m.Game.Gold,
 			len(m.Game.Towers),
 			m.Game.Health,
 		)
 	case engine.StateVictory:
-		m.NvimClient.SendVictory(
+		m.NvimRPC.SendVictory(
 			m.Game.Wave,
 			m.Game.Gold,
 			len(m.Game.Towers),
@@ -169,7 +182,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Game.Update(dt)
 
 		// Check for state changes and send notifications in nvim mode
-		if m.NvimMode && m.NvimClient != nil && m.Game.State != prevState {
+		if m.NvimMode && m.NvimRPC != nil && m.Game.State != prevState {
 			m.sendStateNotification()
 		}
 		m.PrevGameState = m.Game.State
@@ -271,7 +284,7 @@ func (m *Model) startChallenge() {
 	}
 
 	// In Neovim mode, delegate to Neovim via RPC
-	if m.NvimMode && m.NvimClient != nil {
+	if m.NvimMode && m.NvimRPC != nil {
 		m.NvimChallengeCount++
 		m.NvimChallengeID = fmt.Sprintf("challenge_%d", m.NvimChallengeCount)
 
@@ -284,7 +297,7 @@ func (m *Model) startChallenge() {
 			difficulty = 3
 		}
 
-		m.NvimClient.RequestChallenge(m.NvimChallengeID, category, difficulty)
+		m.NvimRPC.RequestChallenge(m.NvimChallengeID, category, difficulty)
 		m.Game.StartChallengeWaiting() // Use waiting state (paused) for nvim mode
 		return
 	}
