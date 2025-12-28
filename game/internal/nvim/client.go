@@ -38,11 +38,12 @@ type Handler interface {
 	HandleStartChallenge()
 }
 
-// NewClient creates a new RPC client using stdin/stdout
+// NewClient creates a new RPC client using stdin for reading and stderr for writing
+// This allows Bubbletea to use stdout for terminal rendering while RPC uses stderr
 func NewClient(handler Handler) *Client {
 	return &Client{
 		reader:   bufio.NewReader(os.Stdin),
-		writer:   os.Stdout,
+		writer:   os.Stderr, // Use stderr so stdout remains free for terminal
 		pending:  make(map[int]chan *Response),
 		handler:  handler,
 		incoming: make(chan interface{}, 100),
