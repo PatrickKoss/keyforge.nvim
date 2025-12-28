@@ -256,14 +256,14 @@ function M.start_challenge(request_id, category, difficulty)
   -- Create info window
   create_info_window(challenge)
 
-  -- Set up timeout
+  -- Set up timeout using vim.fn.timer_start (returns timer ID)
   local timeout_seconds = keyforge.config.challenge_timeout or 300
-  M._timeout_timer = vim.defer_fn(function()
+  M._timeout_timer = vim.fn.timer_start(timeout_seconds * 1000, function()
     if M._current then
       vim.notify("Challenge timed out!", vim.log.levels.WARN)
       M.cancel_challenge()
     end
-  end, timeout_seconds * 1000)
+  end)
 
   vim.notify(string.format("Challenge started: %s", challenge.name), vim.log.levels.INFO)
 end

@@ -77,6 +77,12 @@ function M.validate(challenge, initial, final)
   elseif validation_type == "different" then
     -- Just check that the content changed
     result.success = not M._content_equal(initial, final)
+  elseif validation_type == "cursor_position" then
+    -- Check cursor is at expected position
+    result.success = M._validate_cursor_position(challenge)
+  elseif validation_type == "cursor_on_char" then
+    -- Check cursor is on a specific character
+    result.success = M._validate_cursor_on_char(challenge, final)
   else
     result.error = "Unknown validation type: " .. validation_type
     return result
@@ -168,6 +174,49 @@ function M._validate_pattern(challenge, final)
   return content:match(pattern) ~= nil
 end
 
+--- Validate cursor position (for movement challenges)
+---@param challenge table
+---@return boolean
+function M._validate_cursor_position(challenge)
+  local expected = challenge.expected_cursor
+  if not expected or #expected ~= 2 then
+    return false
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  -- expected is 0-indexed [row, col], cursor is 1-indexed [row, col]
+  local expected_row = expected[1] + 1
+  local expected_col = expected[2]
+
+  return cursor[1] == expected_row and cursor[2] == expected_col
+end
+
+--- Validate cursor is on a specific character (for find/search challenges)
+---@param challenge table
+---@param final string[]
+---@return boolean
+function M._validate_cursor_on_char(challenge, final)
+  local expected_char = challenge.expected_char
+  if not expected_char then
+    return false
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local row = cursor[1]
+  local col = cursor[2]
+
+  -- Get the character at cursor position
+  if row <= #final then
+    local line = final[row]
+    if col < #line then
+      local char = line:sub(col + 1, col + 1)
+      return char == expected_char
+    end
+  end
+
+  return false
+end
+
 --- Check if two content arrays are equal
 ---@param a string[]
 ---@param b string[]
@@ -209,7 +258,8 @@ M.sample_challenges = {
     difficulty = 1,
     description = "Move the cursor to the end of the line using $",
     initial_buffer = "The quick brown fox jumps over the lazy dog",
-    validation_type = "different",
+    validation_type = "cursor_position",
+    expected_cursor = { 0, 42 }, -- End of line (0-indexed)
     par_keystrokes = 1,
     gold_base = 25,
   },
@@ -220,7 +270,8 @@ M.sample_challenges = {
     difficulty = 1,
     description = "Move forward 5 words using 5w",
     initial_buffer = "one two three four five six seven eight",
-    validation_type = "different",
+    validation_type = "cursor_on_char",
+    expected_char = "s", -- Start of "six"
     par_keystrokes = 2,
     gold_base = 25,
   },
@@ -231,7 +282,8 @@ M.sample_challenges = {
     difficulty = 1,
     description = "Jump to the letter 'x' using fx",
     initial_buffer = "The fox jumped over the box",
-    validation_type = "different",
+    validation_type = "cursor_on_char",
+    expected_char = "x",
     par_keystrokes = 2,
     gold_base = 25,
   },
