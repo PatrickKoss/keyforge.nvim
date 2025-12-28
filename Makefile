@@ -24,6 +24,23 @@ test:
 	@echo "Running tests..."
 	@cd game && go test -v ./...
 
+# Run integration tests only
+test-integration:
+	@echo "Running integration tests..."
+	@cd game && go test -v ./internal/integration/...
+
+# Run tests with coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	@cd game && go test -coverprofile=coverage.out ./...
+	@cd game && go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: game/coverage.html"
+
+# Run quick tests (unit tests only, skip integration)
+test-unit:
+	@echo "Running unit tests..."
+	@cd game && go test -v -short ./...
+
 # Watch for changes and rebuild (requires entr)
 watch:
 	@echo "Watching for changes..."
@@ -64,13 +81,16 @@ install-dev:
 # Help
 help:
 	@echo "Keyforge Makefile targets:"
-	@echo "  build       - Build the game binary"
-	@echo "  run         - Build and run the game"
-	@echo "  clean       - Remove build artifacts"
-	@echo "  test        - Run tests"
-	@echo "  watch       - Watch for changes and rebuild"
-	@echo "  deps        - Install Go dependencies"
-	@echo "  fmt         - Format Go code"
-	@echo "  lint        - Run linter"
-	@echo "  release     - Build for all platforms"
-	@echo "  install-dev - Symlink plugin for development"
+	@echo "  build            - Build the game binary"
+	@echo "  run              - Build and run the game"
+	@echo "  clean            - Remove build artifacts"
+	@echo "  test             - Run all tests"
+	@echo "  test-integration - Run integration tests only"
+	@echo "  test-unit        - Run unit tests only"
+	@echo "  test-coverage    - Run tests with coverage report"
+	@echo "  watch            - Watch for changes and rebuild"
+	@echo "  deps             - Install Go dependencies"
+	@echo "  fmt              - Format Go code"
+	@echo "  lint             - Run linter"
+	@echo "  release          - Build for all platforms"
+	@echo "  install-dev      - Symlink plugin for development"

@@ -18,17 +18,25 @@ The game engine SHALL implement a bubbletea-based main loop that processes input
 - **AND** pressing pause again SHALL resume the game
 
 ### Requirement: Game State Machine
-The game engine SHALL manage game state through distinct phases: menu, playing, paused, challenge-active, wave-complete, game-over, and victory.
+The game engine SHALL maintain distinct states for gameplay phases including a challenge-waiting state for nvim mode.
 
 #### Scenario: State transitions
-- **WHEN** the game is in "playing" state and a challenge is requested
-- **THEN** the state SHALL transition to "challenge-active"
-- **AND** game updates SHALL pause until challenge completes
+- **WHEN** the game is playing
+- **THEN** it SHALL transition to paused when pause is triggered
+- **AND** it SHALL transition to challenge-waiting when challenge starts in nvim mode
+- **AND** it SHALL transition to game_over when health reaches zero
+- **AND** it SHALL transition to victory when all waves are completed
 
 #### Scenario: Game over
-- **WHEN** player health reaches zero
-- **THEN** the state SHALL transition to "game-over"
-- **AND** final statistics SHALL be displayed
+- **WHEN** health reaches zero
+- **THEN** the game SHALL enter the game_over state
+- **AND** all game updates SHALL stop
+- **AND** the game SHALL send a game_over notification to Neovim (in nvim mode)
+
+#### Scenario: Victory
+- **WHEN** the final wave is completed and all enemies are defeated
+- **THEN** the game SHALL enter the victory state
+- **AND** a victory notification SHALL be sent to Neovim (in nvim mode)
 
 ### Requirement: Grid Rendering
 The game engine SHALL render a playable grid using Unicode box-drawing characters and optional Nerd Font icons for entities.
@@ -70,4 +78,23 @@ The game engine SHALL display a heads-up display showing current wave, gold, hea
 - **WHEN** the player is not in a challenge
 - **THEN** available tower types SHALL be displayed with their costs
 - **AND** towers the player cannot afford SHALL be visually dimmed
+
+### Requirement: Game State Notifications
+The game engine SHALL send state change notifications to Neovim when running in nvim mode.
+
+#### Scenario: Game over notification
+- **WHEN** the game enters game_over state in nvim mode
+- **THEN** a game_over RPC notification SHALL be sent
+- **AND** the notification SHALL include wave_reached, final_gold, towers_built
+
+#### Scenario: Victory notification
+- **WHEN** the game enters victory state in nvim mode
+- **THEN** a victory RPC notification SHALL be sent
+- **AND** the notification SHALL include final_health, final_gold, towers_built
+
+#### Scenario: Restart command
+- **WHEN** the game receives a restart RPC command
+- **THEN** the game SHALL reset to initial state
+- **AND** the game SHALL enter playing state
+- **AND** the game SHALL notify Neovim of the state change
 

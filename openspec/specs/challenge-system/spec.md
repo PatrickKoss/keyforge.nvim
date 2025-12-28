@@ -56,23 +56,30 @@ The system SHALL track all keystrokes during an active challenge for efficiency 
 - **AND** the efficiency comparison SHALL use optimal keystroke count from the challenge definition
 
 ### Requirement: Challenge Validation
-The system SHALL validate challenge completion by comparing the final buffer state against expected outcomes.
+The system SHALL validate challenge completion by comparing the final file content against expected outcomes, with support for multiple validation strategies.
 
 #### Scenario: Successful validation
-- **WHEN** the buffer state matches the expected outcome
+- **WHEN** the file content matches the expected outcome
 - **THEN** the challenge SHALL be marked as successful
 - **AND** the completion result SHALL be sent to the game
 
 #### Scenario: Failed validation
-- **WHEN** the buffer state does not match expected outcome
+- **WHEN** the file content does not match expected outcome
 - **THEN** the challenge SHALL be marked as failed
 - **AND** the user MAY retry or skip (with penalty)
 
 #### Scenario: Validation types
 - **WHEN** a challenge uses "exact_match" validation
-- **THEN** the buffer content SHALL exactly match the expected content
+- **THEN** the file content SHALL exactly match the expected content
 - **WHEN** a challenge uses "function_exists" validation
-- **THEN** the specified function SHALL exist in the buffer
+- **THEN** the specified function SHALL exist in the file
+- **WHEN** a challenge uses "different" validation
+- **THEN** the file content SHALL differ from the initial content
+
+#### Scenario: Challenge timeout
+- **WHEN** a challenge exceeds the configured timeout (default 5 minutes)
+- **THEN** the challenge SHALL be automatically cancelled
+- **AND** it SHALL be recorded as a timeout (no gold penalty beyond skip)
 
 ### Requirement: Efficiency Scoring
 The system SHALL calculate an efficiency score based on keystroke count and time compared to optimal solutions.
@@ -104,4 +111,24 @@ The system SHALL track time spent on each challenge and display it to the user.
 - **THEN** a timer SHALL begin
 - **WHEN** the challenge completes
 - **THEN** total elapsed time SHALL be recorded in milliseconds
+
+### Requirement: Challenge Completion Controls
+The system SHALL provide configurable keymaps for submitting or cancelling challenges within the challenge buffer.
+
+#### Scenario: Submit challenge
+- **WHEN** the user presses the submit keymap (default `<CR>` in normal mode)
+- **THEN** the current buffer content SHALL be validated
+- **AND** the result SHALL be sent to the game
+- **AND** the challenge buffer SHALL be cleaned up
+
+#### Scenario: Cancel challenge
+- **WHEN** the user presses the cancel keymap (default `<Esc>` in normal mode)
+- **THEN** the challenge SHALL be marked as skipped
+- **AND** no gold SHALL be awarded
+- **AND** the challenge buffer SHALL be cleaned up
+
+#### Scenario: Close tab without explicit action
+- **WHEN** the user closes the challenge tab (`:q`, `:bd`, etc.) without pressing submit
+- **THEN** the challenge SHALL be treated as cancelled/skipped
+- **AND** the challenge buffer SHALL be cleaned up
 

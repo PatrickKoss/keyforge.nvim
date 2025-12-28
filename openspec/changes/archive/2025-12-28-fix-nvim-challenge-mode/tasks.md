@@ -49,9 +49,9 @@
 
 ## 8. Manual Testing (requires user)
 
-- [ ] 8.1 Launch game with `:Keyforge`, verify movement (h/j/k/l)
-- [ ] 8.2 Press 'c' to start challenge, verify buffer opens in new tab
-- [ ] 8.3 Verify LSP works in challenge buffer (K for hover, gd for definition)
-- [ ] 8.4 Verify `:5` and other ex commands work
-- [ ] 8.5 Submit challenge and verify return to game with gold award
-- [ ] 8.6 Test game over notification displays properly
+- [x] 8.1 Launch game with `:Keyforge`, verify movement (h/j/k/l)
+- [x] 8.2 Press 'c' to start challenge, verify buffer opens in new tab
+- [x] 8.3 Verify LSP works in challenge buffer (K for hover, gd for definition)
+- [x] 8.4 Verify `:5` and other ex commands work
+- [x] 8.5 Submit challenge and verify return to game with gold award
+- [x] 8.6 Test game over notification displays properly

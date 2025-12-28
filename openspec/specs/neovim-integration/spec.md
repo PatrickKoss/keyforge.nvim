@@ -37,22 +37,27 @@ The plugin SHALL spawn the Go game binary in a terminal split when the user invo
 - **AND** instructions for manual build SHALL be provided
 
 ### Requirement: RPC Communication
-The plugin SHALL establish bidirectional JSON-RPC communication with the game process over stdin/stdout.
+The plugin SHALL establish bidirectional JSON-RPC communication with the game process over stdin/stdout, handling challenge requests, game state updates, and end-game notifications.
 
 #### Scenario: Receive challenge request
 - **WHEN** the game sends a challenge request message
 - **THEN** the plugin SHALL parse the JSON-RPC request
-- **AND** the challenge handler SHALL be invoked with the parameters
+- **AND** the challenge handler SHALL create a temp file and open it in a new tab
 
 #### Scenario: Send challenge result
 - **WHEN** a challenge is completed
 - **THEN** the plugin SHALL send a JSON-RPC response to the game
-- **AND** the response SHALL include success status, keystroke count, and time
+- **AND** the response SHALL include success status, keystroke count, time, and gold earned
+
+#### Scenario: Receive game state update
+- **WHEN** the game sends a state update notification
+- **THEN** the plugin SHALL update internal state tracking
+- **AND** the plugin SHALL handle pause/resume state changes
 
 #### Scenario: Handle connection loss
 - **WHEN** the game process terminates unexpectedly
 - **THEN** the plugin SHALL detect the disconnection
-- **AND** clean up resources appropriately
+- **AND** clean up any active challenge buffers
 - **AND** display an error message to the user
 
 ### Requirement: Configuration
@@ -85,4 +90,23 @@ The plugin SHALL properly clean up resources when the game ends or Neovim exits.
 - **WHEN** Neovim is closed while game is running
 - **THEN** the game process SHALL be terminated gracefully
 - **AND** no zombie processes SHALL remain
+
+### Requirement: Tab Management
+The plugin SHALL manage Neovim tabs to provide seamless transitions between game and challenge views.
+
+#### Scenario: Track game tab
+- **WHEN** the game is launched
+- **THEN** the plugin SHALL store the game tab ID
+- **AND** the plugin SHALL restore focus to game tab after challenge completion
+
+#### Scenario: Challenge tab creation
+- **WHEN** a challenge is started
+- **THEN** a new tab SHALL be created for the challenge buffer
+- **AND** the original game tab SHALL remain open but unfocused
+
+#### Scenario: Return to game tab
+- **WHEN** a challenge is completed or cancelled
+- **THEN** the challenge tab SHALL be closed
+- **AND** focus SHALL return to the game tab
+- **AND** the terminal SHALL be re-rendered to show current game state
 

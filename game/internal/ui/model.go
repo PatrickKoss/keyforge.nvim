@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,24 +11,6 @@ import (
 	"github.com/keyforge/keyforge/internal/vim"
 )
 
-// Debug logging to shared file with socket.go
-var modelDebugFile *os.File
-
-func init() {
-	// Append to the same debug file that socket.go uses
-	var err error
-	modelDebugFile, err = os.OpenFile("/tmp/keyforge-debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		modelDebugFile = nil
-	}
-}
-
-func debugLog(format string, args ...interface{}) {
-	if modelDebugFile != nil {
-		fmt.Fprintf(modelDebugFile, "[model] "+format+"\n", args...)
-		modelDebugFile.Sync()
-	}
-}
 
 const (
 	GridWidth  = 20
@@ -106,15 +87,13 @@ func (m *Model) InitNvimSocket(socketPath string) {
 // reliably check m.NvimChallengeID here. Instead, we pass the result to the channel and
 // let the Update loop (which has the current state) decide whether to process it.
 func (m *Model) HandleChallengeComplete(result *nvim.ChallengeResult) {
-	debugLog("HandleChallengeComplete: received result for request_id=%s", result.RequestID)
-
 	// Send to channel for processing in the main Update loop (thread-safe)
 	// The Update loop will check if this is still the active challenge
 	select {
 	case m.ChallengeResultChan <- result:
-		debugLog("HandleChallengeComplete: sent to channel successfully")
+		// Successfully sent
 	default:
-		debugLog("HandleChallengeComplete: channel full, dropped!")
+		// Channel full, drop the result (shouldn't happen with buffered channel)
 	}
 }
 
@@ -202,13 +181,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Process pending challenge results from RPC channel (non-blocking)
 		select {
 		case result := <-m.ChallengeResultChan:
-			debugLog("TickMsg: received result from channel! request_id=%s our_id=%s success=%v gold=%d",
-				result.RequestID, m.NvimChallengeID, result.Success, result.GoldEarned)
-
 			// Check if this is for the current challenge (ignore stale results)
 			if result.RequestID != m.NvimChallengeID {
-				debugLog("TickMsg: stale result, ignoring (expected %s, got %s)", m.NvimChallengeID, result.RequestID)
-				// Don't break - continue to check for more results
+				// Stale result, ignore
 			} else {
 				if result.Success {
 					// Award gold - Neovim already calculated it
@@ -217,13 +192,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						gold = 1
 					}
 					m.Game.AddChallengeGold(gold)
-					debugLog("TickMsg: added gold %d", gold)
 				}
 
 				// Clear challenge state and resume game
 				m.NvimChallengeID = ""
 				m.Game.EndChallenge()
-				debugLog("TickMsg: called EndChallenge, game state is now %v", m.Game.State)
 			}
 		default:
 			// No pending result, continue
@@ -339,7 +312,6 @@ func (m *Model) startChallenge() {
 	if m.NvimMode && m.NvimRPC != nil {
 		m.NvimChallengeCount++
 		m.NvimChallengeID = fmt.Sprintf("challenge_%d", m.NvimChallengeCount)
-		debugLog("startChallenge: started nvim challenge with id=%s", m.NvimChallengeID)
 
 		// Request challenge from Neovim - game PAUSES while user edits
 		difficulty := 1
@@ -352,7 +324,6 @@ func (m *Model) startChallenge() {
 
 		m.NvimRPC.RequestChallenge(m.NvimChallengeID, category, difficulty)
 		m.Game.StartChallengeWaiting() // Use waiting state (paused) for nvim mode
-		debugLog("startChallenge: game state is now %v", m.Game.State)
 		return
 	}
 
