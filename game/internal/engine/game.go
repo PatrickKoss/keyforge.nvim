@@ -4,7 +4,7 @@ import (
 	"github.com/keyforge/keyforge/internal/entities"
 )
 
-// GameState represents the current state of the game
+// GameState represents the current state of the game.
 type GameState int
 
 const (
@@ -18,7 +18,7 @@ const (
 	StateVictory
 )
 
-// Game holds all game state and logic
+// Game holds all game state and logic.
 type Game struct {
 	State      GameState
 	Width      int
@@ -54,17 +54,20 @@ type Game struct {
 	// Challenge state
 	ChallengeActive bool // indicates a challenge is being solved
 
+	// Status message for UI display
+	StatusMessage string
+
 	// ID counters
 	nextEnemyID int
 	nextTowerID int
 }
 
-// NewGame creates a new game with default settings
+// NewGame creates a new game with default settings.
 func NewGame(width, height int) *Game {
 	return NewGameWithEconomy(width, height, DefaultEconomyConfig())
 }
 
-// NewGameWithEconomy creates a new game with a specific economy configuration
+// NewGameWithEconomy creates a new game with a specific economy configuration.
 func NewGameWithEconomy(width, height int, economy EconomyConfig) *Game {
 	g := &Game{
 		State:           StatePlaying,
@@ -95,7 +98,7 @@ func NewGameWithEconomy(width, height int, economy EconomyConfig) *Game {
 	return g
 }
 
-// createDefaultPath creates a winding path across the map
+// createDefaultPath creates a winding path across the map.
 func (g *Game) createDefaultPath() []entities.Position {
 	// Create an S-shaped path
 	path := []entities.Position{
@@ -138,7 +141,7 @@ func (g *Game) createDefaultPath() []entities.Position {
 	return path
 }
 
-// IsOnPath checks if a position is part of the path
+// IsOnPath checks if a position is part of the path.
 func (g *Game) IsOnPath(x, y int) bool {
 	for _, p := range g.Path {
 		px, py := p.IntPos()
@@ -149,7 +152,7 @@ func (g *Game) IsOnPath(x, y int) bool {
 	return false
 }
 
-// HasTower checks if there's a tower at the position
+// HasTower checks if there's a tower at the position.
 func (g *Game) HasTower(x, y int) bool {
 	for _, t := range g.Towers {
 		tx, ty := t.Pos.IntPos()
@@ -160,7 +163,7 @@ func (g *Game) HasTower(x, y int) bool {
 	return false
 }
 
-// GetTowerAt returns the tower at the position, or nil
+// GetTowerAt returns the tower at the position, or nil.
 func (g *Game) GetTowerAt(x, y int) *entities.Tower {
 	for _, t := range g.Towers {
 		tx, ty := t.Pos.IntPos()
@@ -171,7 +174,7 @@ func (g *Game) GetTowerAt(x, y int) *entities.Tower {
 	return nil
 }
 
-// CanPlaceTower checks if a tower can be placed at the position
+// CanPlaceTower checks if a tower can be placed at the position.
 func (g *Game) CanPlaceTower(x, y int) bool {
 	if x < 0 || x >= g.Width || y < 0 || y >= g.Height {
 		return false
@@ -185,7 +188,7 @@ func (g *Game) CanPlaceTower(x, y int) bool {
 	return true
 }
 
-// PlaceTower attempts to place a tower at the cursor position
+// PlaceTower attempts to place a tower at the cursor position.
 func (g *Game) PlaceTower() bool {
 	info := entities.TowerTypes[g.SelectedTower]
 	if g.Gold < info.Cost {
@@ -205,7 +208,7 @@ func (g *Game) PlaceTower() bool {
 	return true
 }
 
-// UpgradeTower attempts to upgrade the tower at cursor position
+// UpgradeTower attempts to upgrade the tower at cursor position.
 func (g *Game) UpgradeTower() bool {
 	tower := g.GetTowerAt(g.CursorX, g.CursorY)
 	if tower == nil || !tower.CanUpgrade() {
@@ -220,7 +223,7 @@ func (g *Game) UpgradeTower() bool {
 	return true
 }
 
-// SpawnEnemy spawns an enemy at the start of the path
+// SpawnEnemy spawns an enemy at the start of the path.
 func (g *Game) SpawnEnemy(enemyType entities.EnemyType) {
 	if len(g.Path) == 0 {
 		return
@@ -230,7 +233,7 @@ func (g *Game) SpawnEnemy(enemyType entities.EnemyType) {
 	g.Enemies = append(g.Enemies, enemy)
 }
 
-// Update advances the game state by dt seconds
+// Update advances the game state by dt seconds.
 func (g *Game) Update(dt float64) {
 	// Always update effects (even when paused for visual continuity)
 	g.Effects.Update(dt)
@@ -257,7 +260,7 @@ func (g *Game) Update(dt float64) {
 }
 
 // StartChallenge marks a challenge as active (game continues running)
-// Used for standalone mode where internal vim editor handles the challenge
+// Used for standalone mode where internal vim editor handles the challenge.
 func (g *Game) StartChallenge() {
 	if g.State == StatePlaying {
 		g.State = StateChallengeActive
@@ -266,7 +269,7 @@ func (g *Game) StartChallenge() {
 }
 
 // StartChallengeWaiting marks a challenge as waiting (game paused)
-// Used for nvim mode where user edits in a real Neovim buffer
+// Used for nvim mode where user edits in a real Neovim buffer.
 func (g *Game) StartChallengeWaiting() {
 	if g.State == StatePlaying {
 		g.State = StateChallengeWaiting
@@ -274,7 +277,7 @@ func (g *Game) StartChallengeWaiting() {
 	}
 }
 
-// EndChallenge returns to normal playing state
+// EndChallenge returns to normal playing state.
 func (g *Game) EndChallenge() {
 	if g.State == StateChallengeActive || g.State == StateChallengeWaiting {
 		g.State = StatePlaying
@@ -282,7 +285,7 @@ func (g *Game) EndChallenge() {
 	}
 }
 
-// AddChallengeGold adds gold from completing a challenge
+// AddChallengeGold adds gold from completing a challenge.
 func (g *Game) AddChallengeGold(gold int) {
 	g.Gold += gold
 }
@@ -398,7 +401,7 @@ func (g *Game) checkGameEnd() {
 	}
 }
 
-// MoveCursor moves the placement cursor
+// MoveCursor moves the placement cursor.
 func (g *Game) MoveCursor(dx, dy int) {
 	g.CursorX += dx
 	g.CursorY += dy
@@ -416,16 +419,24 @@ func (g *Game) MoveCursor(dx, dy int) {
 	}
 }
 
-// SelectTower selects a tower type for placement
+// SelectTower selects a tower type for placement.
 func (g *Game) SelectTower(t entities.TowerType) {
 	g.SelectedTower = t
 }
 
-// TogglePause toggles the pause state
+// TogglePause toggles the pause state.
 func (g *Game) TogglePause() {
-	if g.State == StatePlaying {
+	switch g.State {
+	case StatePlaying:
 		g.State = StatePaused
-	} else if g.State == StatePaused {
+	case StatePaused:
 		g.State = StatePlaying
+	case StateMenu, StateChallengeActive, StateChallengeWaiting, StateWaveComplete, StateGameOver, StateVictory:
+		// Cannot toggle pause in these states
 	}
+}
+
+// SetStatusMessage sets a status message to display in the UI.
+func (g *Game) SetStatusMessage(msg string) {
+	g.StatusMessage = msg
 }

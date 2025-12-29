@@ -24,9 +24,9 @@ func TestDefaultEconomyConfig(t *testing.T) {
 
 func TestEconomyConfigForDifficulty(t *testing.T) {
 	tests := []struct {
-		difficulty            string
-		expectedMobMult       float64
-		expectedWaveMult      float64
+		difficulty       string
+		expectedMobMult  float64
+		expectedWaveMult float64
 	}{
 		{DifficultyEasy, 0.50, 0.75},
 		{DifficultyNormal, 0.25, 0.50},
@@ -55,13 +55,13 @@ func TestCalculateMobGold(t *testing.T) {
 		expected   int
 	}{
 		{"normal difficulty - bug", 0.25, 5, 1},
-		{"normal difficulty - gremlin", 0.25, 10, 3},  // 10 * 0.25 = 2.5 -> 3 (rounded)
-		{"normal difficulty - daemon", 0.25, 25, 6},   // 25 * 0.25 = 6.25 -> 6 (rounded)
+		{"normal difficulty - gremlin", 0.25, 10, 3}, // 10 * 0.25 = 2.5 -> 3 (rounded)
+		{"normal difficulty - daemon", 0.25, 25, 6},  // 25 * 0.25 = 6.25 -> 6 (rounded)
 		{"normal difficulty - boss", 0.25, 100, 25},
-		{"easy difficulty - bug", 0.50, 5, 3},         // 5 * 0.50 = 2.5 -> 3 (rounded)
+		{"easy difficulty - bug", 0.50, 5, 3}, // 5 * 0.50 = 2.5 -> 3 (rounded)
 		{"easy difficulty - boss", 0.50, 100, 50},
 		{"hard difficulty - all zero", 0.0, 100, 0},
-		{"minimum 1 gold", 0.25, 1, 1},                // 1 * 0.25 = 0.25 -> min 1
+		{"minimum 1 gold", 0.25, 1, 1}, // 1 * 0.25 = 0.25 -> min 1
 	}
 
 	for _, tt := range tests {
@@ -82,10 +82,10 @@ func TestCalculateWaveBonus(t *testing.T) {
 		baseBonus  int
 		expected   int
 	}{
-		{"normal difficulty - wave 1", 0.50, 25, 13},  // 25 * 0.50 = 12.5 -> 13 (rounded)
+		{"normal difficulty - wave 1", 0.50, 25, 13}, // 25 * 0.50 = 12.5 -> 13 (rounded)
 		{"normal difficulty - wave 10", 0.50, 200, 100},
-		{"easy difficulty - wave 1", 0.75, 25, 19},    // 25 * 0.75 = 18.75 -> 19 (rounded)
-		{"hard difficulty - wave 1", 0.25, 25, 6},     // 25 * 0.25 = 6.25 -> 6 (rounded)
+		{"easy difficulty - wave 1", 0.75, 25, 19}, // 25 * 0.75 = 18.75 -> 19 (rounded)
+		{"hard difficulty - wave 1", 0.25, 25, 6},  // 25 * 0.25 = 6.25 -> 6 (rounded)
 		{"minimum 1 gold", 0.25, 1, 1},
 	}
 
@@ -111,8 +111,8 @@ func TestCalculateSpeedBonus(t *testing.T) {
 	}{
 		{"at par time", 5000, 5000, 1.0},
 		{"slower than par", 7000, 5000, 1.0},
-		{"2x faster", 2500, 5000, 1.5},      // (5000/2500 - 1) * 0.5 + 1 = 1.5
-		{"4x faster - capped", 1250, 5000, 2.0}, // would be 2.5, capped at 2.0
+		{"2x faster", 2500, 5000, 1.5},          // formula: (5000/2500 - 1) * 0.5 + 1
+		{"4x faster - capped", 1250, 5000, 2.0}, // would be 2.5 but capped at 2.0
 		{"zero time", 0, 5000, 1.0},
 		{"zero par", 5000, 0, 1.0},
 	}
@@ -152,7 +152,7 @@ func TestCalculateChallengeGold(t *testing.T) {
 			difficulty: 1,
 			efficiency: 1.0,
 			speedBonus: 2.0,
-			expected:   125, // 50 * 1.25 * 1.0 * 2.0 = 125
+			expected:   125, // base * diffMult * effBonus * speed
 		},
 		{
 			name:       "50% efficiency",
@@ -160,7 +160,7 @@ func TestCalculateChallengeGold(t *testing.T) {
 			difficulty: 1,
 			efficiency: 0.5,
 			speedBonus: 1.0,
-			expected:   46, // 50 * 1.25 * 0.75 * 1.0 = 46.875 -> 46
+			expected:   46, // 46.875 rounded down
 		},
 		{
 			name:       "difficulty 2",
@@ -168,7 +168,7 @@ func TestCalculateChallengeGold(t *testing.T) {
 			difficulty: 2,
 			efficiency: 1.0,
 			speedBonus: 1.0,
-			expected:   75, // 50 * 1.5 * 1.0 * 1.0 = 75
+			expected:   75, // base * 1.5 diffMult
 		},
 		{
 			name:       "difficulty 3",
@@ -176,7 +176,7 @@ func TestCalculateChallengeGold(t *testing.T) {
 			difficulty: 3,
 			efficiency: 1.0,
 			speedBonus: 1.0,
-			expected:   87, // 50 * 1.75 * 1.0 * 1.0 = 87.5 -> 87
+			expected:   87, // 87.5 rounded down
 		},
 		{
 			name:       "minimum 1 gold",

@@ -1,0 +1,197 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    # Code quality
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - copyloopvar
+    - cyclop
+    - dupl
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - funlen
+    - gocheckcompilerdirectives
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - govet
+    - iface
+    - ineffassign
+    - intrange
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - nolintlint
+    - nonamedreturns
+    - perfsprint
+    - predeclared
+    - prealloc
+    - reassign
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    # Security
+    - gosec
+    # Testing
+    - testifylint
+    - tparallel
+
+  settings:
+    cyclop:
+      max-complexity: 20
+      package-average: 15.0
+
+    dupl:
+      threshold: 150
+
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - (*os.File).Sync
+        - (*os.File).Close
+        - (net.Conn).SetReadDeadline
+        - (net.Conn).SetWriteDeadline
+
+    exhaustive:
+      check-generated: false
+      default-signifies-exhaustive: true
+
+    funlen:
+      lines: 100
+      statements: 60
+
+    goconst:
+      min-len: 3
+      min-occurrences: 4
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-tags:
+        - style
+        - opinionated
+
+    gocyclo:
+      min-complexity: 20
+
+    godot:
+      scope: declarations
+      capital: true
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+
+    iface:
+      enable:
+        - identical
+        - unused
+
+    misspell:
+      locale: US
+
+    nakedret:
+      max-func-lines: 30
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+    prealloc:
+      simple: true
+      range-loops: false
+      for-loops: false
+
+    revive:
+      severity: warning
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: var-declaration
+        - name: var-naming
+
+    staticcheck:
+      checks:
+        - all
+
+    testifylint:
+      enable-all: true
+
+    unparam:
+      check-exported: false
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+          - funlen
+          - goconst
+          - errcheck
+          - gosec
+      - path: internal/vim/
+        linters:
+          - funlen
+          - cyclop
+          - gocyclo
+      - path: internal/nvim/
+        linters:
+          - dupl
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/keyforge
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 5
+  fix: true
+
+run:
+  timeout: 5m
+  tests: true
+  allow-parallel-runners: true

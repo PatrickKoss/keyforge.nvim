@@ -3,9 +3,10 @@ package vim
 import (
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 )
 
-// HandleKey processes a single keypress and returns if more input is needed
+// HandleKey processes a single keypress and returns if more input is needed.
 func (e *Editor) HandleKey(key string) bool {
 	e.KeystrokeCount++
 	e.StatusMessage = "" // Clear status on new key
@@ -109,7 +110,7 @@ func (e *Editor) handleNormalKey(key string) bool {
 	case WaitChar:
 		// f/F/t/T waiting for character
 		if len(key) == 1 {
-			r := []rune(key)[0]
+			r, _ := utf8.DecodeRuneInString(key)
 			newPos := e.ExecuteFindMotion(e.LastFind.Forward, e.LastFind.Till, r, e.getCount())
 			if e.PendingOp != OpNone {
 				// Operator pending
@@ -132,12 +133,14 @@ func (e *Editor) handleNormalKey(key string) bool {
 			e.WaitingFor = WaitNone
 			// Will be handled below as text object prefix
 		}
+	case WaitNone, WaitRegister:
+		// No special handling needed
 	}
 
 	// Build count
 	if len(key) == 1 {
-		r := []rune(key)[0]
-		if unicode.IsDigit(r) && (r != '0' || e.Count > 0) {
+		r, size := utf8.DecodeRuneInString(key)
+		if size > 0 && r != utf8.RuneError && unicode.IsDigit(r) && (r != '0' || e.Count > 0) {
 			digit, _ := strconv.Atoi(key)
 			e.Count = e.Count*10 + digit
 			return true
@@ -443,14 +446,17 @@ func (e *Editor) handleNormalKey(key string) bool {
 	// Handle replace character
 	if len(e.CountStack) > 0 && e.CountStack[0] == -1 {
 		if len(key) == 1 {
-			e.saveUndo()
-			count := e.getCount()
-			line := e.Buffer.GetLine(e.Cursor.Line)
-			runes := []rune(line)
-			for i := 0; i < count && e.Cursor.Col+i < len(runes); i++ {
-				runes[e.Cursor.Col+i] = []rune(key)[0]
+			r, size := utf8.DecodeRuneInString(key)
+			if size > 0 && r != utf8.RuneError {
+				e.saveUndo()
+				count := e.getCount()
+				line := e.Buffer.GetLine(e.Cursor.Line)
+				runes := []rune(line)
+				for i := 0; i < count && e.Cursor.Col+i < len(runes); i++ {
+					runes[e.Cursor.Col+i] = r
+				}
+				e.Buffer.SetLine(e.Cursor.Line, string(runes))
 			}
-			e.Buffer.SetLine(e.Cursor.Line, string(runes))
 		}
 		e.resetCommandState()
 		return false
@@ -463,8 +469,8 @@ func (e *Editor) handleNormalKey(key string) bool {
 func (e *Editor) handleVisualKey(key string) bool {
 	// Build count
 	if len(key) == 1 {
-		r := []rune(key)[0]
-		if unicode.IsDigit(r) && (r != '0' || e.Count > 0) {
+		r, size := utf8.DecodeRuneInString(key)
+		if size > 0 && r != utf8.RuneError && unicode.IsDigit(r) && (r != '0' || e.Count > 0) {
 			digit, _ := strconv.Atoi(key)
 			e.Count = e.Count*10 + digit
 			return true
@@ -534,18 +540,20 @@ func (e *Editor) handleVisualKey(key string) bool {
 	}
 
 	if e.WaitingFor == WaitChar && len(key) == 1 {
-		r := []rune(key)[0]
-		e.Cursor = e.ExecuteFindMotion(e.LastFind.Forward, e.LastFind.Till, r, e.getCount())
-		e.WaitingFor = WaitNone
-		e.Count = 0
-		return false
+		r, size := utf8.DecodeRuneInString(key)
+		if size > 0 && r != utf8.RuneError {
+			e.Cursor = e.ExecuteFindMotion(e.LastFind.Forward, e.LastFind.Till, r, e.getCount())
+			e.WaitingFor = WaitNone
+			e.Count = 0
+			return false
+		}
 	}
 
 	e.Count = 0
 	return false
 }
 
-// keyToMotion converts a key to a motion type
+// keyToMotion converts a key to a motion type.
 func (e *Editor) keyToMotion(key string) MotionType {
 	switch key {
 	case "h", "Left":

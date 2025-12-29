@@ -1,6 +1,6 @@
 package engine
 
-// TutorialStep represents a single step in the tutorial
+// TutorialStep represents a single step in the tutorial.
 type TutorialStep struct {
 	ID          string
 	Title       string
@@ -10,7 +10,7 @@ type TutorialStep struct {
 	Position    *struct{ X, Y int }
 }
 
-// Tutorial manages the first-time user experience
+// Tutorial manages the first-time user experience.
 type Tutorial struct {
 	Active      bool
 	CurrentStep int
@@ -18,7 +18,7 @@ type Tutorial struct {
 	Completed   bool
 }
 
-// NewTutorial creates a new tutorial
+// NewTutorial creates a new tutorial.
 func NewTutorial() *Tutorial {
 	return &Tutorial{
 		Active:      false,
@@ -91,20 +91,20 @@ func createTutorialSteps() []TutorialStep {
 	}
 }
 
-// Start begins the tutorial
+// Start begins the tutorial.
 func (t *Tutorial) Start() {
 	t.Active = true
 	t.CurrentStep = 0
 	t.Completed = false
 }
 
-// Skip ends the tutorial early
+// Skip ends the tutorial early.
 func (t *Tutorial) Skip() {
 	t.Active = false
 	t.Completed = true
 }
 
-// CurrentStepData returns the current tutorial step
+// CurrentStepData returns the current tutorial step.
 func (t *Tutorial) CurrentStepData() *TutorialStep {
 	if t.CurrentStep >= len(t.Steps) {
 		return nil
@@ -112,7 +112,7 @@ func (t *Tutorial) CurrentStepData() *TutorialStep {
 	return &t.Steps[t.CurrentStep]
 }
 
-// Advance moves to the next tutorial step
+// Advance moves to the next tutorial step.
 func (t *Tutorial) Advance() bool {
 	t.CurrentStep++
 	if t.CurrentStep >= len(t.Steps) {
@@ -123,7 +123,7 @@ func (t *Tutorial) Advance() bool {
 	return true
 }
 
-// CheckCondition checks if the current step's condition is met
+// CheckCondition checks if the current step's condition is met.
 func (t *Tutorial) CheckCondition(event string) bool {
 	step := t.CurrentStepData()
 	if step == nil {
@@ -144,7 +144,7 @@ func (t *Tutorial) CheckCondition(event string) bool {
 	}
 }
 
-// HandleEvent processes a game event for tutorial progression
+// HandleEvent processes a game event for tutorial progression.
 func (t *Tutorial) HandleEvent(event string) bool {
 	if !t.Active {
 		return false
@@ -156,12 +156,12 @@ func (t *Tutorial) HandleEvent(event string) bool {
 	return false
 }
 
-// IsActive returns whether the tutorial is currently active
+// IsActive returns whether the tutorial is currently active.
 func (t *Tutorial) IsActive() bool {
 	return t.Active
 }
 
-// ShouldShowTutorial checks if tutorial should be offered
+// ShouldShowTutorial checks if tutorial should be offered.
 func (t *Tutorial) ShouldShowTutorial() bool {
 	return !t.Completed
 }

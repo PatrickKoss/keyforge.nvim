@@ -1,6 +1,6 @@
 package vim
 
-// Mode represents vim editing mode
+// Mode represents vim editing mode.
 type Mode int
 
 const (
@@ -11,7 +11,7 @@ const (
 	ModeOperatorPending
 )
 
-// String returns the mode name
+// String returns the mode name.
 func (m Mode) String() string {
 	switch m {
 	case ModeNormal:
@@ -29,43 +29,43 @@ func (m Mode) String() string {
 	}
 }
 
-// Position represents a cursor position
+// Position represents a cursor position.
 type Position struct {
 	Line int // 0-based line number
 	Col  int // 0-based column (rune index, not byte)
 }
 
-// Range represents a text range
+// Range represents a text range.
 type Range struct {
 	Start    Position
 	End      Position
 	Linewise bool // For dd, yy operations (whole lines)
 }
 
-// WaitState represents what the editor is waiting for
+// WaitState represents what the editor is waiting for.
 type WaitState int
 
 const (
-	WaitNone WaitState = iota
-	WaitMotion   // After operator, waiting for motion
-	WaitChar     // After f/F/t/T, waiting for character
-	WaitRegister // After ", waiting for register name
+	WaitNone     WaitState = iota
+	WaitMotion             // After operator, waiting for motion
+	WaitChar               // After f/F/t/T, waiting for character
+	WaitRegister           // After ", waiting for register name
 )
 
-// FindState stores the last find command for ; and ,
+// FindState stores the last find command for ; and ,.
 type FindState struct {
 	Char    rune
 	Forward bool // f/t vs F/T
 	Till    bool // t/T vs f/F
 }
 
-// Snapshot stores buffer state for undo/redo
+// Snapshot stores buffer state for undo/redo.
 type Snapshot struct {
 	Buffer *Buffer
 	Cursor Position
 }
 
-// Editor is the main vim editor state
+// Editor is the main vim editor state.
 type Editor struct {
 	Buffer *Buffer
 	Cursor Position
@@ -81,8 +81,8 @@ type Editor struct {
 	LastFind FindState
 
 	// Registers
-	Unnamed   string            // Default register ""
-	Registers map[rune]string   // Named registers a-z
+	Unnamed   string          // Default register ""
+	Registers map[rune]string // Named registers a-z
 
 	// Undo/Redo
 	UndoStack []Snapshot
@@ -98,26 +98,26 @@ type Editor struct {
 	StatusMessage string
 }
 
-// NewEditor creates a new editor with the given initial text
+// NewEditor creates a new editor with the given initial text.
 func NewEditor(text string) *Editor {
 	buf := NewBuffer(text)
 	return &Editor{
-		Buffer:     buf,
-		Cursor:     Position{Line: 0, Col: 0},
-		Mode:       ModeNormal,
-		PendingOp:  OpNone,
-		Registers:  make(map[rune]string),
-		UndoStack:  make([]Snapshot, 0),
-		RedoStack:  make([]Snapshot, 0),
+		Buffer:    buf,
+		Cursor:    Position{Line: 0, Col: 0},
+		Mode:      ModeNormal,
+		PendingOp: OpNone,
+		Registers: make(map[rune]string),
+		UndoStack: make([]Snapshot, 0),
+		RedoStack: make([]Snapshot, 0),
 	}
 }
 
-// SetCursor sets the cursor position, clamping to valid bounds
+// SetCursor sets the cursor position, clamping to valid bounds.
 func (e *Editor) SetCursor(pos Position) {
 	e.Cursor = e.clampPosition(pos)
 }
 
-// clampPosition ensures position is within buffer bounds
+// clampPosition ensures position is within buffer bounds.
 func (e *Editor) clampPosition(pos Position) Position {
 	// Clamp line
 	if pos.Line < 0 {
@@ -151,7 +151,7 @@ func (e *Editor) clampPosition(pos Position) Position {
 	return pos
 }
 
-// saveUndo saves current state to undo stack
+// saveUndo saves current state to undo stack.
 func (e *Editor) saveUndo() {
 	snapshot := Snapshot{
 		Buffer: e.Buffer.Clone(),
@@ -161,7 +161,7 @@ func (e *Editor) saveUndo() {
 	e.RedoStack = nil // Clear redo on new change
 }
 
-// Undo restores the previous state
+// Undo restores the previous state.
 func (e *Editor) Undo() bool {
 	if len(e.UndoStack) == 0 {
 		e.StatusMessage = "Already at oldest change"
@@ -183,7 +183,7 @@ func (e *Editor) Undo() bool {
 	return true
 }
 
-// Redo restores the next state
+// Redo restores the next state.
 func (e *Editor) Redo() bool {
 	if len(e.RedoStack) == 0 {
 		e.StatusMessage = "Already at newest change"
@@ -205,7 +205,7 @@ func (e *Editor) Redo() bool {
 	return true
 }
 
-// resetCommandState resets the command parsing state
+// resetCommandState resets the command parsing state.
 func (e *Editor) resetCommandState() {
 	e.PendingOp = OpNone
 	e.Count = 0
@@ -216,7 +216,7 @@ func (e *Editor) resetCommandState() {
 	}
 }
 
-// getCount returns the effective count (1 if no count specified)
+// getCount returns the effective count (1 if no count specified).
 func (e *Editor) getCount() int {
 	if e.Count == 0 {
 		return 1
@@ -224,13 +224,13 @@ func (e *Editor) getCount() int {
 	return e.Count
 }
 
-// EnterInsertMode switches to insert mode
+// EnterInsertMode switches to insert mode.
 func (e *Editor) EnterInsertMode() {
 	e.Mode = ModeInsert
 	e.resetCommandState()
 }
 
-// EnterNormalMode switches to normal mode
+// EnterNormalMode switches to normal mode.
 func (e *Editor) EnterNormalMode() {
 	e.Mode = ModeNormal
 	e.resetCommandState()
@@ -238,7 +238,7 @@ func (e *Editor) EnterNormalMode() {
 	e.Cursor = e.clampPosition(e.Cursor)
 }
 
-// EnterVisualMode switches to visual mode
+// EnterVisualMode switches to visual mode.
 func (e *Editor) EnterVisualMode(lineMode bool) {
 	if lineMode {
 		e.Mode = ModeVisualLine
@@ -249,7 +249,7 @@ func (e *Editor) EnterVisualMode(lineMode bool) {
 	e.resetCommandState()
 }
 
-// GetVisualRange returns the selected range in visual mode
+// GetVisualRange returns the selected range in visual mode.
 func (e *Editor) GetVisualRange() Range {
 	start := e.VisualStart
 	end := e.Cursor

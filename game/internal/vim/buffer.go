@@ -5,12 +5,12 @@ import (
 	"unicode/utf8"
 )
 
-// Buffer represents an editable text buffer as lines
+// Buffer represents an editable text buffer as lines.
 type Buffer struct {
 	lines []string
 }
 
-// NewBuffer creates a buffer from initial text
+// NewBuffer creates a buffer from initial text.
 func NewBuffer(text string) *Buffer {
 	lines := strings.Split(text, "\n")
 	if len(lines) == 0 {
@@ -19,12 +19,12 @@ func NewBuffer(text string) *Buffer {
 	return &Buffer{lines: lines}
 }
 
-// LineCount returns the number of lines in the buffer
+// LineCount returns the number of lines in the buffer.
 func (b *Buffer) LineCount() int {
 	return len(b.lines)
 }
 
-// GetLine returns the content of line n (0-based)
+// GetLine returns the content of line n (0-based).
 func (b *Buffer) GetLine(n int) string {
 	if n < 0 || n >= len(b.lines) {
 		return ""
@@ -32,7 +32,7 @@ func (b *Buffer) GetLine(n int) string {
 	return b.lines[n]
 }
 
-// SetLine sets the content of line n
+// SetLine sets the content of line n.
 func (b *Buffer) SetLine(n int, content string) {
 	if n < 0 || n >= len(b.lines) {
 		return
@@ -40,7 +40,7 @@ func (b *Buffer) SetLine(n int, content string) {
 	b.lines[n] = content
 }
 
-// InsertLine inserts a new line at position n
+// InsertLine inserts a new line at position n.
 func (b *Buffer) InsertLine(n int, content string) {
 	if n < 0 {
 		n = 0
@@ -51,7 +51,7 @@ func (b *Buffer) InsertLine(n int, content string) {
 	b.lines = append(b.lines[:n], append([]string{content}, b.lines[n:]...)...)
 }
 
-// DeleteLine removes and returns the line at position n
+// DeleteLine removes and returns the line at position n.
 func (b *Buffer) DeleteLine(n int) string {
 	if n < 0 || n >= len(b.lines) {
 		return ""
@@ -65,7 +65,7 @@ func (b *Buffer) DeleteLine(n int) string {
 	return deleted
 }
 
-// SplitLine splits line at column, creating a new line below
+// SplitLine splits line at column, creating a new line below.
 func (b *Buffer) SplitLine(line, col int) {
 	if line < 0 || line >= len(b.lines) {
 		return
@@ -87,7 +87,7 @@ func (b *Buffer) SplitLine(line, col int) {
 	b.InsertLine(line+1, after)
 }
 
-// JoinLines joins line n with line n+1
+// JoinLines joins line n with line n+1.
 func (b *Buffer) JoinLines(n int) {
 	if n < 0 || n >= len(b.lines)-1 {
 		return
@@ -96,7 +96,7 @@ func (b *Buffer) JoinLines(n int) {
 	b.lines = append(b.lines[:n+1], b.lines[n+2:]...)
 }
 
-// InsertAt inserts text at the specified position
+// InsertAt inserts text at the specified position.
 func (b *Buffer) InsertAt(line, col int, text string) {
 	if line < 0 || line >= len(b.lines) {
 		return
@@ -116,7 +116,7 @@ func (b *Buffer) InsertAt(line, col int, text string) {
 	b.lines[line] = newContent
 }
 
-// DeleteAt deletes count runes starting at position
+// DeleteAt deletes count runes starting at position.
 func (b *Buffer) DeleteAt(line, col, count int) string {
 	if line < 0 || line >= len(b.lines) || count <= 0 {
 		return ""
@@ -141,7 +141,7 @@ func (b *Buffer) DeleteAt(line, col, count int) string {
 	return deleted
 }
 
-// DeleteRange deletes text between two positions (inclusive start, exclusive end)
+// DeleteRange deletes text between two positions (inclusive start, exclusive end).
 func (b *Buffer) DeleteRange(start, end Position) string {
 	if start.Line == end.Line {
 		// Same line deletion
@@ -181,7 +181,7 @@ func (b *Buffer) DeleteRange(start, end Position) string {
 	return deleted.String()
 }
 
-// GetRange returns text between two positions
+// GetRange returns text between two positions.
 func (b *Buffer) GetRange(start, end Position) string {
 	if start.Line == end.Line {
 		line := b.GetLine(start.Line)
@@ -224,19 +224,19 @@ func (b *Buffer) GetRange(start, end Position) string {
 	return result.String()
 }
 
-// String returns the full buffer as a string
+// String returns the full buffer as a string.
 func (b *Buffer) String() string {
 	return strings.Join(b.lines, "\n")
 }
 
-// Clone creates a deep copy of the buffer
+// Clone creates a deep copy of the buffer.
 func (b *Buffer) Clone() *Buffer {
 	newLines := make([]string, len(b.lines))
 	copy(newLines, b.lines)
 	return &Buffer{lines: newLines}
 }
 
-// RuneCount returns the number of runes in line n
+// RuneCount returns the number of runes in line n.
 func (b *Buffer) RuneCount(line int) int {
 	if line < 0 || line >= len(b.lines) {
 		return 0
@@ -244,7 +244,7 @@ func (b *Buffer) RuneCount(line int) int {
 	return utf8.RuneCountInString(b.lines[line])
 }
 
-// LastCol returns the last valid column for line n (0 for empty line)
+// LastCol returns the last valid column for line n (0 for empty line).
 func (b *Buffer) LastCol(line int) int {
 	count := b.RuneCount(line)
 	if count == 0 {

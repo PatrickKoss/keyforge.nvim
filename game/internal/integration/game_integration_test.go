@@ -20,11 +20,11 @@ import (
 	"github.com/keyforge/keyforge/internal/ui"
 )
 
-// SimulatedNeovimClient represents a mock Neovim plugin that connects to the game
+// SimulatedNeovimClient represents a mock Neovim plugin that connects to the game.
 type SimulatedNeovimClient struct {
-	conn          net.Conn
-	receivedMsgs  []map[string]interface{}
-	t             *testing.T
+	conn         net.Conn
+	receivedMsgs []map[string]interface{}
+	t            *testing.T
 }
 
 func NewSimulatedNeovimClient(t *testing.T, socketPath string) *SimulatedNeovimClient {
@@ -45,7 +45,7 @@ func (c *SimulatedNeovimClient) Close() {
 	c.conn.Close()
 }
 
-// ReadMessage reads and parses a JSON-RPC message from the game
+// ReadMessage reads and parses a JSON-RPC message from the game.
 func (c *SimulatedNeovimClient) ReadMessage(timeout time.Duration) (map[string]interface{}, error) {
 	c.conn.SetReadDeadline(time.Now().Add(timeout))
 	buf := make([]byte, 4096)
@@ -63,7 +63,7 @@ func (c *SimulatedNeovimClient) ReadMessage(timeout time.Duration) (map[string]i
 	return msg, nil
 }
 
-// SendChallengeComplete sends a challenge completion result to the game
+// SendChallengeComplete sends a challenge completion result to the game.
 func (c *SimulatedNeovimClient) SendChallengeComplete(requestID string, success bool, goldEarned int) error {
 	msg := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -84,7 +84,7 @@ func (c *SimulatedNeovimClient) SendChallengeComplete(requestID string, success 
 	return err
 }
 
-// GameTestHarness provides a test harness for running game integration tests
+// GameTestHarness provides a test harness for running game integration tests.
 type GameTestHarness struct {
 	Model      ui.Model
 	SocketPath string
@@ -125,7 +125,7 @@ func (h *GameTestHarness) Cleanup() {
 	os.Remove(h.SocketPath)
 }
 
-// Tick simulates a Bubbletea tick and returns the updated model
+// Tick simulates a Bubbletea tick and returns the updated model.
 func (h *GameTestHarness) Tick() ui.Model {
 	tickMsg := ui.TickMsg(time.Now())
 	newModel, _ := h.Model.Update(tickMsg)
@@ -133,14 +133,14 @@ func (h *GameTestHarness) Tick() ui.Model {
 	return h.Model
 }
 
-// TickN runs N ticks
+// TickN runs N ticks.
 func (h *GameTestHarness) TickN(n int) {
-	for i := 0; i < n; i++ {
+	for range n {
 		h.Tick()
 	}
 }
 
-// TickFor runs ticks for approximately the given duration
+// TickFor runs ticks for approximately the given duration.
 func (h *GameTestHarness) TickFor(d time.Duration) {
 	// 60 FPS = ~16.67ms per tick
 	ticks := int(d.Milliseconds() / 17)
@@ -552,7 +552,7 @@ func TestFullGameSession(t *testing.T) {
 	t.Logf("After challenge, gold: %d", h.Model.Game.Gold)
 
 	// 3. Spawn some enemies and let them fight
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		h.Model.Game.SpawnEnemy(entities.EnemyBug)
 	}
 
@@ -570,7 +570,7 @@ func TestFullGameSession(t *testing.T) {
 	}
 }
 
-// TestRPCConnectionResilience tests that the game handles RPC edge cases
+// TestRPCConnectionResilience tests that the game handles RPC edge cases.
 func TestRPCConnectionResilience(t *testing.T) {
 	h := NewGameTestHarness(t)
 	defer h.Cleanup()

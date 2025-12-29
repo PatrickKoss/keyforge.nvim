@@ -2,20 +2,20 @@ package engine
 
 import "github.com/keyforge/keyforge/internal/entities"
 
-// Spawn defines a single enemy spawn in a wave
+// Spawn defines a single enemy spawn in a wave.
 type Spawn struct {
 	Type  entities.EnemyType
 	Delay float64 // seconds after previous spawn
 }
 
-// Wave defines a wave of enemies
+// Wave defines a wave of enemies.
 type Wave struct {
 	Number    int
 	Spawns    []Spawn
 	BonusGold int
 }
 
-// GetWave returns the wave configuration for a given wave number
+// GetWave returns the wave configuration for a given wave number.
 func GetWave(waveNum int) Wave {
 	// Generate increasingly difficult waves
 	switch {
@@ -33,7 +33,7 @@ func GetWave(waveNum int) Wave {
 func easyWave(num int) Wave {
 	count := 3 + num*2 // 5, 7, 9 enemies
 	spawns := make([]Spawn, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		spawns[i] = Spawn{
 			Type:  entities.EnemyBug,
 			Delay: 1.0,
@@ -53,14 +53,14 @@ func mediumWave(num int) Wave {
 	spawns := make([]Spawn, 0, bugCount+gremlinCount)
 
 	// Mix bugs and gremlins
-	for i := 0; i < bugCount; i++ {
+	for range bugCount {
 		delay := 1.0
 		if len(spawns) == 0 {
 			delay = 0
 		}
 		spawns = append(spawns, Spawn{Type: entities.EnemyBug, Delay: delay})
 	}
-	for i := 0; i < gremlinCount; i++ {
+	for range gremlinCount {
 		spawns = append(spawns, Spawn{Type: entities.EnemyGremlin, Delay: 1.5})
 	}
 
@@ -78,7 +78,7 @@ func hardWave(num int) Wave {
 	spawns := make([]Spawn, 0, bugCount+gremlinCount+daemonCount)
 
 	// Bugs first
-	for i := 0; i < bugCount; i++ {
+	for range bugCount {
 		delay := 0.8
 		if len(spawns) == 0 {
 			delay = 0
@@ -86,11 +86,11 @@ func hardWave(num int) Wave {
 		spawns = append(spawns, Spawn{Type: entities.EnemyBug, Delay: delay})
 	}
 	// Then gremlins
-	for i := 0; i < gremlinCount; i++ {
+	for range gremlinCount {
 		spawns = append(spawns, Spawn{Type: entities.EnemyGremlin, Delay: 1.0})
 	}
 	// Then daemons
-	for i := 0; i < daemonCount; i++ {
+	for range daemonCount {
 		spawns = append(spawns, Spawn{Type: entities.EnemyDaemon, Delay: 2.0})
 	}
 

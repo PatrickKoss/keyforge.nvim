@@ -5,12 +5,12 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/keyforge/keyforge/internal/engine"
 	"github.com/keyforge/keyforge/internal/entities"
 	"github.com/keyforge/keyforge/internal/nvim"
 	"github.com/keyforge/keyforge/internal/vim"
 )
-
 
 const (
 	GridWidth  = 20
@@ -18,10 +18,10 @@ const (
 	TargetFPS  = 60
 )
 
-// TickMsg is sent on each frame update
+// TickMsg is sent on each frame update.
 type TickMsg time.Time
 
-// Model is the bubbletea model for the game
+// Model is the bubbletea model for the game.
 type Model struct {
 	Game             *engine.Game
 	LastUpdate       time.Time
@@ -34,18 +34,18 @@ type Model struct {
 
 	// Neovim integration
 	NvimMode           bool
-	NvimClient         *nvim.Client        // Legacy stdin/stderr RPC
-	NvimSocket         *nvim.SocketServer  // Unix socket RPC (preferred)
-	NvimRPC            nvim.RPCClient      // Interface to whichever is active
-	NvimChallengeID    string              // Current challenge request ID
-	NvimChallengeCount int                 // Counter for generating unique IDs
-	PrevGameState      engine.GameState    // Track state changes for notifications
+	NvimClient         *nvim.Client       // Legacy stdin/stderr RPC
+	NvimSocket         *nvim.SocketServer // Unix socket RPC (preferred)
+	NvimRPC            nvim.RPCClient     // Interface to whichever is active
+	NvimChallengeID    string             // Current challenge request ID
+	NvimChallengeCount int                // Counter for generating unique IDs
+	PrevGameState      engine.GameState   // Track state changes for notifications
 
 	// Channel for receiving RPC results from goroutines (thread-safe)
 	ChallengeResultChan chan *nvim.ChallengeResult
 }
 
-// NewModel creates a new game model
+// NewModel creates a new game model.
 func NewModel() Model {
 	cm, _ := engine.NewChallengeManager()
 	return Model{
@@ -60,16 +60,18 @@ func NewModel() Model {
 	}
 }
 
-// InitNvimClient initializes the Neovim RPC client (legacy stdin/stderr)
+// InitNvimClient initializes the Neovim RPC client (legacy stdin/stderr).
 func (m *Model) InitNvimClient() {
 	m.NvimClient = nvim.NewClient(m)
 	m.NvimClient.Start()
 	m.NvimRPC = m.NvimClient // Use Client as the RPC interface
 	// Notify Neovim that game is ready
-	m.NvimClient.SendGameReady()
+	if err := m.NvimClient.SendGameReady(); err != nil {
+		m.Game.SetStatusMessage("Failed to send game ready notification")
+	}
 }
 
-// InitNvimSocket initializes the Neovim RPC via Unix socket
+// InitNvimSocket initializes the Neovim RPC via Unix socket.
 func (m *Model) InitNvimSocket(socketPath string) {
 	m.NvimSocket = nvim.NewSocketServer(socketPath, m)
 	if err := m.NvimSocket.Start(); err != nil {
@@ -97,31 +99,31 @@ func (m *Model) HandleChallengeComplete(result *nvim.ChallengeResult) {
 	}
 }
 
-// HandleConfigUpdate processes config updates from Neovim
+// HandleConfigUpdate processes config updates from Neovim.
 func (m *Model) HandleConfigUpdate(config *nvim.ConfigUpdate) {
 	// Could apply difficulty settings etc.
 }
 
-// HandlePause pauses the game
+// HandlePause pauses the game.
 func (m *Model) HandlePause() {
 	if m.Game.State == engine.StatePlaying {
 		m.Game.TogglePause()
 	}
 }
 
-// HandleResume resumes the game
+// HandleResume resumes the game.
 func (m *Model) HandleResume() {
 	if m.Game.State == engine.StatePaused {
 		m.Game.TogglePause()
 	}
 }
 
-// HandleStartChallenge handles user-triggered challenge requests from Neovim
+// HandleStartChallenge handles user-triggered challenge requests from Neovim.
 func (m *Model) HandleStartChallenge() {
 	m.startChallenge()
 }
 
-// HandleRestart handles restart requests from Neovim
+// HandleRestart handles restart requests from Neovim.
 func (m *Model) HandleRestart() {
 	m.Game = engine.NewGame(GridWidth, GridHeight)
 	m.LastUpdate = time.Now()
@@ -131,7 +133,7 @@ func (m *Model) HandleRestart() {
 	m.PrevGameState = engine.StatePlaying
 }
 
-// sendStateNotification sends game state notifications to Neovim
+// sendStateNotification sends game state notifications to Neovim.
 func (m *Model) sendStateNotification() {
 	if m.NvimRPC == nil {
 		return
@@ -139,36 +141,46 @@ func (m *Model) sendStateNotification() {
 
 	switch m.Game.State {
 	case engine.StateGameOver:
-		m.NvimRPC.SendGameOver(
+		if err := m.NvimRPC.SendGameOver(
 			m.Game.Wave,
 			m.Game.Gold,
 			len(m.Game.Towers),
 			m.Game.Health,
-		)
+		); err != nil {
+			// RPC error - game continues but notification failed
+			m.Game.SetStatusMessage("Failed to notify Neovim of game over")
+		}
 	case engine.StateVictory:
-		m.NvimRPC.SendVictory(
+		if err := m.NvimRPC.SendVictory(
 			m.Game.Wave,
 			m.Game.Gold,
 			len(m.Game.Towers),
 			m.Game.Health,
-		)
+		); err != nil {
+			// RPC error - game continues but notification failed
+			m.Game.SetStatusMessage("Failed to notify Neovim of victory")
+		}
+	default:
+		// Other states don't need notifications
 	}
 }
 
-// Init initializes the model
-func (m Model) Init() tea.Cmd {
+// Init initializes the model.
+// Bubbletea requires value receiver for this interface method.
+func (m Model) Init() tea.Cmd { //nolint:gocritic // hugeParam: required by Bubbletea interface
 	return tickCmd()
 }
 
-// tickCmd returns a command that sends tick messages at 60fps
+// tickCmd returns a command that sends tick messages at 60fps.
 func tickCmd() tea.Cmd {
 	return tea.Tick(time.Second/TargetFPS, func(t time.Time) tea.Msg {
 		return TickMsg(t)
 	})
 }
 
-// Update handles messages and updates the model
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Update handles messages and updates the model.
+// Bubbletea requires value receiver for this interface method.
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: required by Bubbletea interface
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
@@ -222,7 +234,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	// Global keys
 	switch msg.String() {
 	case "ctrl+c", "q":
@@ -253,12 +265,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleChallengeKeys(msg)
 	case engine.StateChallengeWaiting:
 		return m.handleChallengeWaitingKeys(msg)
+	case engine.StateMenu, engine.StateWaveComplete, engine.StateGameOver, engine.StateVictory:
+		// These states are handled by global keys above
 	}
 
 	return m, nil
 }
 
-func (m Model) handlePlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handlePlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	switch msg.String() {
 	// Movement (vim keys)
 	case "h", "left":
@@ -294,7 +308,7 @@ func (m Model) handlePlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// startChallenge starts a new challenge
+// startChallenge starts a new challenge.
 func (m *Model) startChallenge() {
 	if m.Game.ChallengeActive {
 		return
@@ -322,7 +336,11 @@ func (m *Model) startChallenge() {
 			difficulty = 3
 		}
 
-		m.NvimRPC.RequestChallenge(m.NvimChallengeID, category, difficulty)
+		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, category, difficulty); err != nil {
+			// Failed to request challenge, don't enter waiting state
+			m.NvimChallengeID = ""
+			return
+		}
 		m.Game.StartChallengeWaiting() // Use waiting state (paused) for nvim mode
 		return
 	}
@@ -358,7 +376,7 @@ func (m *Model) startChallenge() {
 	m.Game.StartChallenge()
 }
 
-func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	switch msg.String() {
 	case "p", " ", "enter":
 		m.Game.TogglePause()
@@ -367,9 +385,9 @@ func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleChallengeWaitingKeys handles input while waiting for nvim challenge result
-// Game is paused - only allow cancel via Escape
-func (m Model) handleChallengeWaitingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Only allow cancel via Escape (user cancelled in Neovim or wants to cancel here)
+// Game is paused - only allow cancel via Escape.
+func (m Model) handleChallengeWaitingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	// Only allow cancel via Escape (user canceled in Neovim or wants to cancel here)
 	if msg.String() == "esc" || msg.Type == tea.KeyEscape {
 		m.NvimChallengeID = ""
 		m.Game.EndChallenge()
@@ -377,7 +395,7 @@ func (m Model) handleChallengeWaitingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	// This is for standalone mode only now
 	// Nvim mode uses handleChallengeWaitingKeys
 	if m.NvimMode {
@@ -417,7 +435,7 @@ func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// translateKey converts Bubbletea key to vim key string
+// translateKey converts Bubbletea key to vim key string.
 func translateKey(msg tea.KeyMsg) string {
 	switch msg.Type {
 	case tea.KeyEscape:
@@ -451,13 +469,13 @@ func translateKey(msg tea.KeyMsg) string {
 	}
 }
 
-// submitChallenge validates and completes the challenge
+// submitChallenge validates and completes the challenge.
 func (m *Model) submitChallenge() {
 	if m.VimEditor == nil || m.CurrentChallenge == nil {
 		return
 	}
 
-	spec := vim.ChallengeSpec{
+	spec := &vim.ChallengeSpec{
 		ValidationType:  m.CurrentChallenge.ValidationType,
 		ExpectedBuffer:  m.CurrentChallenge.ExpectedBuffer,
 		ExpectedContent: m.CurrentChallenge.ExpectedContent,
@@ -482,7 +500,7 @@ func (m *Model) submitChallenge() {
 	m.Game.EndChallenge()
 }
 
-// completeChallenge ends the current challenge
+// completeChallenge ends the current challenge.
 func (m *Model) completeChallenge(success bool) {
 	if m.CurrentChallenge == nil {
 		return
@@ -498,8 +516,9 @@ func (m *Model) completeChallenge(success bool) {
 	m.Game.EndChallenge()
 }
 
-// View renders the model
-func (m Model) View() string {
+// View renders the model.
+// Bubbletea requires value receiver for this interface method.
+func (m Model) View() string { //nolint:gocritic // hugeParam: required by Bubbletea interface
 	if m.Quitting {
 		return "Thanks for playing Keyforge!\n"
 	}

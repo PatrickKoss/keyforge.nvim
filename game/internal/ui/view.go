@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
 	"github.com/keyforge/keyforge/internal/engine"
 	"github.com/keyforge/keyforge/internal/entities"
 	"github.com/keyforge/keyforge/internal/vim"
 )
 
-// RenderGame renders the complete game view
+// RenderGame renders the complete game view.
 func RenderGame(m *Model) string {
 	var b strings.Builder
 
@@ -42,7 +43,7 @@ func RenderGame(m *Model) string {
 	return b.String()
 }
 
-func renderTitle(m *Model) string {
+func renderTitle(_ *Model) string {
 	title := "═══════════════════════ KEYFORGE ═══════════════════════"
 	return TitleStyle.Render(title)
 }
@@ -73,6 +74,8 @@ func renderHUD(m *Model) string {
 		status = ChallengeStyle.Render("  [CHALLENGE ACTIVE - Game continues!]")
 	case engine.StateChallengeWaiting:
 		status = ChallengeStyle.Render("  [CHALLENGE IN PROGRESS - Game paused]")
+	case engine.StateMenu, engine.StatePlaying, engine.StateWaveComplete:
+		// No special status display for these states
 	}
 
 	// Challenge hint when not in challenge
@@ -91,98 +94,24 @@ func renderGrid(m *Model) string {
 
 	// Top border
 	b.WriteString(BoxTopLeft)
-	for i := 0; i < g.Width*2; i++ {
+	for range g.Width * 2 {
 		b.WriteString(BoxHorizontal)
 	}
 	b.WriteString(BoxTopRight)
 	b.WriteString("\n")
 
-	// Create a 2D grid for rendering
-	grid := make([][]string, g.Height)
-	for y := 0; y < g.Height; y++ {
-		grid[y] = make([]string, g.Width)
-		for x := 0; x < g.Width; x++ {
-			grid[y][x] = EmptyCellStyle.Render(EmptyCell)
-		}
-	}
-
-	// Render path
-	for _, p := range g.Path {
-		x, y := p.IntPos()
-		if x >= 0 && x < g.Width && y >= 0 && y < g.Height {
-			grid[y][x] = PathCellStyle.Render(PathChar)
-		}
-	}
-
-	// Render towers
-	for _, tower := range g.Towers {
-		x, y := tower.Pos.IntPos()
-		if x >= 0 && x < g.Width && y >= 0 && y < g.Height {
-			grid[y][x] = renderTower(tower)
-		}
-	}
-
-	// Render enemies
-	for _, enemy := range g.Enemies {
-		if enemy.Dead {
-			continue
-		}
-		x, y := enemy.Pos.IntPos()
-		if x >= 0 && x < g.Width && y >= 0 && y < g.Height {
-			grid[y][x] = renderEnemy(enemy)
-		}
-	}
-
-	// Render projectiles
-	for _, proj := range g.Projectiles {
-		if proj.Done {
-			continue
-		}
-		x, y := proj.Pos.IntPos()
-		if x >= 0 && x < g.Width && y >= 0 && y < g.Height {
-			grid[y][x] = ProjectileStyle.Render(ProjectileChar)
-		}
-	}
-
-	// Render effects (on top of everything except cursor)
-	for _, effect := range g.Effects.Effects {
-		if effect.Done {
-			continue
-		}
-		x, y := effect.Pos.IntPos()
-		if x >= 0 && x < g.Width && y >= 0 && y < g.Height {
-			frame := effect.CurrentFrame()
-			if frame != "" {
-				info := effect.Info()
-				style := lipgloss.NewStyle().Foreground(lipgloss.Color(info.Color))
-				grid[y][x] = style.Render(frame)
-			}
-		}
-	}
-
-	// Render cursor
-	if g.State == engine.StatePlaying || g.State == engine.StatePaused {
-		if g.CursorX >= 0 && g.CursorX < g.Width && g.CursorY >= 0 && g.CursorY < g.Height {
-			// Show cursor with different style based on placement validity
-			if g.CanPlaceTower(g.CursorX, g.CursorY) {
-				grid[g.CursorY][g.CursorX] = CursorStyle.Render("▪")
-			} else {
-				grid[g.CursorY][g.CursorX] = lipgloss.NewStyle().
-					Background(ColorDanger).
-					Foreground(lipgloss.Color("#ffffff")).
-					Render("✗")
-			}
-		}
-	}
+	// Create and populate grid
+	grid := initEmptyGrid(g.Width, g.Height)
+	populateGridEntities(grid, g)
+	renderGridCursor(grid, g)
 
 	// Build grid rows
-	for y := 0; y < g.Height; y++ {
+	for y := range g.Height {
 		b.WriteString(BoxVertical)
-		for x := 0; x < g.Width; x++ {
+		for x := range g.Width {
 			cell := grid[y][x]
 			b.WriteString(cell)
 			// Pad to fixed width (2 chars per cell)
-			// Emojis are width 2, regular chars are width 1
 			cellWidth := lipgloss.Width(cell)
 			if cellWidth < 2 {
 				b.WriteString(" ")
@@ -194,12 +123,108 @@ func renderGrid(m *Model) string {
 
 	// Bottom border
 	b.WriteString(BoxBottomLeft)
-	for i := 0; i < g.Width*2; i++ {
+	for range g.Width * 2 {
 		b.WriteString(BoxHorizontal)
 	}
 	b.WriteString(BoxBottomRight)
 
 	return b.String()
+}
+
+// initEmptyGrid creates a grid filled with empty cells.
+func initEmptyGrid(width, height int) [][]string {
+	grid := make([][]string, height)
+	for y := range height {
+		grid[y] = make([]string, width)
+		for x := range width {
+			grid[y][x] = EmptyCellStyle.Render(EmptyCell)
+		}
+	}
+	return grid
+}
+
+// populateGridEntities renders path, towers, enemies, projectiles, and effects onto the grid.
+func populateGridEntities(grid [][]string, g *engine.Game) {
+	width := g.Width
+	height := g.Height
+
+	// Render path
+	for _, p := range g.Path {
+		x, y := p.IntPos()
+		if isInBounds(x, y, width, height) {
+			grid[y][x] = PathCellStyle.Render(PathChar)
+		}
+	}
+
+	// Render towers
+	for _, tower := range g.Towers {
+		x, y := tower.Pos.IntPos()
+		if isInBounds(x, y, width, height) {
+			grid[y][x] = renderTower(tower)
+		}
+	}
+
+	// Render enemies
+	for _, enemy := range g.Enemies {
+		if enemy.Dead {
+			continue
+		}
+		x, y := enemy.Pos.IntPos()
+		if isInBounds(x, y, width, height) {
+			grid[y][x] = renderEnemy(enemy)
+		}
+	}
+
+	// Render projectiles
+	for _, proj := range g.Projectiles {
+		if proj.Done {
+			continue
+		}
+		x, y := proj.Pos.IntPos()
+		if isInBounds(x, y, width, height) {
+			grid[y][x] = ProjectileStyle.Render(ProjectileChar)
+		}
+	}
+
+	// Render effects (on top of everything except cursor)
+	for _, effect := range g.Effects.Effects {
+		if effect.Done {
+			continue
+		}
+		x, y := effect.Pos.IntPos()
+		if isInBounds(x, y, width, height) {
+			frame := effect.CurrentFrame()
+			if frame != "" {
+				info := effect.Info()
+				style := lipgloss.NewStyle().Foreground(lipgloss.Color(info.Color))
+				grid[y][x] = style.Render(frame)
+			}
+		}
+	}
+}
+
+// renderGridCursor renders the cursor onto the grid if applicable.
+func renderGridCursor(grid [][]string, g *engine.Game) {
+	if g.State != engine.StatePlaying && g.State != engine.StatePaused {
+		return
+	}
+	if !isInBounds(g.CursorX, g.CursorY, g.Width, g.Height) {
+		return
+	}
+
+	if g.CanPlaceTower(g.CursorX, g.CursorY) {
+		grid[g.CursorY][g.CursorX] = CursorStyle.Render("▪")
+	} else {
+		grid[g.CursorY][g.CursorX] = lipgloss.NewStyle().
+			Background(ColorDanger).
+			Foreground(lipgloss.Color("#ffffff")).
+			Render("✗")
+	}
+}
+
+// isInBounds checks if coordinates are within grid bounds.
+func isInBounds(x, y, width, height int) bool {
+	return x >= 0 && x < width && y >= 0 && y < height
 }
 
 func renderTower(tower *entities.Tower) string {
@@ -222,10 +247,8 @@ func renderTower(tower *entities.Tower) string {
 		char = info.Symbol
 	}
 
-	// Add level indicator
-	if tower.Level > 0 {
-		char = fmt.Sprintf("%s", char) // could add level marker
-	}
+	// TODO: Add level indicator when upgrade system is implemented
+	_ = tower.Level // Reserved for future use
 
 	return style.Render(char)
 }
@@ -342,7 +365,7 @@ func renderChallenge(m *Model) string {
 	return b.String()
 }
 
-// renderVimBuffer renders the vim buffer with cursor
+// renderVimBuffer renders the vim buffer with cursor.
 func renderVimBuffer(e *vim.Editor) string {
 	state := e.GetRenderState()
 	var b strings.Builder
@@ -353,7 +376,7 @@ func renderVimBuffer(e *vim.Editor) string {
 
 	var lines []string
 	for lineNum, line := range state.Lines {
-		renderedLine := renderVimLine(line, lineNum, state)
+		renderedLine := renderVimLine(line, lineNum, &state)
 		lines = append(lines, renderedLine)
 	}
 
@@ -363,72 +386,99 @@ func renderVimBuffer(e *vim.Editor) string {
 	return b.String()
 }
 
-// renderVimLine renders a single line with cursor highlighting
-func renderVimLine(line string, lineNum int, state vim.RenderState) string {
+// renderVimLine renders a single line with cursor highlighting.
+func renderVimLine(line string, lineNum int, state *vim.RenderState) string {
 	runes := []rune(line)
 
 	// Handle empty line
 	if len(runes) == 0 {
-		if lineNum == state.CursorLine {
-			// Show cursor on empty line
-			if state.Mode == vim.ModeInsert {
-				return InsertCursorStyle.Render("|")
-			}
-			return NormalCursorStyle.Render(" ")
-		}
-		return " " // Empty line placeholder
+		return renderEmptyLine(lineNum, state)
 	}
 
 	// Not the cursor line - check for visual selection
 	if lineNum != state.CursorLine {
-		if state.IsInVisualSelection(lineNum, 0) {
-			// Entire line is in selection
-			return VisualSelectionStyle.Render(line)
-		}
-		return line
+		return renderNonCursorLine(line, lineNum, state)
 	}
 
 	// This is the cursor line
-	col := state.CursorCol
-	if col >= len(runes) {
-		col = len(runes) - 1
+	col := clampCursorCol(state.CursorCol, len(runes))
+
+	// Handle visual selection on cursor line
+	if state.VisualStart != nil && state.VisualEnd != nil {
+		return renderVisualSelectionLine(runes, col, state)
+	}
+
+	// Normal cursor rendering
+	return renderNormalCursorLine(runes, col, state.Mode)
+}
+
+// renderEmptyLine renders an empty line with cursor if applicable.
+func renderEmptyLine(lineNum int, state *vim.RenderState) string {
+	if lineNum == state.CursorLine {
+		if state.Mode == vim.ModeInsert {
+			return InsertCursorStyle.Render("|")
+		}
+		return NormalCursorStyle.Render(" ")
+	}
+	return " " // Empty line placeholder
+}
+
+// renderNonCursorLine renders a line that doesn't contain the cursor.
+func renderNonCursorLine(line string, lineNum int, state *vim.RenderState) string {
+	if state.IsInVisualSelection(lineNum, 0) {
+		return VisualSelectionStyle.Render(line)
+	}
+	return line
+}
+
+// clampCursorCol ensures cursor column is within valid bounds.
+func clampCursorCol(col, lineLen int) int {
+	if col >= lineLen {
+		col = lineLen - 1
 	}
 	if col < 0 {
 		col = 0
 	}
+	return col
+}
 
-	// Build line with cursor
-	var result strings.Builder
-
-	// Handle visual selection on cursor line
-	if state.VisualStart != nil && state.VisualEnd != nil {
-		selStart := state.VisualStart.Col
-		selEnd := state.VisualEnd.Col
-		if selStart > selEnd {
-			selStart, selEnd = selEnd, selStart
-		}
-
-		for i, r := range runes {
-			inSelection := i >= selStart && i <= selEnd
-			isCursor := i == col
-
-			char := string(r)
-			if isCursor {
-				if state.Mode == vim.ModeVisual || state.Mode == vim.ModeVisualLine {
-					result.WriteString(VisualCursorStyle.Render(char))
-				} else {
-					result.WriteString(NormalCursorStyle.Render(char))
-				}
-			} else if inSelection {
-				result.WriteString(VisualSelectionStyle.Render(char))
-			} else {
-				result.WriteString(char)
-			}
-		}
-		return result.String()
+// renderVisualSelectionLine renders a line with visual selection highlighting.
+func renderVisualSelectionLine(runes []rune, cursorCol int, state *vim.RenderState) string {
+	selStart := state.VisualStart.Col
+	selEnd := state.VisualEnd.Col
+	if selStart > selEnd {
+		selStart, selEnd = selEnd, selStart
 	}
 
-	// Normal cursor rendering
+	var result strings.Builder
+	for i, r := range runes {
+		char := string(r)
+		result.WriteString(renderVisualChar(char, i, cursorCol, selStart, selEnd, state.Mode))
+	}
+	return result.String()
+}
+
+// renderVisualChar renders a single character in visual selection mode.
+func renderVisualChar(char string, idx, cursorCol, selStart, selEnd int, mode vim.Mode) string {
+	inSelection := idx >= selStart && idx <= selEnd
+	isCursor := idx == cursorCol
+
+	if isCursor {
+		if mode == vim.ModeVisual || mode == vim.ModeVisualLine {
+			return VisualCursorStyle.Render(char)
+		}
+		return NormalCursorStyle.Render(char)
+	}
+	if inSelection {
+		return VisualSelectionStyle.Render(char)
+	}
+	return char
+}
+
+// renderNormalCursorLine renders a line with normal cursor highlighting.
+func renderNormalCursorLine(runes []rune, col int, mode vim.Mode) string {
+	var result strings.Builder
+
 	before := string(runes[:col])
 	cursorChar := string(runes[col])
 	after := ""
@@ -437,22 +487,25 @@ func renderVimLine(line string, lineNum int, state vim.RenderState) string {
 	}
 
 	result.WriteString(before)
-
-	switch state.Mode {
-	case vim.ModeInsert:
-		result.WriteString(InsertCursorStyle.Render("|"))
-		result.WriteString(cursorChar)
-	case vim.ModeVisual, vim.ModeVisualLine:
-		result.WriteString(VisualCursorStyle.Render(cursorChar))
-	default:
-		result.WriteString(NormalCursorStyle.Render(cursorChar))
-	}
-
+	result.WriteString(renderCursorChar(cursorChar, mode))
 	result.WriteString(after)
+
 	return result.String()
 }
 
-// renderModeLine renders the vim mode line
+// renderCursorChar renders the character under the cursor based on mode.
+func renderCursorChar(char string, mode vim.Mode) string {
+	switch mode {
+	case vim.ModeInsert:
+		return InsertCursorStyle.Render("|") + char
+	case vim.ModeVisual, vim.ModeVisualLine:
+		return VisualCursorStyle.Render(char)
+	default:
+		return NormalCursorStyle.Render(char)
+	}
+}
+
+// renderModeLine renders the vim mode line.
 func renderModeLine(e *vim.Editor, c *engine.Challenge) string {
 	state := e.GetRenderState()
 	var parts []string
@@ -474,11 +527,11 @@ func renderModeLine(e *vim.Editor, c *engine.Challenge) string {
 		parts = append(parts, HelpStyle.Render(state.Count+state.PendingCmd))
 	}
 
-	// Keystroke count
-	parts = append(parts, HelpStyle.Render(fmt.Sprintf("Keys: %d", e.KeystrokeCount)))
-
-	// Reward and par
-	parts = append(parts, GoldStyle.Render(fmt.Sprintf("Reward: %dg | Par: %d", c.GoldBase, c.ParKeystrokes)))
+	// Keystroke count and reward/par
+	parts = append(parts,
+		HelpStyle.Render(fmt.Sprintf("Keys: %d", e.KeystrokeCount)),
+		GoldStyle.Render(fmt.Sprintf("Reward: %dg | Par: %d", c.GoldBase, c.ParKeystrokes)),
+	)
 
 	return strings.Join(parts, "  ")
 }
@@ -491,7 +544,7 @@ func renderHelp(m *Model) string {
 	return HelpStyle.Render(help)
 }
 
-// RenderGameOver renders the game over screen
+// RenderGameOver renders the game over screen.
 func RenderGameOver(m *Model) string {
 	var b strings.Builder
 
@@ -512,7 +565,7 @@ func RenderGameOver(m *Model) string {
 	return b.String()
 }
 
-// RenderVictory renders the victory screen
+// RenderVictory renders the victory screen.
 func RenderVictory(m *Model) string {
 	var b strings.Builder
 

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// MockHandler implements Handler for testing
+// MockHandler implements Handler for testing.
 type MockHandler struct {
 	ChallengeResults []*ChallengeResult
 	ConfigUpdates    []*ConfigUpdate
@@ -184,7 +184,7 @@ func TestSocketServerSendsRequestChallenge(t *testing.T) {
 // TestEndToEndChallengeFlow tests the full flow:
 // 1. Server sends request_challenge to client
 // 2. Client sends challenge_complete back
-// 3. Handler receives the result
+// 3. Handler receives the result.
 func TestEndToEndChallengeFlow(t *testing.T) {
 	tmpDir := os.TempDir()
 	socketPath := filepath.Join(tmpDir, "test_e2e.sock")

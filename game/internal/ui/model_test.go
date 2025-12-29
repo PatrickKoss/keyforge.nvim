@@ -12,7 +12,7 @@ import (
 	"github.com/keyforge/keyforge/internal/nvim"
 )
 
-// MockRPCClient implements nvim.RPCClient for testing
+// MockRPCClient implements nvim.RPCClient for testing.
 type MockRPCClient struct {
 	ChallengeRequests []ChallengeRequestRecord
 }
@@ -57,7 +57,7 @@ func (m *MockRPCClient) SendVictory(wave, gold, towers, health int) error {
 }
 
 // TestChallengeResultChannel tests that challenge results are properly
-// communicated via channel even when Model is copied (as Bubbletea does)
+// communicated via channel even when Model is copied (as Bubbletea does).
 func TestChallengeResultChannel(t *testing.T) {
 	model := NewModel()
 	model.NvimMode = true
@@ -104,7 +104,7 @@ func TestChallengeResultChannel(t *testing.T) {
 }
 
 // TestChallengeResultChannelWithCopy tests that even when we work with a copy
-// of the model (as Bubbletea does), the channel still works
+// of the model (as Bubbletea does), the channel still works.
 func TestChallengeResultChannelWithCopy(t *testing.T) {
 	// Create original model
 	original := NewModel()
@@ -149,7 +149,7 @@ func TestChallengeResultChannelWithCopy(t *testing.T) {
 	}
 }
 
-// TestChallengeResultMismatchedID tests that stale results are ignored
+// TestChallengeResultMismatchedID tests that stale results are ignored.
 func TestChallengeResultMismatchedID(t *testing.T) {
 	model := NewModel()
 	model.NvimMode = true
@@ -191,7 +191,7 @@ func TestChallengeResultMismatchedID(t *testing.T) {
 	}
 }
 
-// TestChallengeResultGoldAwarded tests that gold is properly awarded on success
+// TestChallengeResultGoldAwarded tests that gold is properly awarded on success.
 func TestChallengeResultGoldAwarded(t *testing.T) {
 	model := NewModel()
 	model.NvimMode = true
@@ -220,7 +220,7 @@ func TestChallengeResultGoldAwarded(t *testing.T) {
 	}
 }
 
-// TestChallengeResultNoGoldOnFailure tests that no gold is awarded on failure
+// TestChallengeResultNoGoldOnFailure tests that no gold is awarded on failure.
 func TestChallengeResultNoGoldOnFailure(t *testing.T) {
 	model := NewModel()
 	model.NvimMode = true
@@ -257,7 +257,7 @@ func TestChallengeResultNoGoldOnFailure(t *testing.T) {
 // TestHandleChallengeCompleteViaPointer simulates the real scenario:
 // - Original model is passed to socket server as pointer
 // - Bubbletea works with value copies
-// - Handler is called on original, but Update runs on copy
+// - Handler is called on original, but Update runs on copy.
 func TestHandleChallengeCompleteViaPointer(t *testing.T) {
 	// Create model and get a pointer (like socket server does)
 	original := NewModel()
@@ -307,7 +307,7 @@ func TestHandleChallengeCompleteViaPointer(t *testing.T) {
 }
 
 // TestMultipleTicksDoNotDuplicateProcessing ensures we don't process
-// the same result multiple times
+// the same result multiple times.
 func TestMultipleTicksDoNotDuplicateProcessing(t *testing.T) {
 	model := NewModel()
 	model.NvimMode = true
@@ -350,7 +350,7 @@ func TestMultipleTicksDoNotDuplicateProcessing(t *testing.T) {
 // 2. Model passed to tea.NewProgram (by value)
 // 3. Challenge started via Update (returns new model)
 // 4. RPC handler called on ORIGINAL pointer
-// 5. Update called on BUBBLETEA'S copy
+// 5. Update called on BUBBLETEA'S copy.
 func TestRealisticBubbleteaFlow(t *testing.T) {
 	// Step 1: Create model (like in main.go)
 	model := NewModel()
@@ -412,7 +412,7 @@ func TestRealisticBubbleteaFlow(t *testing.T) {
 }
 
 // TestSocketServerHandlerWithSeparateModels tests the exact problem:
-// socket server has pointer to original, but Bubbletea evolves separately
+// socket server has pointer to original, but Bubbletea evolves separately.
 func TestSocketServerHandlerWithSeparateModels(t *testing.T) {
 	// Create the original model
 	original := NewModel()
@@ -455,7 +455,7 @@ func TestSocketServerHandlerWithSeparateModels(t *testing.T) {
 // - Real SocketServer
 // - Real Model with channel
 // - Simulated Bubbletea Update loop
-// - Real socket client (simulating Neovim)
+// - Real socket client (simulating Neovim).
 func TestIntegrationWithRealSocketServer(t *testing.T) {
 	tmpDir := os.TempDir()
 	socketPath := filepath.Join(tmpDir, "test_integration.sock")

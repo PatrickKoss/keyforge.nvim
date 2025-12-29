@@ -187,7 +187,7 @@ func TestMoveCursorBounds(t *testing.T) {
 	g := NewGame(20, 14)
 
 	// Move to top-left corner
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		g.MoveCursor(-1, -1)
 	}
 
@@ -199,7 +199,7 @@ func TestMoveCursorBounds(t *testing.T) {
 	}
 
 	// Move to bottom-right corner
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		g.MoveCursor(1, 1)
 	}
 
@@ -430,7 +430,7 @@ func TestTowersFireDuringChallenge(t *testing.T) {
 	g.WaveComplete = true
 
 	// Update many times to allow tower to fire and projectile to reach
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		g.Update(0.1)
 	}
 

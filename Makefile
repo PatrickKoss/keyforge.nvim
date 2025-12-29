@@ -1,4 +1,4 @@
-.PHONY: build run clean test watch install help
+.PHONY: build run clean test watch install help lint lint-go lint-lua install-tools
 
 # Default target
 all: build
@@ -51,15 +51,25 @@ deps:
 	@echo "Installing Go dependencies..."
 	@cd game && go mod tidy
 
+# Install development tools (golangci-lint, luacheck)
+install-tools:
+	@./scripts/install-tools.sh
+
 # Format code
 fmt:
 	@echo "Formatting code..."
 	@cd game && go fmt ./...
 
-# Lint code (requires golangci-lint)
-lint:
-	@echo "Linting..."
-	@cd game && golangci-lint run
+# Lint code (uses local binaries from bin/)
+lint: lint-go lint-lua
+
+lint-go:
+	@echo "Linting Go code..."
+	@cd game && ../bin/golangci-lint run --fix
+
+lint-lua:
+	@echo "Linting Lua code..."
+	@./bin/luacheck lua/ plugin/ tests/ --config .luacheckrc
 
 # Build for multiple platforms
 release:
@@ -91,6 +101,9 @@ help:
 	@echo "  watch            - Watch for changes and rebuild"
 	@echo "  deps             - Install Go dependencies"
 	@echo "  fmt              - Format Go code"
-	@echo "  lint             - Run linter"
+	@echo "  lint             - Run all linters (Go + Lua)"
+	@echo "  lint-go          - Run golangci-lint on Go code"
+	@echo "  lint-lua         - Run luacheck on Lua code"
+	@echo "  install-tools    - Install dev tools (golangci-lint, luacheck)"
 	@echo "  release          - Build for all platforms"
 	@echo "  install-dev      - Symlink plugin for development"

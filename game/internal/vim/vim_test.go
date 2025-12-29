@@ -193,7 +193,7 @@ func TestValidateCursorPosition(t *testing.T) {
 	e := NewEditor("hello world")
 	e.HandleKey("$") // Go to end
 
-	spec := ChallengeSpec{
+	spec := &ChallengeSpec{
 		ValidationType: "cursor_position",
 		ExpectedCursor: []int{0, 10},
 	}
@@ -215,7 +215,7 @@ func TestValidateExactMatch(t *testing.T) {
 	e.HandleKey("d")
 	e.HandleKey("Escape")
 
-	spec := ChallengeSpec{
+	spec := &ChallengeSpec{
 		ValidationType: "exact_match",
 		ExpectedBuffer: "hello world",
 	}

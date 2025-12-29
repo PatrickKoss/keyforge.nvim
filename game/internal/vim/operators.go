@@ -1,6 +1,8 @@
 package vim
 
-// OperatorType represents a vim operator
+import "strings"
+
+// OperatorType represents a vim operator.
 type OperatorType int
 
 const (
@@ -10,7 +12,7 @@ const (
 	OpYank
 )
 
-// String returns the operator character
+// String returns the operator character.
 func (o OperatorType) String() string {
 	switch o {
 	case OpDelete:
@@ -24,7 +26,7 @@ func (o OperatorType) String() string {
 	}
 }
 
-// ExecuteOperator applies an operator to a range
+// ExecuteOperator applies an operator to a range.
 func (e *Editor) ExecuteOperator(op OperatorType, r Range) {
 	switch op {
 	case OpDelete:
@@ -33,6 +35,8 @@ func (e *Editor) ExecuteOperator(op OperatorType, r Range) {
 		e.executeChange(r)
 	case OpYank:
 		e.executeYank(r)
+	case OpNone:
+		// No operation to execute
 	}
 }
 
@@ -42,13 +46,15 @@ func (e *Editor) executeDelete(r Range) {
 	if r.Linewise {
 		// Delete entire lines
 		var deleted string
+		var deletedSb45 strings.Builder
 		for i := r.Start.Line; i <= r.End.Line; i++ {
 			if i > r.Start.Line {
-				deleted += "\n"
+				deletedSb45.WriteString("\n")
 			}
-			deleted += e.Buffer.GetLine(r.Start.Line)
+			deletedSb45.WriteString(e.Buffer.GetLine(r.Start.Line))
 			e.Buffer.DeleteLine(r.Start.Line)
 		}
+		deleted += deletedSb45.String()
 		e.Unnamed = deleted
 
 		// Position cursor
@@ -82,12 +88,14 @@ func (e *Editor) executeChange(r Range) {
 func (e *Editor) executeYank(r Range) {
 	if r.Linewise {
 		var yanked string
+		var yankedSb85 strings.Builder
 		for i := r.Start.Line; i <= r.End.Line; i++ {
 			if i > r.Start.Line {
-				yanked += "\n"
+				yankedSb85.WriteString("\n")
 			}
-			yanked += e.Buffer.GetLine(i)
+			yankedSb85.WriteString(e.Buffer.GetLine(i))
 		}
+		yanked += yankedSb85.String()
 		e.Unnamed = yanked
 	} else {
 		e.Unnamed = e.Buffer.GetRange(r.Start, r.End)
@@ -95,7 +103,7 @@ func (e *Editor) executeYank(r Range) {
 	e.StatusMessage = "yanked"
 }
 
-// DeleteChar deletes the character under the cursor (x command)
+// DeleteChar deletes the character under the cursor (x command).
 func (e *Editor) DeleteChar(count int) {
 	if count <= 0 {
 		count = 1
@@ -117,7 +125,7 @@ func (e *Editor) DeleteChar(count int) {
 	e.Cursor = e.clampPosition(e.Cursor)
 }
 
-// DeleteCharBefore deletes the character before the cursor (X command)
+// DeleteCharBefore deletes the character before the cursor (X command).
 func (e *Editor) DeleteCharBefore(count int) {
 	if count <= 0 {
 		count = 1
@@ -140,7 +148,7 @@ func (e *Editor) DeleteCharBefore(count int) {
 	e.Cursor.Col = start
 }
 
-// DeleteLine deletes the current line (dd command)
+// DeleteLine deletes the current line (dd command).
 func (e *Editor) DeleteLine(count int) {
 	if count <= 0 {
 		count = 1
@@ -162,7 +170,7 @@ func (e *Editor) DeleteLine(count int) {
 	e.executeDelete(r)
 }
 
-// YankLine yanks the current line (yy command)
+// YankLine yanks the current line (yy command).
 func (e *Editor) YankLine(count int) {
 	if count <= 0 {
 		count = 1
@@ -182,7 +190,7 @@ func (e *Editor) YankLine(count int) {
 	e.executeYank(r)
 }
 
-// Paste pastes from the unnamed register
+// Paste pastes from the unnamed register.
 func (e *Editor) Paste(before bool) {
 	if e.Unnamed == "" {
 		return
@@ -225,7 +233,7 @@ func (e *Editor) Paste(before bool) {
 	}
 }
 
-// JoinLines joins current line with next line (J command)
+// JoinLines joins current line with next line (J command).
 func (e *Editor) JoinLines(count int) {
 	if count <= 1 {
 		count = 2 // J joins current with next, so minimum 2

@@ -5,14 +5,14 @@ import (
 	"strings"
 )
 
-// ValidationResult contains the result of validating a challenge
+// ValidationResult contains the result of validating a challenge.
 type ValidationResult struct {
 	Success    bool
 	Efficiency float64
 	Message    string
 }
 
-// ChallengeSpec contains the challenge validation parameters
+// ChallengeSpec contains the challenge validation parameters.
 type ChallengeSpec struct {
 	ValidationType  string
 	ExpectedBuffer  string
@@ -24,8 +24,8 @@ type ChallengeSpec struct {
 	ParKeystrokes   int
 }
 
-// Validate checks if the editor state matches challenge expectations
-func Validate(e *Editor, spec ChallengeSpec) ValidationResult {
+// Validate checks if the editor state matches challenge expectations.
+func Validate(e *Editor, spec *ChallengeSpec) ValidationResult {
 	result := ValidationResult{}
 
 	switch spec.ValidationType {
@@ -96,12 +96,12 @@ func normalizeBuffer(s string) string {
 
 func checkFunctionExists(content, funcName string) bool {
 	patterns := []string{
-		`function\s+` + regexp.QuoteMeta(funcName) + `\s*\(`,      // JS/Lua
-		`def\s+` + regexp.QuoteMeta(funcName) + `\s*\(`,           // Python
-		`func\s+` + regexp.QuoteMeta(funcName) + `\s*\(`,          // Go
-		regexp.QuoteMeta(funcName) + `\s*=\s*function`,            // JS function
-		`const\s+` + regexp.QuoteMeta(funcName) + `\s*=`,          // JS const
-		regexp.QuoteMeta(funcName) + `\s*=\s*\(`,                  // JS arrow
+		`function\s+` + regexp.QuoteMeta(funcName) + `\s*\(`, // JS/Lua
+		`def\s+` + regexp.QuoteMeta(funcName) + `\s*\(`,      // Python
+		`func\s+` + regexp.QuoteMeta(funcName) + `\s*\(`,     // Go
+		regexp.QuoteMeta(funcName) + `\s*=\s*function`,       // JS function
+		`const\s+` + regexp.QuoteMeta(funcName) + `\s*=`,     // JS const
+		regexp.QuoteMeta(funcName) + `\s*=\s*\(`,             // JS arrow
 	}
 
 	for _, pattern := range patterns {

@@ -2,7 +2,7 @@ package engine
 
 import "math"
 
-// EconomyConfig holds configuration for the game's gold economy
+// EconomyConfig holds configuration for the game's gold economy.
 type EconomyConfig struct {
 	MobGoldMultiplier     float64 // 0.25 = 25% of original mob gold
 	WaveBonusMultiplier   float64 // 0.50 = 50% of original wave bonus
@@ -10,14 +10,14 @@ type EconomyConfig struct {
 	ChallengeSpeedMaxMult float64 // Max speed bonus multiplier (2.0)
 }
 
-// Difficulty presets
+// Difficulty presets.
 const (
 	DifficultyEasy   = "easy"
 	DifficultyNormal = "normal"
 	DifficultyHard   = "hard"
 )
 
-// DefaultEconomyConfig returns the normal difficulty economy config
+// DefaultEconomyConfig returns the normal difficulty economy config.
 func DefaultEconomyConfig() EconomyConfig {
 	return EconomyConfig{
 		MobGoldMultiplier:     0.25,
@@ -27,7 +27,7 @@ func DefaultEconomyConfig() EconomyConfig {
 	}
 }
 
-// EconomyConfigForDifficulty returns economy config for a given difficulty preset
+// EconomyConfigForDifficulty returns economy config for a given difficulty preset.
 func EconomyConfigForDifficulty(difficulty string) EconomyConfig {
 	switch difficulty {
 	case DifficultyEasy:
@@ -49,7 +49,7 @@ func EconomyConfigForDifficulty(difficulty string) EconomyConfig {
 	}
 }
 
-// CalculateMobGold calculates the gold reward for killing an enemy
+// CalculateMobGold calculates the gold reward for killing an enemy.
 func (e EconomyConfig) CalculateMobGold(baseGold int) int {
 	gold := int(math.Round(float64(baseGold) * e.MobGoldMultiplier))
 	if gold < 1 && e.MobGoldMultiplier > 0 {
@@ -58,7 +58,7 @@ func (e EconomyConfig) CalculateMobGold(baseGold int) int {
 	return gold
 }
 
-// CalculateWaveBonus calculates the gold bonus for completing a wave
+// CalculateWaveBonus calculates the gold bonus for completing a wave.
 func (e EconomyConfig) CalculateWaveBonus(baseBonus int) int {
 	bonus := int(math.Round(float64(baseBonus) * e.WaveBonusMultiplier))
 	if bonus < 1 && e.WaveBonusMultiplier > 0 {
@@ -68,7 +68,7 @@ func (e EconomyConfig) CalculateWaveBonus(baseBonus int) int {
 }
 
 // CalculateSpeedBonus calculates the speed bonus multiplier for challenge completion
-// Returns a multiplier between 1.0 and ChallengeSpeedMaxMult
+// Returns a multiplier between 1.0 and ChallengeSpeedMaxMult.
 func (e EconomyConfig) CalculateSpeedBonus(timeMs, parTimeMs int) float64 {
 	if timeMs <= 0 || parTimeMs <= 0 {
 		return 1.0
@@ -94,7 +94,7 @@ func (e EconomyConfig) CalculateSpeedBonus(timeMs, parTimeMs int) float64 {
 	return bonus
 }
 
-// CalculateChallengeGold calculates the total gold reward for a challenge
+// CalculateChallengeGold calculates the total gold reward for a challenge.
 func (e EconomyConfig) CalculateChallengeGold(baseGold, difficulty int, efficiency, speedBonus float64) int {
 	// Difficulty multiplier: 1.0 + (difficulty * 0.25)
 	// d1 = 1.25, d2 = 1.5, d3 = 1.75

@@ -1,8 +1,9 @@
 package engine
 
 import (
+	"crypto/rand"
 	"embed"
-	"math/rand"
+	"math/big"
 
 	"gopkg.in/yaml.v3"
 )
@@ -10,7 +11,7 @@ import (
 //go:embed assets/challenges.yaml
 var challengesFS embed.FS
 
-// Challenge represents a single kata challenge
+// Challenge represents a single kata challenge.
 type Challenge struct {
 	ID              string `yaml:"id"`
 	Name            string `yaml:"name"`
@@ -30,19 +31,19 @@ type Challenge struct {
 	RequiredPlugin  string `yaml:"required_plugin,omitempty"`
 }
 
-// ChallengeFile represents the YAML file structure
+// ChallengeFile represents the YAML file structure.
 type ChallengeFile struct {
 	Challenges []Challenge `yaml:"challenges"`
 }
 
-// ChallengeManager loads and provides challenges
+// ChallengeManager loads and provides challenges.
 type ChallengeManager struct {
 	challenges   []Challenge
 	byCategory   map[string][]Challenge
 	byDifficulty map[int][]Challenge
 }
 
-// NewChallengeManager creates a new challenge manager and loads challenges
+// NewChallengeManager creates a new challenge manager and loads challenges.
 func NewChallengeManager() (*ChallengeManager, error) {
 	cm := &ChallengeManager{
 		challenges:   make([]Challenge, 0),
@@ -60,8 +61,9 @@ func NewChallengeManager() (*ChallengeManager, error) {
 func (cm *ChallengeManager) loadChallenges() error {
 	data, err := challengesFS.ReadFile("assets/challenges.yaml")
 	if err != nil {
-		// If embedded file not found, use empty challenges
-		return nil
+		// If embedded file not found, use empty challenges (not an error)
+		cm.challenges = nil
+		return nil //nolint:nilerr // intentional: missing file means empty challenges
 	}
 
 	var file ChallengeFile
@@ -72,51 +74,59 @@ func (cm *ChallengeManager) loadChallenges() error {
 	cm.challenges = file.Challenges
 
 	// Index by category and difficulty
-	for _, c := range cm.challenges {
-		cm.byCategory[c.Category] = append(cm.byCategory[c.Category], c)
-		cm.byDifficulty[c.Difficulty] = append(cm.byDifficulty[c.Difficulty], c)
+	for i := range cm.challenges {
+		c := &cm.challenges[i]
+		cm.byCategory[c.Category] = append(cm.byCategory[c.Category], *c)
+		cm.byDifficulty[c.Difficulty] = append(cm.byDifficulty[c.Difficulty], *c)
 	}
 
 	return nil
 }
 
-// GetChallenge returns a challenge by ID
+// GetChallenge returns a challenge by ID.
 func (cm *ChallengeManager) GetChallenge(id string) *Challenge {
-	for _, c := range cm.challenges {
-		if c.ID == id {
-			return &c
+	for i := range cm.challenges {
+		if cm.challenges[i].ID == id {
+			return &cm.challenges[i]
 		}
 	}
 	return nil
 }
 
-// GetRandomChallenge returns a random challenge matching the criteria
+// GetRandomChallenge returns a random challenge matching the criteria.
 func (cm *ChallengeManager) GetRandomChallenge(category string, maxDifficulty int) *Challenge {
-	var candidates []Challenge
+	var candidateIndices []int
 
-	for _, c := range cm.challenges {
+	for i := range cm.challenges {
+		c := &cm.challenges[i]
 		if category != "" && c.Category != category {
 			continue
 		}
 		if maxDifficulty > 0 && c.Difficulty > maxDifficulty {
 			continue
 		}
-		candidates = append(candidates, c)
+		candidateIndices = append(candidateIndices, i)
 	}
 
-	if len(candidates) == 0 {
+	if len(candidateIndices) == 0 {
 		return nil
 	}
 
-	return &candidates[rand.Intn(len(candidates))]
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(candidateIndices))))
+	if err != nil {
+		// Fallback to first candidate on error
+		return &cm.challenges[candidateIndices[0]]
+	}
+	idx := candidateIndices[n.Int64()]
+	return &cm.challenges[idx]
 }
 
-// GetChallengesByCategory returns all challenges in a category
+// GetChallengesByCategory returns all challenges in a category.
 func (cm *ChallengeManager) GetChallengesByCategory(category string) []Challenge {
 	return cm.byCategory[category]
 }
 
-// GetCategories returns all available categories
+// GetCategories returns all available categories.
 func (cm *ChallengeManager) GetCategories() []string {
 	categories := make([]string, 0, len(cm.byCategory))
 	for cat := range cm.byCategory {
@@ -125,12 +135,12 @@ func (cm *ChallengeManager) GetCategories() []string {
 	return categories
 }
 
-// Count returns the total number of challenges
+// Count returns the total number of challenges.
 func (cm *ChallengeManager) Count() int {
 	return len(cm.challenges)
 }
 
-// CountByCategory returns the number of challenges per category
+// CountByCategory returns the number of challenges per category.
 func (cm *ChallengeManager) CountByCategory() map[string]int {
 	counts := make(map[string]int)
 	for cat, challenges := range cm.byCategory {

@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-// Client handles JSON-RPC communication with Neovim
+// Client handles JSON-RPC communication with Neovim.
 type Client struct {
 	reader    *bufio.Reader
 	writer    io.Writer
@@ -29,7 +29,7 @@ type Client struct {
 	done chan struct{}
 }
 
-// Handler processes incoming RPC messages from Neovim
+// Handler processes incoming RPC messages from Neovim.
 type Handler interface {
 	HandleChallengeComplete(result *ChallengeResult)
 	HandleConfigUpdate(config *ConfigUpdate)
@@ -40,7 +40,7 @@ type Handler interface {
 }
 
 // NewClient creates a new RPC client using stdin for reading and stderr for writing
-// This allows Bubbletea to use stdout for terminal rendering while RPC uses stderr
+// This allows Bubbletea to use stdout for terminal rendering while RPC uses stderr.
 func NewClient(handler Handler) *Client {
 	return &Client{
 		reader:   bufio.NewReader(os.Stdin),
@@ -52,7 +52,7 @@ func NewClient(handler Handler) *Client {
 	}
 }
 
-// NewClientWithIO creates a client with custom IO (for testing)
+// NewClientWithIO creates a client with custom IO (for testing).
 func NewClientWithIO(r io.Reader, w io.Writer, handler Handler) *Client {
 	return &Client{
 		reader:   bufio.NewReader(r),
@@ -64,18 +64,18 @@ func NewClientWithIO(r io.Reader, w io.Writer, handler Handler) *Client {
 	}
 }
 
-// Start begins listening for incoming messages
+// Start begins listening for incoming messages.
 func (c *Client) Start() {
 	go c.readLoop()
 	go c.processLoop()
 }
 
-// Stop shuts down the client
+// Stop shuts down the client.
 func (c *Client) Stop() {
 	close(c.done)
 }
 
-// readLoop continuously reads messages from the input
+// readLoop continuously reads messages from the input.
 func (c *Client) readLoop() {
 	for {
 		select {
@@ -87,7 +87,7 @@ func (c *Client) readLoop() {
 		line, err := c.reader.ReadBytes('\n')
 		if err != nil {
 			if err != io.EOF {
-				// Log error but continue
+				debugLog("client: read error: %v", err)
 			}
 			continue
 		}
@@ -134,7 +134,7 @@ func (c *Client) readLoop() {
 	}
 }
 
-// processLoop handles incoming messages
+// processLoop handles incoming messages.
 func (c *Client) processLoop() {
 	for {
 		select {
@@ -213,12 +213,15 @@ func (c *Client) handleRequest(req *Request) {
 		}
 		result = map[string]bool{"ok": true}
 	default:
-		rpcErr = NewError(ErrCodeMethodNotFound, fmt.Sprintf("method not found: %s", req.Method))
+		rpcErr = NewError(ErrCodeMethodNotFound, "method not found: "+req.Method)
 	}
 
 	// Send response
 	resp := NewResponse(req.ID, result, rpcErr)
-	c.send(resp)
+	if err := c.send(resp); err != nil {
+		// Log error but don't crash - client will handle disconnect
+		debugLog("client: failed to send response: %v", err)
+	}
 }
 
 func (c *Client) handleNotification(notif *Notification) {
@@ -257,7 +260,7 @@ func (c *Client) handleNotification(notif *Notification) {
 	}
 }
 
-// send writes a message to the output
+// send writes a message to the output.
 func (c *Client) send(msg interface{}) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -271,7 +274,7 @@ func (c *Client) send(msg interface{}) error {
 	return err
 }
 
-// Request sends a request and waits for a response
+// Request sends a request and waits for a response.
 func (c *Client) Request(method string, params interface{}) (*Response, error) {
 	c.mu.Lock()
 	c.requestID++
@@ -293,13 +296,13 @@ func (c *Client) Request(method string, params interface{}) (*Response, error) {
 	return resp, nil
 }
 
-// Notify sends a notification (no response expected)
+// Notify sends a notification (no response expected).
 func (c *Client) Notify(method string, params interface{}) error {
 	notif := NewNotification(method, params)
 	return c.send(notif)
 }
 
-// RequestChallenge asks Neovim to present a challenge
+// RequestChallenge asks Neovim to present a challenge.
 func (c *Client) RequestChallenge(requestID, category string, difficulty int) error {
 	return c.Notify(MethodRequestChallenge, &ChallengeRequest{
 		RequestID:  requestID,
@@ -308,7 +311,7 @@ func (c *Client) RequestChallenge(requestID, category string, difficulty int) er
 	})
 }
 
-// SendGameState sends current game state to Neovim
+// SendGameState sends current game state to Neovim.
 func (c *Client) SendGameState(state string, wave, gold, health, enemies, towers int) error {
 	return c.Notify(MethodGameStateUpdate, &GameStateUpdate{
 		State:   state,
@@ -320,12 +323,12 @@ func (c *Client) SendGameState(state string, wave, gold, health, enemies, towers
 	})
 }
 
-// SendGameReady notifies Neovim that the game is ready
+// SendGameReady notifies Neovim that the game is ready.
 func (c *Client) SendGameReady() error {
 	return c.Notify(MethodGameReady, nil)
 }
 
-// SendGoldUpdate notifies Neovim of gold changes
+// SendGoldUpdate notifies Neovim of gold changes.
 func (c *Client) SendGoldUpdate(gold, earned int, source string, speedBonus float64) error {
 	return c.Notify(MethodGoldUpdate, &GoldUpdate{
 		Gold:       gold,
@@ -335,7 +338,7 @@ func (c *Client) SendGoldUpdate(gold, earned int, source string, speedBonus floa
 	})
 }
 
-// SendChallengeAvailable notifies Neovim that challenges are available
+// SendChallengeAvailable notifies Neovim that challenges are available.
 func (c *Client) SendChallengeAvailable(count, nextReward int, nextCategory string) error {
 	return c.Notify(MethodChallengeAvailable, &ChallengeAvailable{
 		Count:        count,
@@ -344,7 +347,7 @@ func (c *Client) SendChallengeAvailable(count, nextReward int, nextCategory stri
 	})
 }
 
-// SendGameOver notifies Neovim that the game is over
+// SendGameOver notifies Neovim that the game is over.
 func (c *Client) SendGameOver(wave, gold, towers, health int) error {
 	return c.Notify(MethodGameOver, &GameOverParams{
 		Wave:   wave,
@@ -354,7 +357,7 @@ func (c *Client) SendGameOver(wave, gold, towers, health int) error {
 	})
 }
 
-// SendVictory notifies Neovim that the player has won
+// SendVictory notifies Neovim that the player has won.
 func (c *Client) SendVictory(wave, gold, towers, health int) error {
 	return c.Notify(MethodVictory, &VictoryParams{
 		Wave:   wave,

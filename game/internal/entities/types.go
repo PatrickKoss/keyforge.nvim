@@ -1,23 +1,23 @@
 package entities
 
-// Position represents a 2D coordinate on the game grid
+// Position represents a 2D coordinate on the game grid.
 type Position struct {
 	X, Y float64
 }
 
-// IntPos returns the integer position for grid placement
+// IntPos returns the integer position for grid placement.
 func (p Position) IntPos() (int, int) {
 	return int(p.X), int(p.Y)
 }
 
-// Distance calculates the distance to another position
+// Distance calculates the distance to another position.
 func (p Position) Distance(other Position) float64 {
 	dx := p.X - other.X
 	dy := p.Y - other.Y
 	return dx*dx + dy*dy // squared distance for efficiency
 }
 
-// EntityType identifies the kind of entity
+// EntityType identifies the kind of entity.
 type EntityType int
 
 const (
@@ -26,7 +26,7 @@ const (
 	EntityProjectile
 )
 
-// TowerType identifies different tower categories
+// TowerType identifies different tower categories.
 type TowerType int
 
 const (
@@ -38,20 +38,20 @@ const (
 	TowerGit
 )
 
-// TowerInfo contains configuration for each tower type
+// TowerInfo contains configuration for each tower type.
 type TowerInfo struct {
-	Name       string
-	Cost       int
-	Damage     int
-	Range      float64
-	Cooldown   float64 // seconds between attacks
-	Category   string  // challenge category
-	Symbol     string  // display character
-	Color      string  // hex color
-	Upgrades   []TowerUpgrade
+	Name     string
+	Cost     int
+	Damage   int
+	Range    float64
+	Cooldown float64 // seconds between attacks
+	Category string  // challenge category
+	Symbol   string  // display character
+	Color    string  // hex color
+	Upgrades []TowerUpgrade
 }
 
-// TowerUpgrade defines an upgrade tier
+// TowerUpgrade defines an upgrade tier.
 type TowerUpgrade struct {
 	Cost         int
 	DamageBonus  int
@@ -59,7 +59,7 @@ type TowerUpgrade struct {
 	CooldownMult float64 // multiplier (0.8 = 20% faster)
 }
 
-// EnemyType identifies different enemy variants
+// EnemyType identifies different enemy variants.
 type EnemyType int
 
 const (
@@ -69,7 +69,7 @@ const (
 	EnemyBoss
 )
 
-// EnemyInfo contains configuration for each enemy type
+// EnemyInfo contains configuration for each enemy type.
 type EnemyInfo struct {
 	Name      string
 	Health    int
@@ -79,7 +79,7 @@ type EnemyInfo struct {
 	GoldValue int
 }
 
-// TowerTypes contains all tower configurations
+// TowerTypes contains all tower configurations.
 var TowerTypes = map[TowerType]TowerInfo{
 	TowerArrow: {
 		Name:     "Arrow",
@@ -125,7 +125,7 @@ var TowerTypes = map[TowerType]TowerInfo{
 	},
 }
 
-// EnemyTypes contains all enemy configurations
+// EnemyTypes contains all enemy configurations.
 var EnemyTypes = map[EnemyType]EnemyInfo{
 	EnemyBug: {
 		Name:      "Bug",

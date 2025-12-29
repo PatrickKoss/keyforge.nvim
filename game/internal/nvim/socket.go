@@ -3,19 +3,20 @@ package nvim
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"sync"
 )
 
-// Debug logging to file (since stdout is used by bubbletea)
+// Debug logging to file (since stdout is used by bubbletea).
 var debugFile *os.File
 
 func init() {
-	// Create debug log file in /tmp
+	// Create debug log file in /tmp with restricted permissions
 	var err error
-	debugFile, err = os.OpenFile("/tmp/keyforge-debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	debugFile, err = os.OpenFile("/tmp/keyforge-debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		debugFile = nil
 	}
@@ -24,17 +25,16 @@ func init() {
 func debugLog(format string, args ...interface{}) {
 	if debugFile != nil {
 		fmt.Fprintf(debugFile, format+"\n", args...)
-		debugFile.Sync()
+		_ = debugFile.Sync() // Ignore sync errors for debug logging
 	}
 }
 
-// SocketServer handles JSON-RPC communication over a Unix socket
+// SocketServer handles JSON-RPC communication over a Unix socket.
 type SocketServer struct {
 	socketPath string
 	listener   net.Listener
 	conn       net.Conn
 	reader     *bufio.Reader
-	requestID  int
 	mu         sync.Mutex
 
 	// Pending requests waiting for responses
@@ -53,7 +53,7 @@ type SocketServer struct {
 	connected bool
 }
 
-// NewSocketServer creates a new RPC server that listens on a Unix socket
+// NewSocketServer creates a new RPC server that listens on a Unix socket.
 func NewSocketServer(socketPath string, handler Handler) *SocketServer {
 	return &SocketServer{
 		socketPath: socketPath,
@@ -64,7 +64,7 @@ func NewSocketServer(socketPath string, handler Handler) *SocketServer {
 	}
 }
 
-// Start begins listening on the socket and waits for a connection
+// Start begins listening on the socket and waits for a connection.
 func (s *SocketServer) Start() error {
 	var err error
 	s.listener, err = net.Listen("unix", s.socketPath)
@@ -79,26 +79,30 @@ func (s *SocketServer) Start() error {
 	return nil
 }
 
-// Stop shuts down the server
+// Stop shuts down the server.
 func (s *SocketServer) Stop() {
 	close(s.done)
 
 	if s.conn != nil {
-		s.conn.Close()
+		if err := s.conn.Close(); err != nil {
+			debugLog("socket: error closing connection: %v", err)
+		}
 	}
 	if s.listener != nil {
-		s.listener.Close()
+		if err := s.listener.Close(); err != nil {
+			debugLog("socket: error closing listener: %v", err)
+		}
 	}
 }
 
-// IsConnected returns true if a client is connected
+// IsConnected returns true if a client is connected.
 func (s *SocketServer) IsConnected() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.connected
 }
 
-// acceptLoop waits for incoming connections
+// acceptLoop waits for incoming connections.
 func (s *SocketServer) acceptLoop() {
 	debugLog("acceptLoop started, waiting for connections on %s", s.socketPath)
 	for {
@@ -130,12 +134,15 @@ func (s *SocketServer) acceptLoop() {
 		go s.readLoop()
 
 		// Send game ready notification
-		s.SendGameReady()
-		debugLog("Sent game_ready notification")
+		if err := s.SendGameReady(); err != nil {
+			debugLog("Failed to send game_ready: %v", err)
+		} else {
+			debugLog("Sent game_ready notification")
+		}
 	}
 }
 
-// readLoop continuously reads messages from the connection
+// readLoop continuously reads messages from the connection.
 func (s *SocketServer) readLoop() {
 	debugLog("readLoop started")
 	for {
@@ -207,7 +214,7 @@ func (s *SocketServer) readLoop() {
 	}
 }
 
-// processLoop handles incoming messages
+// processLoop handles incoming messages.
 func (s *SocketServer) processLoop() {
 	for {
 		select {
@@ -285,12 +292,14 @@ func (s *SocketServer) handleRequest(req *Request) {
 		}
 		result = map[string]bool{"ok": true}
 	default:
-		rpcErr = NewError(ErrCodeMethodNotFound, fmt.Sprintf("method not found: %s", req.Method))
+		rpcErr = NewError(ErrCodeMethodNotFound, "method not found: "+req.Method)
 	}
 
 	// Send response
 	resp := NewResponse(req.ID, result, rpcErr)
-	s.send(resp)
+	if err := s.send(resp); err != nil {
+		debugLog("socket: failed to send response: %v", err)
+	}
 }
 
 func (s *SocketServer) handleNotification(notif *Notification) {
@@ -334,13 +343,13 @@ func (s *SocketServer) handleNotification(notif *Notification) {
 	}
 }
 
-// send writes a message to the connection
+// send writes a message to the connection.
 func (s *SocketServer) send(msg interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.conn == nil || !s.connected {
-		return fmt.Errorf("not connected")
+		return errors.New("not connected")
 	}
 
 	data, err := json.Marshal(msg)
@@ -352,13 +361,13 @@ func (s *SocketServer) send(msg interface{}) error {
 	return err
 }
 
-// Notify sends a notification (no response expected)
+// Notify sends a notification (no response expected).
 func (s *SocketServer) Notify(method string, params interface{}) error {
 	notif := NewNotification(method, params)
 	return s.send(notif)
 }
 
-// RequestChallenge asks Neovim to present a challenge
+// RequestChallenge asks Neovim to present a challenge.
 func (s *SocketServer) RequestChallenge(requestID, category string, difficulty int) error {
 	return s.Notify(MethodRequestChallenge, &ChallengeRequest{
 		RequestID:  requestID,
@@ -367,7 +376,7 @@ func (s *SocketServer) RequestChallenge(requestID, category string, difficulty i
 	})
 }
 
-// SendGameState sends current game state to Neovim
+// SendGameState sends current game state to Neovim.
 func (s *SocketServer) SendGameState(state string, wave, gold, health, enemies, towers int) error {
 	return s.Notify(MethodGameStateUpdate, &GameStateUpdate{
 		State:   state,
@@ -379,12 +388,12 @@ func (s *SocketServer) SendGameState(state string, wave, gold, health, enemies, 
 	})
 }
 
-// SendGameReady notifies Neovim that the game is ready
+// SendGameReady notifies Neovim that the game is ready.
 func (s *SocketServer) SendGameReady() error {
 	return s.Notify(MethodGameReady, nil)
 }
 
-// SendGoldUpdate notifies Neovim of gold changes
+// SendGoldUpdate notifies Neovim of gold changes.
 func (s *SocketServer) SendGoldUpdate(gold, earned int, source string, speedBonus float64) error {
 	return s.Notify(MethodGoldUpdate, &GoldUpdate{
 		Gold:       gold,
@@ -394,7 +403,7 @@ func (s *SocketServer) SendGoldUpdate(gold, earned int, source string, speedBonu
 	})
 }
 
-// SendChallengeAvailable notifies Neovim that challenges are available
+// SendChallengeAvailable notifies Neovim that challenges are available.
 func (s *SocketServer) SendChallengeAvailable(count, nextReward int, nextCategory string) error {
 	return s.Notify(MethodChallengeAvailable, &ChallengeAvailable{
 		Count:        count,
@@ -403,7 +412,7 @@ func (s *SocketServer) SendChallengeAvailable(count, nextReward int, nextCategor
 	})
 }
 
-// SendGameOver notifies Neovim that the game is over
+// SendGameOver notifies Neovim that the game is over.
 func (s *SocketServer) SendGameOver(wave, gold, towers, health int) error {
 	return s.Notify(MethodGameOver, &GameOverParams{
 		Wave:   wave,
@@ -413,7 +422,7 @@ func (s *SocketServer) SendGameOver(wave, gold, towers, health int) error {
 	})
 }
 
-// SendVictory notifies Neovim that the player has won
+// SendVictory notifies Neovim that the player has won.
 func (s *SocketServer) SendVictory(wave, gold, towers, health int) error {
 	return s.Notify(MethodVictory, &VictoryParams{
 		Wave:   wave,

@@ -1,6 +1,6 @@
 package entities
 
-// Enemy represents an enemy moving along the path
+// Enemy represents an enemy moving along the path.
 type Enemy struct {
 	ID        int
 	Type      EnemyType
@@ -13,7 +13,7 @@ type Enemy struct {
 	Dead      bool
 }
 
-// NewEnemy creates a new enemy at the start of the path
+// NewEnemy creates a new enemy at the start of the path.
 func NewEnemy(id int, enemyType EnemyType, startPos Position) *Enemy {
 	info := EnemyTypes[enemyType]
 	return &Enemy{
@@ -29,12 +29,12 @@ func NewEnemy(id int, enemyType EnemyType, startPos Position) *Enemy {
 	}
 }
 
-// Info returns the enemy type configuration
+// Info returns the enemy type configuration.
 func (e *Enemy) Info() EnemyInfo {
 	return EnemyTypes[e.Type]
 }
 
-// TakeDamage applies damage to the enemy and returns true if killed
+// TakeDamage applies damage to the enemy and returns true if killed.
 func (e *Enemy) TakeDamage(damage int) bool {
 	e.Health -= damage
 	if e.Health <= 0 {
@@ -45,13 +45,13 @@ func (e *Enemy) TakeDamage(damage int) bool {
 	return false
 }
 
-// HealthPercent returns the enemy's health as a percentage
+// HealthPercent returns the enemy's health as a percentage.
 func (e *Enemy) HealthPercent() float64 {
 	return float64(e.Health) / float64(e.MaxHealth)
 }
 
 // Update moves the enemy along the path
-// Returns true if the enemy has reached the end
+// Returns true if the enemy has reached the end.
 func (e *Enemy) Update(dt float64, path []Position) bool {
 	if e.Dead || e.PathIndex >= len(path)-1 {
 		return e.PathIndex >= len(path)-1

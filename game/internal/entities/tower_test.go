@@ -48,7 +48,7 @@ func TestTowerFindTarget(t *testing.T) {
 	tower := NewTower(1, TowerArrow, Position{X: 5, Y: 5})
 
 	enemies := []*Enemy{
-		NewEnemy(1, EnemyBug, Position{X: 6, Y: 5}), // In range
+		NewEnemy(1, EnemyBug, Position{X: 6, Y: 5}),  // In range
 		NewEnemy(2, EnemyBug, Position{X: 20, Y: 5}), // Out of range
 	}
 	enemies[0].PathIndex = 2
@@ -105,7 +105,7 @@ func TestTowerCanUpgrade(t *testing.T) {
 
 	// Upgrade to max
 	info := TowerTypes[TowerArrow]
-	for i := 0; i < len(info.Upgrades); i++ {
+	for range len(info.Upgrades) {
 		tower.Upgrade()
 	}
 
@@ -160,7 +160,7 @@ func TestTowerUpdate(t *testing.T) {
 	// First update should fire (cooldown starts at 0)
 	proj := tower.Update(0.1, enemies)
 	if proj == nil {
-		t.Error("Tower should fire on first update")
+		t.Fatal("Tower should fire on first update")
 	}
 	if proj.Damage != tower.Damage {
 		t.Errorf("Projectile damage should be %d, got %d", tower.Damage, proj.Damage)

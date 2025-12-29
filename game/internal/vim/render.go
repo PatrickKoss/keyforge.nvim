@@ -1,7 +1,7 @@
 package vim
 
 // RenderState contains all info needed to render the editor
-// This keeps the vim package decoupled from UI frameworks
+// This keeps the vim package decoupled from UI frameworks.
 type RenderState struct {
 	Lines       []string
 	CursorLine  int
@@ -15,7 +15,7 @@ type RenderState struct {
 	StatusMsg   string
 }
 
-// GetRenderState returns the current state for rendering
+// GetRenderState returns the current state for rendering.
 func (e *Editor) GetRenderState() RenderState {
 	state := RenderState{
 		Lines:      make([]string, e.Buffer.LineCount()),
@@ -26,7 +26,7 @@ func (e *Editor) GetRenderState() RenderState {
 		StatusMsg:  e.StatusMessage,
 	}
 
-	for i := 0; i < e.Buffer.LineCount(); i++ {
+	for i := range e.Buffer.LineCount() {
 		state.Lines[i] = e.Buffer.GetLine(i)
 	}
 
@@ -56,7 +56,7 @@ func (e *Editor) GetRenderState() RenderState {
 	return state
 }
 
-// IsInVisualSelection checks if a position is within the visual selection
+// IsInVisualSelection checks if a position is within the visual selection.
 func (s *RenderState) IsInVisualSelection(line, col int) bool {
 	if s.VisualStart == nil || s.VisualEnd == nil {
 		return false
@@ -78,7 +78,8 @@ func (s *RenderState) IsInVisualSelection(line, col int) bool {
 	if line < start.Line || line > end.Line {
 		return false
 	}
-	if line == start.Line && line == end.Line {
+	// Single-line selection: check if column is within range
+	if start.Line == end.Line {
 		return col >= start.Col && col <= end.Col
 	}
 	if line == start.Line {

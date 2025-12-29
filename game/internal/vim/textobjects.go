@@ -4,25 +4,25 @@ import (
 	"unicode"
 )
 
-// TextObjectType represents different text object types
+// TextObjectType represents different text object types.
 type TextObjectType int
 
 const (
-	TextObjectNone TextObjectType = iota
-	TextObjectWord              // iw, aw
-	TextObjectWORD              // iW, aW
-	TextObjectSentence          // is, as
-	TextObjectParagraph         // ip, ap
-	TextObjectDoubleQuote       // i", a"
-	TextObjectSingleQuote       // i', a'
-	TextObjectBacktick          // i`, a`
-	TextObjectParen             // i(, a(, i), a)
-	TextObjectBracket           // i[, a[, i], a]
-	TextObjectBrace             // i{, a{, i}, a}
-	TextObjectAngle             // i<, a<, i>, a>
+	TextObjectNone        TextObjectType = iota
+	TextObjectWord                       // iw, aw
+	TextObjectWORD                       // iW, aW
+	TextObjectSentence                   // is, as
+	TextObjectParagraph                  // ip, ap
+	TextObjectDoubleQuote                // i", a"
+	TextObjectSingleQuote                // i', a'
+	TextObjectBacktick                   // i`, a`
+	TextObjectParen                      // i(, a(, i), a)
+	TextObjectBracket                    // i[, a[, i], a]
+	TextObjectBrace                      // i{, a{, i}, a}
+	TextObjectAngle                      // i<, a<, i>, a>
 )
 
-// GetTextObjectRange returns the range for a text object
+// GetTextObjectRange returns the range for a text object.
 func (e *Editor) GetTextObjectRange(objType TextObjectType, inner bool) (Range, bool) {
 	switch objType {
 	case TextObjectWord:
@@ -43,11 +43,14 @@ func (e *Editor) GetTextObjectRange(objType TextObjectType, inner bool) (Range, 
 		return e.pairObjectRange('{', '}', inner)
 	case TextObjectAngle:
 		return e.pairObjectRange('<', '>', inner)
+	case TextObjectNone, TextObjectSentence, TextObjectParagraph:
+		// Not implemented or no-op
+		return Range{}, false
 	}
 	return Range{}, false
 }
 
-// wordObjectRange gets the range for iw/aw or iW/aW
+// wordObjectRange gets the range for iw/aw or iW/aW.
 func (e *Editor) wordObjectRange(inner, bigWord bool) (Range, bool) {
 	line := e.Buffer.GetLine(e.Cursor.Line)
 	runes := []rune(line)
@@ -122,7 +125,7 @@ func (e *Editor) wordObjectRange(inner, bigWord bool) (Range, bool) {
 	}, true
 }
 
-// quoteObjectRange gets the range for i"/a", i'/a', i`/a`
+// quoteObjectRange gets the range for i"/a", i'/a', i`/a`.
 func (e *Editor) quoteObjectRange(quote rune, inner bool) (Range, bool) {
 	line := e.Buffer.GetLine(e.Cursor.Line)
 	runes := []rune(line)
@@ -218,8 +221,8 @@ func (e *Editor) quoteObjectRange(quote rune, inner bool) (Range, bool) {
 	}, true
 }
 
-// pairObjectRange gets the range for i(/a(, i[/a[, i{/a{, i</a<
-func (e *Editor) pairObjectRange(open, close rune, inner bool) (Range, bool) {
+// pairObjectRange gets the range for i(/a(, i[/a[, i{/a{, i</a<.
+func (e *Editor) pairObjectRange(open, closeBracket rune, inner bool) (Range, bool) {
 	// Search for the innermost pair containing the cursor
 	// This needs to handle multi-line pairs
 
@@ -237,7 +240,7 @@ func (e *Editor) pairObjectRange(open, close rune, inner bool) (Range, bool) {
 	// If on the close bracket, include it
 	currentLine := e.Buffer.GetLine(line)
 	currentRunes := []rune(currentLine)
-	if col < len(currentRunes) && currentRunes[col] == close {
+	if col < len(currentRunes) && currentRunes[col] == closeBracket {
 		depth = 1
 		endPos = Position{Line: line, Col: col}
 	}
@@ -256,7 +259,7 @@ func (e *Editor) pairObjectRange(open, close rune, inner bool) (Range, bool) {
 		}
 
 		for c := startCol; c >= 0; c-- {
-			if runes[c] == close {
+			if runes[c] == closeBracket {
 				depth++
 			} else if runes[c] == open {
 				if depth > 0 {
@@ -291,7 +294,7 @@ func (e *Editor) pairObjectRange(open, close rune, inner bool) (Range, bool) {
 		for c := startCol; c < len(runes); c++ {
 			if runes[c] == open {
 				depth++
-			} else if runes[c] == close {
+			} else if runes[c] == closeBracket {
 				depth--
 				if depth == 0 {
 					endPos = Position{Line: lineNum, Col: c}
@@ -332,7 +335,7 @@ func (e *Editor) pairObjectRange(open, close rune, inner bool) (Range, bool) {
 	}, true
 }
 
-// ParseTextObject parses text object keys like "iw", "a\"", "i("
+// ParseTextObject parses text object keys like "iw", "a\"", "i(".
 func ParseTextObject(key1, key2 string) (TextObjectType, bool) {
 	inner := key1 == "i"
 	if key1 != "i" && key1 != "a" {

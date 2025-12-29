@@ -4,36 +4,36 @@ import (
 	"unicode"
 )
 
-// Motion types
+// Motion types.
 type MotionType int
 
 const (
-	MotionNone MotionType = iota
-	MotionLeft            // h
-	MotionRight           // l
-	MotionUp              // k
-	MotionDown            // j
-	MotionLineStart       // 0
-	MotionLineEnd         // $
-	MotionFirstNonBlank   // ^
-	MotionWordForward     // w
-	MotionWordBackward    // b
-	MotionWordEnd         // e
-	MotionWORDForward     // W
-	MotionWORDBackward    // B
-	MotionWORDEnd         // E
-	MotionFileStart       // gg
-	MotionFileEnd         // G
-	MotionFindChar        // f{char}
-	MotionFindCharBack    // F{char}
-	MotionTillChar        // t{char}
-	MotionTillCharBack    // T{char}
-	MotionRepeatFind      // ;
-	MotionRepeatFindBack  // ,
-	MotionMatchBracket    // %
+	MotionNone           MotionType = iota
+	MotionLeft                      // h
+	MotionRight                     // l
+	MotionUp                        // k
+	MotionDown                      // j
+	MotionLineStart                 // 0
+	MotionLineEnd                   // $
+	MotionFirstNonBlank             // ^
+	MotionWordForward               // w
+	MotionWordBackward              // b
+	MotionWordEnd                   // e
+	MotionWORDForward               // W
+	MotionWORDBackward              // B
+	MotionWORDEnd                   // E
+	MotionFileStart                 // gg
+	MotionFileEnd                   // G
+	MotionFindChar                  // f{char}
+	MotionFindCharBack              // F{char}
+	MotionTillChar                  // t{char}
+	MotionTillCharBack              // T{char}
+	MotionRepeatFind                // ;
+	MotionRepeatFindBack            // ,
+	MotionMatchBracket              // %
 )
 
-// ExecuteMotion moves the cursor based on the motion type
+// ExecuteMotion moves the cursor based on the motion type.
 func (e *Editor) ExecuteMotion(motion MotionType, count int) Position {
 	if count <= 0 {
 		count = 1
@@ -96,32 +96,32 @@ func (e *Editor) ExecuteMotion(motion MotionType, count int) Position {
 		}
 
 	case MotionWordForward:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.nextWord(pos)
 		}
 
 	case MotionWordBackward:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.prevWord(pos)
 		}
 
 	case MotionWordEnd:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.wordEnd(pos)
 		}
 
 	case MotionWORDForward:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.nextWORD(pos)
 		}
 
 	case MotionWORDBackward:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.prevWORD(pos)
 		}
 
 	case MotionWORDEnd:
-		for i := 0; i < count; i++ {
+		for range count {
 			pos = e.WORDEnd(pos)
 		}
 
@@ -158,12 +158,15 @@ func (e *Editor) ExecuteMotion(motion MotionType, count int) Position {
 
 	case MotionMatchBracket:
 		pos = e.matchBracket(pos)
+
+	case MotionNone, MotionFindChar, MotionFindCharBack, MotionTillChar, MotionTillCharBack, MotionRepeatFind, MotionRepeatFindBack:
+		// These motions are handled separately or are no-ops
 	}
 
 	return pos
 }
 
-// ExecuteFindMotion executes f/F/t/T motion with the given character
+// ExecuteFindMotion executes f/F/t/T motion with the given character.
 func (e *Editor) ExecuteFindMotion(forward, till bool, char rune, count int) Position {
 	if count <= 0 {
 		count = 1
@@ -217,7 +220,7 @@ func (e *Editor) ExecuteFindMotion(forward, till bool, char rune, count int) Pos
 	return pos
 }
 
-// RepeatFind repeats the last f/F/t/T motion
+// RepeatFind repeats the last f/F/t/T motion.
 func (e *Editor) RepeatFind(reverse bool, count int) Position {
 	if e.LastFind.Char == 0 {
 		return e.Cursor
@@ -355,15 +358,14 @@ func (e *Editor) prevWord(pos Position) Position {
 
 func (e *Editor) wordEnd(pos Position) Position {
 	buf := e.Buffer
-	line := buf.GetLine(pos.Line)
-	runes := []rune(line)
 
 	// Move at least one character
 	pos.Col++
 
 	// Skip whitespace
+	var runes []rune
 	for {
-		line = buf.GetLine(pos.Line)
+		line := buf.GetLine(pos.Line)
 		runes = []rune(line)
 
 		for pos.Col < len(runes) && unicode.IsSpace(runes[pos.Col]) {
@@ -501,7 +503,7 @@ func (e *Editor) WORDEnd(pos Position) Position {
 	return pos
 }
 
-// matchBracket finds the matching bracket
+// matchBracket finds the matching bracket.
 func (e *Editor) matchBracket(pos Position) Position {
 	line := e.Buffer.GetLine(pos.Line)
 	runes := []rune(line)
@@ -550,9 +552,10 @@ func (e *Editor) matchBracket(pos Position) Position {
 				startCol = pos.Col + 1
 			}
 			for col := startCol; col < len(r); col++ {
-				if r[col] == char {
+				switch r[col] {
+				case char:
 					depth++
-				} else if r[col] == match {
+				case match:
 					depth--
 					if depth == 0 {
 						return Position{Line: lineNum, Col: col}
@@ -569,9 +572,10 @@ func (e *Editor) matchBracket(pos Position) Position {
 				endCol = pos.Col - 1
 			}
 			for col := endCol; col >= 0; col-- {
-				if r[col] == char {
+				switch r[col] {
+				case char:
 					depth++
-				} else if r[col] == match {
+				case match:
 					depth--
 					if depth == 0 {
 						return Position{Line: lineNum, Col: col}
@@ -584,7 +588,7 @@ func (e *Editor) matchBracket(pos Position) Position {
 	return pos
 }
 
-// GetMotionRange returns the range affected by a motion from current cursor
+// GetMotionRange returns the range affected by a motion from current cursor.
 func (e *Editor) GetMotionRange(motion MotionType, count int) Range {
 	start := e.Cursor
 	end := e.ExecuteMotion(motion, count)
@@ -594,10 +598,7 @@ func (e *Editor) GetMotionRange(motion MotionType, count int) Range {
 		start, end = end, start
 	}
 
-	linewise := false
-	if motion == MotionFileStart || motion == MotionFileEnd {
-		linewise = true
-	}
+	linewise := motion == MotionFileStart || motion == MotionFileEnd
 
 	return Range{
 		Start:    start,

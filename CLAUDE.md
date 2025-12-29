@@ -23,7 +23,10 @@ make test
 # Format code
 make fmt
 
-# Lint (requires golangci-lint)
+# Install dev tools (golangci-lint, luacheck) - one time
+make install-tools
+
+# Lint all code (Go + Lua, auto-fixes enabled)
 make lint
 
 # Build for all platforms
