@@ -17,12 +17,33 @@ const (
 	GridHeight = 14
 	TargetFPS  = 60
 
-	keyEnter = "enter"
-	keySpace = " "
+	keyEnter  = "enter"
+	keySpace  = " "
+	keyCtrlC  = "ctrl+c"
+	keyCtrlS  = "ctrl+s"
+	keyDown   = "down"
+	keyUp     = "up"
+	keyEsc    = "esc"
+	keyEscape = "Escape"
 )
 
 // TickMsg is sent on each frame update.
 type TickMsg time.Time
+
+// StartMenuSection indicates which section of the start menu is active.
+type StartMenuSection int
+
+const (
+	SectionLevels StartMenuSection = iota
+	SectionModes
+)
+
+// Notification represents a temporary notification to display.
+type Notification struct {
+	Message   string
+	IsSuccess bool
+	ShowUntil time.Time
+}
 
 // Model is the bubbletea model for the game.
 type Model struct {
@@ -42,6 +63,20 @@ type Model struct {
 	Settings          engine.GameSettings
 	LevelMenuIndex    int // Selected level in level browser
 	SettingsMenuIndex int // Selected setting in settings menu
+
+	// Start menu section navigation
+	StartSection  StartMenuSection // Which section is active (levels or modes)
+	ModeMenuIndex int              // Selected mode (0 = Challenge Mode, 1 = Challenge Selection)
+
+	// Challenge mode state
+	ChallengeModeStreak int           // Successful challenges in a row
+	Notification        *Notification // Current notification to display
+
+	// Challenge selection state
+	ChallengeList          []engine.Challenge // All loaded challenges for selection
+	ChallengeListIndex     int                // Currently hovered challenge in list
+	ChallengeListOffset    int                // Scroll offset for long lists
+	SelectedChallengeIndex int                // Which challenge is being practiced
 
 	// Neovim integration
 	NvimMode           bool
@@ -81,6 +116,12 @@ func NewModelWithSettings(settings engine.GameSettings) Model {
 	game := engine.NewGame(GridWidth, GridHeight)
 	game.State = engine.StateLevelSelect
 
+	// Build challenge list for selection mode
+	var challengeList []engine.Challenge
+	if cm != nil {
+		challengeList = cm.GetAllChallenges()
+	}
+
 	return Model{
 		Game:                game,
 		LastUpdate:          time.Now(),
@@ -95,6 +136,12 @@ func NewModelWithSettings(settings engine.GameSettings) Model {
 		Settings:            settings,
 		LevelMenuIndex:      0,
 		SettingsMenuIndex:   0,
+		StartSection:        SectionLevels,
+		ModeMenuIndex:       0,
+		ChallengeModeStreak: 0,
+		ChallengeList:       challengeList,
+		ChallengeListIndex:  0,
+		ChallengeListOffset: 0,
 		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10),
 		RestartChan:         make(chan struct{}, 1),
 		LevelSelectChan:     make(chan struct{}, 1),
@@ -179,6 +226,22 @@ func (m *Model) HandleGoToLevelSelect() {
 	select {
 	case m.LevelSelectChan <- struct{}{}:
 	default:
+	}
+}
+
+// ShowNotification displays a notification for a short time.
+func (m *Model) ShowNotification(message string, isSuccess bool) {
+	m.Notification = &Notification{
+		Message:   message,
+		IsSuccess: isSuccess,
+		ShowUntil: time.Now().Add(2 * time.Second),
+	}
+}
+
+// ClearExpiredNotification clears the notification if it has expired.
+func (m *Model) ClearExpiredNotification() {
+	if m.Notification != nil && time.Now().After(m.Notification.ShowUntil) {
+		m.Notification = nil
 	}
 }
 
@@ -294,6 +357,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 		default:
 		}
 
+		// Clear expired notifications
+		m.ClearExpiredNotification()
+
 		// Store previous state before update
 		prevState := m.Game.State
 		m.Game.Update(dt)
@@ -316,7 +382,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	// Global quit
-	if msg.String() == "ctrl+c" {
+	if msg.String() == keyCtrlC {
 		m.Quitting = true
 		return m, tea.Quit
 	}
@@ -337,6 +403,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:go
 		return m.handleChallengeWaitingKeys(msg)
 	case engine.StateGameOver, engine.StateVictory:
 		return m.handleEndGameKeys(msg)
+	case engine.StateChallengeMode:
+		return m.handleChallengeModeKeys(msg)
+	case engine.StateChallengeModePractice:
+		return m.handleChallengeModePracticeKeys(msg)
+	case engine.StateChallengeSelection:
+		return m.handleChallengeSelectionKeys(msg)
+	case engine.StateChallengeSelectionPractice:
+		return m.handleChallengeSelectionPracticeKeys(msg)
 	case engine.StateMenu, engine.StateWaveComplete:
 		// Fallthrough to quit handling
 	}
@@ -352,22 +426,61 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:go
 
 func (m Model) handleLevelSelectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
 	levels := m.LevelRegistry.GetAll()
+	numModes := 2 // Challenge Mode and Challenge Selection
 
 	switch msg.String() {
-	case "j", "down":
-		if m.LevelMenuIndex < len(levels)-1 {
-			m.LevelMenuIndex++
+	case "j", keyDown:
+		if m.StartSection == SectionLevels {
+			if m.LevelMenuIndex < len(levels)-1 {
+				m.LevelMenuIndex++
+			} else {
+				// Move to modes section
+				m.StartSection = SectionModes
+				m.ModeMenuIndex = 0
+			}
+		} else {
+			// In modes section
+			if m.ModeMenuIndex < numModes-1 {
+				m.ModeMenuIndex++
+			}
 		}
-	case "k", "up":
-		if m.LevelMenuIndex > 0 {
-			m.LevelMenuIndex--
+	case "k", keyUp:
+		if m.StartSection == SectionModes {
+			if m.ModeMenuIndex > 0 {
+				m.ModeMenuIndex--
+			} else {
+				// Move back to levels section
+				m.StartSection = SectionLevels
+				m.LevelMenuIndex = len(levels) - 1
+			}
+		} else {
+			// In levels section
+			if m.LevelMenuIndex > 0 {
+				m.LevelMenuIndex--
+			}
 		}
 	case keyEnter, keySpace:
-		// Select level and go to settings
-		if m.LevelMenuIndex < len(levels) {
-			m.SelectedLevel = &levels[m.LevelMenuIndex]
-			m.Game.State = engine.StateSettings
-			m.SettingsMenuIndex = 0
+		if m.StartSection == SectionLevels {
+			// Select level and go to settings
+			if m.LevelMenuIndex < len(levels) {
+				m.SelectedLevel = &levels[m.LevelMenuIndex]
+				m.Game.State = engine.StateSettings
+				m.SettingsMenuIndex = 0
+			}
+		} else {
+			// Select mode
+			if m.ModeMenuIndex == 0 {
+				// Challenge Mode
+				m.Game.State = engine.StateChallengeMode
+				m.ChallengeModeStreak = 0
+				m.Notification = nil
+				m.startChallengeModeChallenge()
+			} else {
+				// Challenge Selection
+				m.Game.State = engine.StateChallengeSelection
+				m.ChallengeListIndex = 0
+				m.ChallengeListOffset = 0
+			}
 		}
 	case "q":
 		m.Quitting = true
@@ -381,11 +494,11 @@ func (m Model) handleSettingsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolin
 	maxIndex := 4 // 0: difficulty, 1: speed, 2: gold, 3: health, 4: start button
 
 	switch msg.String() {
-	case "j", "down":
+	case "j", keyDown:
 		if m.SettingsMenuIndex < maxIndex {
 			m.SettingsMenuIndex++
 		}
-	case "k", "up":
+	case "k", keyUp:
 		if m.SettingsMenuIndex > 0 {
 			m.SettingsMenuIndex--
 		}
@@ -398,7 +511,7 @@ func (m Model) handleSettingsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolin
 			// Start game
 			m.startGameFromSettings()
 		}
-	case "esc":
+	case keyEsc:
 		// Back to level select
 		m.Game.State = engine.StateLevelSelect
 	case "q":
@@ -684,19 +797,19 @@ func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //noli
 	key := translateKey(msg)
 
 	// Check for submit (Ctrl+S)
-	if key == "ctrl+s" {
+	if key == keyCtrlS {
 		m.submitChallenge()
 		return m, nil
 	}
 
 	// Check for cancel (Escape in normal mode or Ctrl+C)
-	if key == "ctrl+c" {
+	if key == keyCtrlC {
 		m.completeChallenge(false)
 		return m, nil
 	}
 
 	// In normal mode, Escape cancels the challenge
-	if key == "Escape" && m.VimEditor.Mode == vim.ModeNormal {
+	if key == keyEscape && m.VimEditor.Mode == vim.ModeNormal {
 		m.completeChallenge(false)
 		return m, nil
 	}
@@ -788,6 +901,305 @@ func (m *Model) completeChallenge(success bool) {
 	m.Game.EndChallenge()
 }
 
+// buildChallengeData creates a ChallengeData struct from a Challenge.
+func buildChallengeData(challenge *engine.Challenge, mode string) *nvim.ChallengeData {
+	return &nvim.ChallengeData{
+		ID:              challenge.ID,
+		Name:            challenge.Name,
+		Category:        challenge.Category,
+		Difficulty:      challenge.Difficulty,
+		Description:     challenge.Description,
+		InitialBuffer:   challenge.InitialBuffer,
+		ExpectedBuffer:  challenge.ExpectedBuffer,
+		ValidationType:  challenge.ValidationType,
+		ExpectedCursor:  challenge.ExpectedCursor,
+		ExpectedContent: challenge.ExpectedContent,
+		FunctionName:    challenge.FunctionName,
+		CursorStart:     challenge.CursorStart,
+		ParKeystrokes:   challenge.ParKeystrokes,
+		GoldBase:        challenge.GoldBase,
+		Filetype:        challenge.Filetype,
+		HintAction:      challenge.HintAction,
+		HintFallback:    challenge.HintFallback,
+		Mode:            mode,
+	}
+}
+
+// initVimEditor initializes the vim editor with a challenge buffer.
+func (m *Model) initVimEditor(challenge *engine.Challenge) {
+	m.VimEditor = vim.NewEditor(challenge.InitialBuffer)
+	if len(challenge.CursorStart) == 2 {
+		m.VimEditor.SetCursor(vim.Position{
+			Line: challenge.CursorStart[0],
+			Col:  challenge.CursorStart[1],
+		})
+	}
+}
+
+// startChallengeModeChallenge starts a random challenge for challenge mode.
+func (m *Model) startChallengeModeChallenge() {
+	if m.ChallengeSelector == nil {
+		return
+	}
+
+	// Get a random challenge
+	challenge := m.ChallengeSelector.GetChallenge("", 0)
+	if challenge == nil {
+		return
+	}
+
+	m.CurrentChallenge = challenge
+	m.Game.State = engine.StateChallengeModePractice
+
+	// In Neovim mode, send challenge to Neovim
+	if m.NvimMode && m.NvimRPC != nil {
+		m.NvimChallengeCount++
+		m.NvimChallengeID = fmt.Sprintf("challenge_mode_%d", m.NvimChallengeCount)
+
+		challengeData := buildChallengeData(challenge, "challenge_mode")
+		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, challengeData); err != nil {
+			m.NvimChallengeID = ""
+			m.CurrentChallenge = nil
+			m.Game.State = engine.StateChallengeMode
+			return
+		}
+		return
+	}
+
+	// Standalone mode: use internal vim editor
+	m.initVimEditor(challenge)
+}
+
+// startChallengeSelectionChallenge starts the selected challenge from the list.
+func (m *Model) startChallengeSelectionChallenge() {
+	if m.ChallengeListIndex >= len(m.ChallengeList) {
+		return
+	}
+
+	challenge := &m.ChallengeList[m.ChallengeListIndex]
+	m.CurrentChallenge = challenge
+	m.SelectedChallengeIndex = m.ChallengeListIndex
+	m.Game.State = engine.StateChallengeSelectionPractice
+
+	// In Neovim mode, send challenge to Neovim
+	if m.NvimMode && m.NvimRPC != nil {
+		m.NvimChallengeCount++
+		m.NvimChallengeID = fmt.Sprintf("challenge_selection_%d", m.NvimChallengeCount)
+
+		challengeData := buildChallengeData(challenge, "challenge_selection")
+		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, challengeData); err != nil {
+			m.NvimChallengeID = ""
+			m.CurrentChallenge = nil
+			m.Game.State = engine.StateChallengeSelection
+			return
+		}
+		return
+	}
+
+	// Standalone mode: use internal vim editor
+	m.initVimEditor(challenge)
+}
+
+// handleChallengeModeKeys handles input in challenge mode.
+func (m Model) handleChallengeModeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	switch msg.String() {
+	case keyEsc, "q":
+		// Return to level select
+		m.Game.State = engine.StateLevelSelect
+		m.StartSection = SectionModes
+		m.ModeMenuIndex = 0
+		m.CurrentChallenge = nil
+		m.VimEditor = nil
+		m.NvimChallengeID = ""
+		m.Notification = nil
+	}
+	return m, nil
+}
+
+// handleChallengeModePracticeKeys handles input while practicing a challenge in challenge mode.
+func (m Model) handleChallengeModePracticeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	// In Nvim mode, just handle escape to cancel
+	if m.NvimMode {
+		if msg.String() == keyEsc || msg.Type == tea.KeyEscape {
+			m.NvimChallengeID = ""
+			m.CurrentChallenge = nil
+			m.Game.State = engine.StateChallengeMode
+		}
+		return m, nil
+	}
+
+	// Standalone mode: use internal vim editor
+	if m.VimEditor == nil {
+		return m, nil
+	}
+
+	key := translateKey(msg)
+
+	// Submit challenge
+	if key == keyCtrlS {
+		m.submitChallengeModeChallenge()
+		return m, nil
+	}
+
+	// Cancel challenge
+	if key == keyCtrlC || (key == keyEscape && m.VimEditor.Mode == vim.ModeNormal) {
+		m.CurrentChallenge = nil
+		m.VimEditor = nil
+		m.Game.State = engine.StateChallengeMode
+		return m, nil
+	}
+
+	m.VimEditor.HandleKey(key)
+	return m, nil
+}
+
+// submitChallengeModeChallenge validates and handles challenge completion in challenge mode.
+func (m *Model) submitChallengeModeChallenge() {
+	if m.VimEditor == nil || m.CurrentChallenge == nil {
+		return
+	}
+
+	spec := &vim.ChallengeSpec{
+		ValidationType:  m.CurrentChallenge.ValidationType,
+		ExpectedBuffer:  m.CurrentChallenge.ExpectedBuffer,
+		ExpectedContent: m.CurrentChallenge.ExpectedContent,
+		ExpectedCursor:  m.CurrentChallenge.ExpectedCursor,
+		InitialBuffer:   m.CurrentChallenge.InitialBuffer,
+		ParKeystrokes:   m.CurrentChallenge.ParKeystrokes,
+	}
+
+	result := vim.Validate(m.VimEditor, spec)
+
+	if result.Success {
+		m.ChallengeModeStreak++
+		m.ShowNotification("Success!", true)
+	} else {
+		m.ChallengeModeStreak = 0
+		m.ShowNotification("Try again!", false)
+	}
+
+	m.VimEditor = nil
+	m.CurrentChallenge = nil
+	m.Game.State = engine.StateChallengeMode
+
+	// Start next challenge automatically after a short delay (handled in view)
+	m.startChallengeModeChallenge()
+}
+
+// handleChallengeSelectionKeys handles input in challenge selection mode.
+func (m Model) handleChallengeSelectionKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	maxVisible := 15 // Number of visible challenges in list
+
+	switch msg.String() {
+	case "j", keyDown:
+		if m.ChallengeListIndex < len(m.ChallengeList)-1 {
+			m.ChallengeListIndex++
+			// Scroll if needed
+			if m.ChallengeListIndex >= m.ChallengeListOffset+maxVisible {
+				m.ChallengeListOffset = m.ChallengeListIndex - maxVisible + 1
+			}
+		}
+	case "k", keyUp:
+		if m.ChallengeListIndex > 0 {
+			m.ChallengeListIndex--
+			// Scroll if needed
+			if m.ChallengeListIndex < m.ChallengeListOffset {
+				m.ChallengeListOffset = m.ChallengeListIndex
+			}
+		}
+	case keyEnter, keySpace:
+		// Start the selected challenge
+		m.startChallengeSelectionChallenge()
+	case keyEsc, "q":
+		// Return to level select
+		m.Game.State = engine.StateLevelSelect
+		m.StartSection = SectionModes
+		m.ModeMenuIndex = 1
+		m.Notification = nil
+	}
+	return m, nil
+}
+
+// handleChallengeSelectionPracticeKeys handles input while practicing a selected challenge.
+func (m Model) handleChallengeSelectionPracticeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	// In Nvim mode, handle escape to cancel or 'b' to go back
+	if m.NvimMode {
+		switch msg.String() {
+		case keyEsc:
+			m.NvimChallengeID = ""
+			m.CurrentChallenge = nil
+			m.Game.State = engine.StateChallengeSelection
+		case "b":
+			// Back to selection list
+			m.NvimChallengeID = ""
+			m.CurrentChallenge = nil
+			m.Game.State = engine.StateChallengeSelection
+		}
+		return m, nil
+	}
+
+	// Standalone mode: use internal vim editor
+	if m.VimEditor == nil {
+		return m, nil
+	}
+
+	key := translateKey(msg)
+
+	// Submit challenge
+	if key == keyCtrlS {
+		m.submitChallengeSelectionChallenge()
+		return m, nil
+	}
+
+	// Back to selection
+	if key == keyCtrlC || (key == keyEscape && m.VimEditor.Mode == vim.ModeNormal) {
+		m.CurrentChallenge = nil
+		m.VimEditor = nil
+		m.Game.State = engine.StateChallengeSelection
+		return m, nil
+	}
+
+	m.VimEditor.HandleKey(key)
+	return m, nil
+}
+
+// submitChallengeSelectionChallenge validates and handles challenge completion in selection mode.
+func (m *Model) submitChallengeSelectionChallenge() {
+	if m.VimEditor == nil || m.CurrentChallenge == nil {
+		return
+	}
+
+	spec := &vim.ChallengeSpec{
+		ValidationType:  m.CurrentChallenge.ValidationType,
+		ExpectedBuffer:  m.CurrentChallenge.ExpectedBuffer,
+		ExpectedContent: m.CurrentChallenge.ExpectedContent,
+		ExpectedCursor:  m.CurrentChallenge.ExpectedCursor,
+		InitialBuffer:   m.CurrentChallenge.InitialBuffer,
+		ParKeystrokes:   m.CurrentChallenge.ParKeystrokes,
+	}
+
+	result := vim.Validate(m.VimEditor, spec)
+
+	if result.Success {
+		m.ShowNotification("Success!", true)
+	} else {
+		m.ShowNotification("Try again!", false)
+	}
+
+	m.VimEditor = nil
+	m.CurrentChallenge = nil
+
+	// Move to next challenge in list
+	m.SelectedChallengeIndex++
+	if m.SelectedChallengeIndex >= len(m.ChallengeList) {
+		m.SelectedChallengeIndex = 0 // Wrap around
+	}
+	m.ChallengeListIndex = m.SelectedChallengeIndex
+
+	// Start next challenge
+	m.startChallengeSelectionChallenge()
+}
+
 // View renders the model.
 // Bubbletea requires value receiver for this interface method.
 func (m Model) View() string { //nolint:gocritic // hugeParam: required by Bubbletea interface
@@ -812,6 +1224,12 @@ func (m Model) View() string { //nolint:gocritic // hugeParam: required by Bubbl
 			return "\n"
 		}
 		return RenderVictory(&m)
+	case engine.StateChallengeMode, engine.StateChallengeModePractice:
+		return RenderChallengeMode(&m)
+	case engine.StateChallengeSelection:
+		return RenderChallengeSelection(&m)
+	case engine.StateChallengeSelectionPractice:
+		return RenderChallengeSelectionPractice(&m)
 	default:
 		return RenderGame(&m)
 	}

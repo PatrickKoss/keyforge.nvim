@@ -18,6 +18,10 @@ const (
 	StateWaveComplete
 	StateGameOver
 	StateVictory
+	StateChallengeMode              // Endless challenge practice mode
+	StateChallengeSelection         // Challenge list browsing
+	StateChallengeModePractice      // Doing a challenge in challenge mode
+	StateChallengeSelectionPractice // Doing a selected challenge
 )
 
 // Game holds all game state and logic.
@@ -451,7 +455,9 @@ func (g *Game) TogglePause() {
 		g.State = StatePaused
 	case StatePaused:
 		g.State = StatePlaying
-	case StateMenu, StateLevelSelect, StateSettings, StateChallengeActive, StateChallengeWaiting, StateWaveComplete, StateGameOver, StateVictory:
+	case StateMenu, StateLevelSelect, StateSettings, StateChallengeActive, StateChallengeWaiting,
+		StateWaveComplete, StateGameOver, StateVictory,
+		StateChallengeMode, StateChallengeSelection, StateChallengeModePractice, StateChallengeSelectionPractice:
 		// Cannot toggle pause in these states
 	}
 }

@@ -910,3 +910,496 @@ func TestIntegrationWithRealSocketServer(t *testing.T) {
 		t.Errorf("Expected gold %d, got %d", expectedGold, finalModel.Game.Gold)
 	}
 }
+
+// =============================================================================
+// Challenge Mode and Selection State Transition Tests (Task 6.1)
+// =============================================================================
+
+// TestChallengeModeStateTransition tests entering challenge mode from start screen.
+func TestChallengeModeStateTransition(t *testing.T) {
+	model := NewModel()
+
+	// Verify starting state
+	if model.Game.State != engine.StateLevelSelect {
+		t.Fatalf("Expected initial state StateLevelSelect, got %v", model.Game.State)
+	}
+
+	// Navigate to modes section
+	model.StartSection = SectionModes
+	model.ModeMenuIndex = 0 // Challenge Mode
+
+	// Press Enter to start Challenge Mode
+	msg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := model.handleLevelSelectKeys(msg)
+	updated := newModel.(Model)
+
+	// Should transition to Challenge Mode or Challenge Mode Practice
+	// (startChallengeModeChallenge auto-loads a challenge)
+	validStates := []engine.GameState{engine.StateChallengeMode, engine.StateChallengeModePractice}
+	stateValid := false
+	for _, s := range validStates {
+		if updated.Game.State == s {
+			stateValid = true
+			break
+		}
+	}
+	if !stateValid {
+		t.Errorf("Expected StateChallengeMode or StateChallengeModePractice, got %v", updated.Game.State)
+	}
+
+	// Streak should be reset
+	if updated.ChallengeModeStreak != 0 {
+		t.Errorf("Expected streak 0 on entering challenge mode, got %d", updated.ChallengeModeStreak)
+	}
+}
+
+// TestChallengeSelectionStateTransition tests entering challenge selection from start screen.
+func TestChallengeSelectionStateTransition(t *testing.T) {
+	model := NewModel()
+
+	// Navigate to modes section
+	model.StartSection = SectionModes
+	model.ModeMenuIndex = 1 // Challenge Selection
+
+	// Press Enter to start Challenge Selection
+	msg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := model.handleLevelSelectKeys(msg)
+	updated := newModel.(Model)
+
+	// Should transition to Challenge Selection
+	if updated.Game.State != engine.StateChallengeSelection {
+		t.Errorf("Expected StateChallengeSelection after selecting Challenge Selection, got %v", updated.Game.State)
+	}
+
+	// List index should be reset
+	if updated.ChallengeListIndex != 0 {
+		t.Errorf("Expected ChallengeListIndex 0, got %d", updated.ChallengeListIndex)
+	}
+}
+
+// TestChallengeModeExitTransition tests exiting challenge mode back to start screen.
+func TestChallengeModeExitTransition(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeMode
+
+	// Press Escape to exit
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	newModel, _ := model.handleChallengeModeKeys(msg)
+	updated := newModel.(Model)
+
+	// Should return to level select
+	if updated.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after exiting challenge mode, got %v", updated.Game.State)
+	}
+
+	// Should be in modes section with Challenge Mode selected
+	if updated.StartSection != SectionModes {
+		t.Errorf("Expected SectionModes after exit, got %v", updated.StartSection)
+	}
+	if updated.ModeMenuIndex != 0 {
+		t.Errorf("Expected ModeMenuIndex 0 (Challenge Mode), got %d", updated.ModeMenuIndex)
+	}
+}
+
+// TestChallengeSelectionExitTransition tests exiting challenge selection back to start screen.
+func TestChallengeSelectionExitTransition(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelection
+
+	// Press q to exit
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	newModel, _ := model.handleChallengeSelectionKeys(msg)
+	updated := newModel.(Model)
+
+	// Should return to level select
+	if updated.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after exiting challenge selection, got %v", updated.Game.State)
+	}
+
+	// Should be in modes section with Challenge Selection selected
+	if updated.StartSection != SectionModes {
+		t.Errorf("Expected SectionModes after exit, got %v", updated.StartSection)
+	}
+	if updated.ModeMenuIndex != 1 {
+		t.Errorf("Expected ModeMenuIndex 1 (Challenge Selection), got %d", updated.ModeMenuIndex)
+	}
+}
+
+// TestChallengeModePracticeToModeTransition tests canceling a practice challenge.
+func TestChallengeModePracticeToModeTransition(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeModePractice
+	model.NvimMode = true
+	model.NvimChallengeID = "test_challenge"
+	model.CurrentChallenge = &engine.Challenge{Name: "test"}
+
+	// Press Escape to cancel
+	msg := tea.KeyMsg{Type: tea.KeyEscape}
+	newModel, _ := model.handleChallengeModePracticeKeys(msg)
+	updated := newModel.(Model)
+
+	// Should return to challenge mode
+	if updated.Game.State != engine.StateChallengeMode {
+		t.Errorf("Expected StateChallengeMode after canceling practice, got %v", updated.Game.State)
+	}
+
+	// Challenge state should be cleared
+	if updated.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID to be cleared, got '%s'", updated.NvimChallengeID)
+	}
+	if updated.CurrentChallenge != nil {
+		t.Error("Expected CurrentChallenge to be nil")
+	}
+}
+
+// TestChallengeSelectionPracticeToSelectionTransition tests canceling from selection practice.
+func TestChallengeSelectionPracticeToSelectionTransition(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelectionPractice
+	model.NvimMode = true
+	model.NvimChallengeID = "test_challenge"
+	model.CurrentChallenge = &engine.Challenge{Name: "test"}
+
+	// Press Escape to cancel
+	msg := tea.KeyMsg{Type: tea.KeyEscape}
+	newModel, _ := model.handleChallengeSelectionPracticeKeys(msg)
+	updated := newModel.(Model)
+
+	// Should return to challenge selection
+	if updated.Game.State != engine.StateChallengeSelection {
+		t.Errorf("Expected StateChallengeSelection after canceling practice, got %v", updated.Game.State)
+	}
+
+	// Challenge state should be cleared
+	if updated.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID to be cleared, got '%s'", updated.NvimChallengeID)
+	}
+}
+
+// =============================================================================
+// Challenge Selection Navigation Tests (Task 6.2)
+// =============================================================================
+
+// TestChallengeSelectionNavigation tests navigating the challenge list.
+func TestChallengeSelectionNavigation(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelection
+
+	// Verify we have challenges
+	if len(model.ChallengeList) == 0 {
+		t.Fatal("Expected challenges to be loaded")
+	}
+
+	// Initially at index 0
+	if model.ChallengeListIndex != 0 {
+		t.Errorf("Expected initial index 0, got %d", model.ChallengeListIndex)
+	}
+
+	// Navigate down
+	msgDown := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	newModel, _ := model.handleChallengeSelectionKeys(msgDown)
+	updated := newModel.(Model)
+
+	if updated.ChallengeListIndex != 1 {
+		t.Errorf("Expected index 1 after j, got %d", updated.ChallengeListIndex)
+	}
+
+	// Navigate up
+	msgUp := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	newModel, _ = updated.handleChallengeSelectionKeys(msgUp)
+	updated = newModel.(Model)
+
+	if updated.ChallengeListIndex != 0 {
+		t.Errorf("Expected index 0 after k, got %d", updated.ChallengeListIndex)
+	}
+}
+
+// TestChallengeSelectionListBounds tests that navigation respects list bounds.
+func TestChallengeSelectionListBounds(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelection
+
+	// Try to navigate up from start
+	msgUp := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	newModel, _ := model.handleChallengeSelectionKeys(msgUp)
+	updated := newModel.(Model)
+
+	// Should stay at 0
+	if updated.ChallengeListIndex != 0 {
+		t.Errorf("Expected index 0 when at top, got %d", updated.ChallengeListIndex)
+	}
+
+	// Navigate to end
+	lastIndex := len(model.ChallengeList) - 1
+	updated.ChallengeListIndex = lastIndex
+
+	// Try to navigate down past end
+	msgDown := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	newModel, _ = updated.handleChallengeSelectionKeys(msgDown)
+	finalModel := newModel.(Model)
+
+	// Should stay at last index
+	if finalModel.ChallengeListIndex != lastIndex {
+		t.Errorf("Expected index %d when at bottom, got %d", lastIndex, finalModel.ChallengeListIndex)
+	}
+}
+
+// TestChallengeSelectionScroll tests scrolling behavior for long lists.
+func TestChallengeSelectionScroll(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelection
+
+	// Skip if not enough challenges for scrolling
+	if len(model.ChallengeList) < 20 {
+		t.Skip("Need at least 20 challenges to test scrolling")
+	}
+
+	// Navigate far enough to trigger scroll
+	for range 16 {
+		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+		newModel, _ := model.handleChallengeSelectionKeys(msg)
+		model = newModel.(Model)
+	}
+
+	// Offset should have increased
+	if model.ChallengeListOffset == 0 {
+		t.Error("Expected scroll offset to increase after navigating past visible area")
+	}
+}
+
+// TestChallengeSelectionStartChallenge tests starting a challenge from selection.
+func TestChallengeSelectionStartChallenge(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateChallengeSelection
+	model.ChallengeListIndex = 2 // Select third challenge
+
+	// Press Enter to start
+	msg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := model.handleChallengeSelectionKeys(msg)
+	updated := newModel.(Model)
+
+	// Should transition to practice state
+	if updated.Game.State != engine.StateChallengeSelectionPractice {
+		t.Errorf("Expected StateChallengeSelectionPractice, got %v", updated.Game.State)
+	}
+
+	// Selected index should be tracked
+	if updated.SelectedChallengeIndex != 2 {
+		t.Errorf("Expected SelectedChallengeIndex 2, got %d", updated.SelectedChallengeIndex)
+	}
+
+	// Current challenge should be set
+	if updated.CurrentChallenge == nil {
+		t.Error("Expected CurrentChallenge to be set")
+	}
+}
+
+// TestStartMenuSectionNavigation tests navigating between levels and modes sections.
+func TestStartMenuSectionNavigation(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateLevelSelect
+	model.StartSection = SectionLevels
+
+	levels := model.LevelRegistry.GetAll()
+
+	// Navigate to last level
+	model.LevelMenuIndex = len(levels) - 1
+
+	// Navigate down should move to modes section
+	msgDown := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	newModel, _ := model.handleLevelSelectKeys(msgDown)
+	updated := newModel.(Model)
+
+	if updated.StartSection != SectionModes {
+		t.Errorf("Expected SectionModes after navigating past last level, got %v", updated.StartSection)
+	}
+	if updated.ModeMenuIndex != 0 {
+		t.Errorf("Expected ModeMenuIndex 0, got %d", updated.ModeMenuIndex)
+	}
+
+	// Navigate up should return to levels section
+	msgUp := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	newModel, _ = updated.handleLevelSelectKeys(msgUp)
+	finalModel := newModel.(Model)
+
+	if finalModel.StartSection != SectionLevels {
+		t.Errorf("Expected SectionLevels after navigating up from modes, got %v", finalModel.StartSection)
+	}
+	if finalModel.LevelMenuIndex != len(levels)-1 {
+		t.Errorf("Expected LevelMenuIndex %d, got %d", len(levels)-1, finalModel.LevelMenuIndex)
+	}
+}
+
+// TestNotificationDisplay tests notification creation and expiration.
+func TestNotificationDisplay(t *testing.T) {
+	model := NewModel()
+
+	// Show a notification
+	model.ShowNotification("Test message", true)
+
+	if model.Notification == nil {
+		t.Fatal("Expected notification to be set")
+	}
+	if model.Notification.Message != "Test message" {
+		t.Errorf("Expected message 'Test message', got '%s'", model.Notification.Message)
+	}
+	if !model.Notification.IsSuccess {
+		t.Error("Expected IsSuccess to be true")
+	}
+
+	// Notification should have ShowUntil set in the future
+	if model.Notification.ShowUntil.Before(time.Now()) {
+		t.Error("Expected ShowUntil to be in the future")
+	}
+}
+
+// TestNotificationExpiration tests that expired notifications are cleared.
+func TestNotificationExpiration(t *testing.T) {
+	model := NewModel()
+
+	// Create an already expired notification
+	model.Notification = &Notification{
+		Message:   "Expired",
+		IsSuccess: true,
+		ShowUntil: time.Now().Add(-1 * time.Second), // Already expired
+	}
+
+	// Clear expired notification
+	model.ClearExpiredNotification()
+
+	if model.Notification != nil {
+		t.Error("Expected expired notification to be cleared")
+	}
+}
+
+// TestBuildChallengeData tests the helper function for creating challenge data.
+func TestBuildChallengeData(t *testing.T) {
+	challenge := &engine.Challenge{
+		ID:          "test_id",
+		Name:        "Test Challenge",
+		Category:    "movement",
+		Difficulty:  2,
+		Description: "Test description",
+	}
+
+	data := buildChallengeData(challenge, "challenge_mode")
+
+	if data.ID != "test_id" {
+		t.Errorf("Expected ID 'test_id', got '%s'", data.ID)
+	}
+	if data.Name != "Test Challenge" {
+		t.Errorf("Expected Name 'Test Challenge', got '%s'", data.Name)
+	}
+	if data.Mode != "challenge_mode" {
+		t.Errorf("Expected Mode 'challenge_mode', got '%s'", data.Mode)
+	}
+}
+
+// =============================================================================
+// Integration Tests for Full Flows (Task 6.3)
+// =============================================================================
+
+// TestChallengeModeFullFlow tests the complete flow of entering, practicing, and exiting challenge mode.
+func TestChallengeModeFullFlow(t *testing.T) {
+	model := NewModel()
+
+	// 1. Start from level select
+	if model.Game.State != engine.StateLevelSelect {
+		t.Fatalf("Expected StateLevelSelect, got %v", model.Game.State)
+	}
+
+	// 2. Navigate to Challenge Mode
+	model.StartSection = SectionModes
+	model.ModeMenuIndex = 0
+
+	// 3. Enter Challenge Mode
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := model.handleLevelSelectKeys(enterMsg)
+	model = newModel.(Model)
+
+	// Should be in ChallengeMode or ChallengeModePractice (auto-loads first challenge)
+	validStates := []engine.GameState{engine.StateChallengeMode, engine.StateChallengeModePractice}
+	stateValid := false
+	for _, s := range validStates {
+		if model.Game.State == s {
+			stateValid = true
+			break
+		}
+	}
+	if !stateValid {
+		t.Fatalf("Expected StateChallengeMode or StateChallengeModePractice, got %v", model.Game.State)
+	}
+
+	// 4. Exit back to start screen
+	// First get back to ChallengeMode state if in practice
+	model.Game.State = engine.StateChallengeMode
+	exitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	newModel, _ = model.handleChallengeModeKeys(exitMsg)
+	model = newModel.(Model)
+
+	if model.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after exit, got %v", model.Game.State)
+	}
+}
+
+// TestChallengeSelectionFullFlow tests the complete flow of browsing and practicing challenges.
+func TestChallengeSelectionFullFlow(t *testing.T) {
+	model := NewModel()
+
+	// 1. Start from level select
+	if model.Game.State != engine.StateLevelSelect {
+		t.Fatalf("Expected StateLevelSelect, got %v", model.Game.State)
+	}
+
+	// 2. Navigate to Challenge Selection
+	model.StartSection = SectionModes
+	model.ModeMenuIndex = 1
+
+	// 3. Enter Challenge Selection
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := model.handleLevelSelectKeys(enterMsg)
+	model = newModel.(Model)
+
+	if model.Game.State != engine.StateChallengeSelection {
+		t.Fatalf("Expected StateChallengeSelection, got %v", model.Game.State)
+	}
+
+	// 4. Navigate the challenge list
+	if len(model.ChallengeList) > 0 {
+		downMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+		newModel, _ = model.handleChallengeSelectionKeys(downMsg)
+		model = newModel.(Model)
+
+		if model.ChallengeListIndex != 1 {
+			t.Errorf("Expected index 1 after navigation, got %d", model.ChallengeListIndex)
+		}
+
+		// 5. Start a challenge
+		enterMsg = tea.KeyMsg{Type: tea.KeyEnter}
+		newModel, _ = model.handleChallengeSelectionKeys(enterMsg)
+		model = newModel.(Model)
+
+		if model.Game.State != engine.StateChallengeSelectionPractice {
+			t.Errorf("Expected StateChallengeSelectionPractice, got %v", model.Game.State)
+		}
+
+		// 6. Cancel back to selection
+		model.NvimMode = true // Set nvim mode to use escape handling
+		escMsg := tea.KeyMsg{Type: tea.KeyEscape}
+		newModel, _ = model.handleChallengeSelectionPracticeKeys(escMsg)
+		model = newModel.(Model)
+
+		if model.Game.State != engine.StateChallengeSelection {
+			t.Errorf("Expected StateChallengeSelection after cancel, got %v", model.Game.State)
+		}
+	}
+
+	// 7. Exit back to start screen
+	exitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	newModel, _ = model.handleChallengeSelectionKeys(exitMsg)
+	model = newModel.(Model)
+
+	if model.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after exit, got %v", model.Game.State)
+	}
+}

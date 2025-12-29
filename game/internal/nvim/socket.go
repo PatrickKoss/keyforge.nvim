@@ -399,6 +399,7 @@ func (s *SocketServer) RequestChallenge(requestID string, challenge *ChallengeDa
 		req.Filetype = challenge.Filetype
 		req.HintAction = challenge.HintAction
 		req.HintFallback = challenge.HintFallback
+		req.Mode = challenge.Mode
 	}
 	return s.Notify(MethodRequestChallenge, req)
 }

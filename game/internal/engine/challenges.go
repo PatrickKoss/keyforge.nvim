@@ -171,6 +171,13 @@ func (cm *ChallengeManager) Count() int {
 	return len(cm.challenges)
 }
 
+// GetAllChallenges returns a copy of all challenges.
+func (cm *ChallengeManager) GetAllChallenges() []Challenge {
+	result := make([]Challenge, len(cm.challenges))
+	copy(result, cm.challenges)
+	return result
+}
+
 // CountByCategory returns the number of challenges per category.
 func (cm *ChallengeManager) CountByCategory() map[string]int {
 	counts := make(map[string]int)

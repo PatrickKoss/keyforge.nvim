@@ -12,6 +12,7 @@ var (
 	ColorSecondary  = lipgloss.Color("#8b5cf6") // purple
 	ColorWarning    = lipgloss.Color("#f59e0b") // amber
 	ColorDanger     = lipgloss.Color("#ef4444") // red
+	ColorSuccess    = lipgloss.Color("#22c55e") // green (same as primary)
 	ColorMuted      = lipgloss.Color("#6b7280") // gray
 	ColorBackground = lipgloss.Color("#1f2937") // dark gray
 	ColorBorder     = lipgloss.Color("#374151") // medium gray

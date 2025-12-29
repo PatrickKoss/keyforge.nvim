@@ -335,6 +335,7 @@ func (c *Client) RequestChallenge(requestID string, challenge *ChallengeData) er
 		req.Filetype = challenge.Filetype
 		req.HintAction = challenge.HintAction
 		req.HintFallback = challenge.HintFallback
+		req.Mode = challenge.Mode
 	}
 	return c.Notify(MethodRequestChallenge, req)
 }

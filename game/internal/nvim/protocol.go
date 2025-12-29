@@ -23,6 +23,7 @@ type ChallengeData struct {
 	Filetype        string
 	HintAction      string
 	HintFallback    string
+	Mode            string // "challenge_mode", "challenge_selection", or empty for tower defense
 }
 
 type RPCClient interface {
@@ -103,6 +104,7 @@ type ChallengeRequest struct {
 	Filetype        string `json:"filetype,omitempty"`
 	HintAction      string `json:"hint_action,omitempty"`
 	HintFallback    string `json:"hint_fallback,omitempty"`
+	Mode            string `json:"mode,omitempty"` // "challenge_mode", "challenge_selection", or empty for tower defense
 }
 
 // GameStateUpdate notifies Neovim of game state changes.

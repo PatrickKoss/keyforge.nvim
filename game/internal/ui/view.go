@@ -74,7 +74,8 @@ func renderHUD(m *Model) string {
 		status = ChallengeStyle.Render("  [CHALLENGE ACTIVE - Game continues!]")
 	case engine.StateChallengeWaiting:
 		status = ChallengeStyle.Render("  [CHALLENGE IN PROGRESS - Game paused]")
-	case engine.StateMenu, engine.StateLevelSelect, engine.StateSettings, engine.StatePlaying, engine.StateWaveComplete:
+	case engine.StateMenu, engine.StateLevelSelect, engine.StateSettings, engine.StatePlaying, engine.StateWaveComplete,
+		engine.StateChallengeMode, engine.StateChallengeSelection, engine.StateChallengeModePractice, engine.StateChallengeSelectionPractice:
 		// No special status display for these states
 	}
 
