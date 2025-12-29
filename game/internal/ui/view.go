@@ -74,7 +74,7 @@ func renderHUD(m *Model) string {
 		status = ChallengeStyle.Render("  [CHALLENGE ACTIVE - Game continues!]")
 	case engine.StateChallengeWaiting:
 		status = ChallengeStyle.Render("  [CHALLENGE IN PROGRESS - Game paused]")
-	case engine.StateMenu, engine.StatePlaying, engine.StateWaveComplete:
+	case engine.StateMenu, engine.StateLevelSelect, engine.StateSettings, engine.StatePlaying, engine.StateWaveComplete:
 		// No special status display for these states
 	}
 
@@ -560,7 +560,7 @@ func RenderGameOver(m *Model) string {
 	b.WriteString(fmt.Sprintf("  Wave reached: %d/%d\n", m.Game.Wave, m.Game.TotalWaves))
 	b.WriteString(fmt.Sprintf("  Towers built: %d\n", len(m.Game.Towers)))
 	b.WriteString("\n")
-	b.WriteString(HelpStyle.Render("  Press [r] to restart or [q] to quit\n"))
+	b.WriteString(HelpStyle.Render("  Press [r] to restart, [m] for menu, or [q] to quit\n"))
 
 	return b.String()
 }
@@ -583,7 +583,7 @@ func RenderVictory(m *Model) string {
 	b.WriteString(fmt.Sprintf("  Final health: %d/%d\n", m.Game.Health, m.Game.MaxHealth))
 	b.WriteString(fmt.Sprintf("  Towers built: %d\n", len(m.Game.Towers)))
 	b.WriteString("\n")
-	b.WriteString(HelpStyle.Render("  Press [r] to play again or [q] to quit\n"))
+	b.WriteString(HelpStyle.Render("  Press [r] to play again, [m] for menu, or [q] to quit\n"))
 
 	return b.String()
 }

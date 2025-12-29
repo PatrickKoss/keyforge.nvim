@@ -98,6 +98,8 @@ func NewGameTestHarness(t *testing.T) *GameTestHarness {
 
 	model := ui.NewModel()
 	model.NvimMode = true
+	// Set game to playing state for tests (skip level select/settings)
+	model.Game.State = engine.StatePlaying
 	model.InitNvimSocket(socketPath)
 
 	// Wait for socket server to start
@@ -615,4 +617,207 @@ func TestWaveProgression(t *testing.T) {
 
 	// Wave should have incremented (or stayed same if enemies still alive)
 	t.Logf("Wave progression: %d -> %d", initialWave, h.Model.Game.Wave)
+}
+
+// TestStartScreenInitialState tests that game starts in level select state.
+func TestStartScreenInitialState(t *testing.T) {
+	model := ui.NewModel()
+
+	if model.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected game to start in StateLevelSelect, got %v", model.Game.State)
+	}
+
+	if model.LevelRegistry == nil {
+		t.Error("Expected LevelRegistry to be initialized")
+	}
+
+	if model.SelectedLevel == nil {
+		t.Error("Expected a default level to be selected")
+	}
+}
+
+// TestLevelSelectionToSettings tests transitioning from level select to settings.
+func TestLevelSelectionToSettings(t *testing.T) {
+	model := ui.NewModel()
+
+	// Initially in level select
+	if model.Game.State != engine.StateLevelSelect {
+		t.Fatalf("Expected StateLevelSelect, got %v", model.Game.State)
+	}
+
+	// Select level and go to settings
+	levels := model.LevelRegistry.GetAll()
+	if len(levels) == 0 {
+		t.Fatal("Expected at least one level")
+	}
+
+	// Transition to settings state
+	model.Game.State = engine.StateSettings
+
+	if model.Game.State != engine.StateSettings {
+		t.Errorf("Expected StateSettings, got %v", model.Game.State)
+	}
+
+	// Verify level exists in registry
+	if levels[0].Name == "" {
+		t.Error("Expected level to have a name")
+	}
+}
+
+// TestStartGameFromSettings tests starting a game from settings screen.
+func TestStartGameFromSettings(t *testing.T) {
+	model := ui.NewModel()
+
+	// Set up level and settings
+	levels := model.LevelRegistry.GetAll()
+	model.SelectedLevel = &levels[0]
+	model.Settings = engine.GameSettings{
+		Difficulty:     engine.DifficultyEasy,
+		GameSpeed:      engine.SpeedDouble,
+		StartingGold:   300,
+		StartingHealth: 150,
+	}
+
+	// Create game from level and settings
+	model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+
+	// Verify game state
+	if model.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying, got %v", model.Game.State)
+	}
+
+	if model.Game.Gold != 300 {
+		t.Errorf("Expected starting gold 300, got %d", model.Game.Gold)
+	}
+
+	if model.Game.Health != 150 {
+		t.Errorf("Expected starting health 150, got %d", model.Game.Health)
+	}
+
+	if model.Game.GameSpeed != engine.SpeedDouble {
+		t.Errorf("Expected game speed 2x, got %v", model.Game.GameSpeed)
+	}
+}
+
+// TestSettingsValidation tests that settings are validated before starting.
+func TestSettingsValidation(t *testing.T) {
+	settings := engine.GameSettings{
+		Difficulty:     "invalid",
+		GameSpeed:      3.0, // Invalid speed
+		StartingGold:   50,  // Below minimum
+		StartingHealth: 25,  // Below minimum
+	}
+
+	settings.Validate()
+
+	if settings.Difficulty != engine.DifficultyNormal {
+		t.Errorf("Expected difficulty corrected to normal, got %s", settings.Difficulty)
+	}
+
+	if settings.GameSpeed != engine.SpeedNormal {
+		t.Errorf("Expected speed corrected to 1x, got %v", settings.GameSpeed)
+	}
+
+	if settings.StartingGold != 100 {
+		t.Errorf("Expected gold clamped to 100, got %d", settings.StartingGold)
+	}
+
+	if settings.StartingHealth != 50 {
+		t.Errorf("Expected health clamped to 50, got %d", settings.StartingHealth)
+	}
+}
+
+// TestGameSpeedAffectsGameplay tests that game speed multiplier affects updates.
+func TestGameSpeedAffectsGameplay(t *testing.T) {
+	level := engine.ClassicLevel()
+
+	// Create two games with different speeds
+	normalSettings := engine.GameSettings{
+		Difficulty:     engine.DifficultyNormal,
+		GameSpeed:      engine.SpeedNormal,
+		StartingGold:   200,
+		StartingHealth: 100,
+	}
+	doubleSettings := engine.GameSettings{
+		Difficulty:     engine.DifficultyNormal,
+		GameSpeed:      engine.SpeedDouble,
+		StartingGold:   200,
+		StartingHealth: 100,
+	}
+
+	gameNormal := engine.NewGameFromLevelAndSettings(&level, normalSettings)
+	gameDouble := engine.NewGameFromLevelAndSettings(&level, doubleSettings)
+
+	// Set up wave countdown
+	gameNormal.WaveComplete = true
+	gameNormal.WaveCountdown = 3.0
+	gameDouble.WaveComplete = true
+	gameDouble.WaveCountdown = 3.0
+
+	// Update both for 1 second of real time
+	gameNormal.Update(1.0)
+	gameDouble.Update(1.0)
+
+	// Normal speed should reduce countdown by 1
+	if gameNormal.WaveCountdown != 2.0 {
+		t.Errorf("Normal speed: expected countdown 2.0, got %v", gameNormal.WaveCountdown)
+	}
+
+	// Double speed should reduce countdown by 2
+	if gameDouble.WaveCountdown != 1.0 {
+		t.Errorf("Double speed: expected countdown 1.0, got %v", gameDouble.WaveCountdown)
+	}
+}
+
+// TestLevelRegistryHasLevels tests that the level registry is populated.
+func TestLevelRegistryHasLevels(t *testing.T) {
+	registry := engine.NewLevelRegistry()
+
+	if registry.Count() == 0 {
+		t.Error("Expected at least one level in registry")
+	}
+
+	classic := registry.GetByID("classic")
+	if classic == nil {
+		t.Error("Expected to find classic level")
+	}
+
+	if classic != nil && classic.Name != "Classic" {
+		t.Errorf("Expected Classic level name, got %s", classic.Name)
+	}
+}
+
+// TestGameRestartFromEndScreen tests restarting from game over/victory.
+func TestGameRestartFromEndScreen(t *testing.T) {
+	model := ui.NewModel()
+
+	// Set up initial game
+	levels := model.LevelRegistry.GetAll()
+	model.SelectedLevel = &levels[0]
+	model.Settings = engine.GameSettings{
+		Difficulty:     engine.DifficultyHard,
+		GameSpeed:      engine.SpeedFast,
+		StartingGold:   250,
+		StartingHealth: 120,
+	}
+
+	model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+
+	// Simulate game over
+	model.Game.State = engine.StateGameOver
+
+	// Restart should use same settings
+	model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+
+	if model.Game.Gold != 250 {
+		t.Errorf("Expected restart with gold 250, got %d", model.Game.Gold)
+	}
+
+	if model.Game.Health != 120 {
+		t.Errorf("Expected restart with health 120, got %d", model.Game.Health)
+	}
+
+	if model.Game.GameSpeed != engine.SpeedFast {
+		t.Errorf("Expected restart with speed 1.5x, got %v", model.Game.GameSpeed)
+	}
 }

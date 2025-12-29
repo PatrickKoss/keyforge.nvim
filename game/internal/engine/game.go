@@ -8,7 +8,9 @@ import (
 type GameState int
 
 const (
-	StateMenu GameState = iota
+	StateMenu        GameState = iota
+	StateLevelSelect           // Level browser on start screen
+	StateSettings              // Settings menu before game start
 	StatePlaying
 	StatePaused
 	StateChallengeActive  // Internal challenge (standalone mode) - game continues
@@ -42,14 +44,21 @@ type Game struct {
 	// Selected tower type for placement
 	SelectedTower entities.TowerType
 
+	// Allowed towers for this level
+	AllowedTowers []entities.TowerType
+
 	// Wave management
 	WaveTimer     float64 // time until next spawn
 	SpawnIndex    int     // current spawn in wave
 	WaveComplete  bool
-	WaveCountdown float64 // countdown between waves
+	WaveCountdown float64  // countdown between waves
+	WaveFunc      WaveFunc // Custom wave generator for this level
 
 	// Economy configuration
 	Economy EconomyConfig
+
+	// Game speed multiplier
+	GameSpeed GameSpeed
 
 	// Challenge state
 	ChallengeActive bool // indicates a challenge is being solved
@@ -85,11 +94,14 @@ func NewGameWithEconomy(width, height int, economy EconomyConfig) *Game {
 		CursorX:         width / 2,
 		CursorY:         height / 2,
 		SelectedTower:   entities.TowerArrow,
+		AllowedTowers:   []entities.TowerType{entities.TowerArrow, entities.TowerLSP, entities.TowerRefactor},
 		WaveTimer:       0,
 		SpawnIndex:      0,
 		WaveComplete:    false,
 		WaveCountdown:   3.0,
+		WaveFunc:        GetWave,
 		Economy:         economy,
+		GameSpeed:       SpeedNormal,
 		ChallengeActive: false,
 		nextEnemyID:     0,
 		nextTowerID:     0,
@@ -98,47 +110,46 @@ func NewGameWithEconomy(width, height int, economy EconomyConfig) *Game {
 	return g
 }
 
+// NewGameFromLevelAndSettings creates a new game from a level definition and game settings.
+func NewGameFromLevelAndSettings(level *Level, settings GameSettings) *Game {
+	settings.Validate()
+
+	g := &Game{
+		State:           StatePlaying,
+		Width:           level.GridWidth,
+		Height:          level.GridHeight,
+		Gold:            settings.StartingGold,
+		Health:          settings.StartingHealth,
+		MaxHealth:       settings.StartingHealth,
+		Wave:            1,
+		TotalWaves:      level.TotalWaves,
+		Path:            level.Path,
+		Towers:          make([]*entities.Tower, 0),
+		Enemies:         make([]*entities.Enemy, 0),
+		Projectiles:     make([]*entities.Projectile, 0),
+		Effects:         entities.NewEffectManager(),
+		CursorX:         level.GridWidth / 2,
+		CursorY:         level.GridHeight / 2,
+		SelectedTower:   level.AllowedTowers[0], // Default to first allowed tower
+		AllowedTowers:   level.AllowedTowers,
+		WaveTimer:       0,
+		SpawnIndex:      0,
+		WaveComplete:    false,
+		WaveCountdown:   3.0,
+		WaveFunc:        level.WaveFunc,
+		Economy:         settings.GetEconomyConfig(),
+		GameSpeed:       settings.GameSpeed,
+		ChallengeActive: false,
+		nextEnemyID:     0,
+		nextTowerID:     0,
+	}
+	return g
+}
+
 // createDefaultPath creates a winding path across the map.
 func (g *Game) createDefaultPath() []entities.Position {
-	// Create an S-shaped path
-	path := []entities.Position{
-		{X: 0, Y: 3},
-		{X: 1, Y: 3},
-		{X: 2, Y: 3},
-		{X: 3, Y: 3},
-		{X: 4, Y: 3},
-		{X: 5, Y: 3},
-		{X: 6, Y: 3},
-		{X: 7, Y: 3},
-		{X: 8, Y: 3},
-		{X: 8, Y: 4},
-		{X: 8, Y: 5},
-		{X: 8, Y: 6},
-		{X: 8, Y: 7},
-		{X: 7, Y: 7},
-		{X: 6, Y: 7},
-		{X: 5, Y: 7},
-		{X: 4, Y: 7},
-		{X: 3, Y: 7},
-		{X: 2, Y: 7},
-		{X: 2, Y: 8},
-		{X: 2, Y: 9},
-		{X: 2, Y: 10},
-		{X: 3, Y: 10},
-		{X: 4, Y: 10},
-		{X: 5, Y: 10},
-		{X: 6, Y: 10},
-		{X: 7, Y: 10},
-		{X: 8, Y: 10},
-		{X: 9, Y: 10},
-		{X: 10, Y: 10},
-		{X: 11, Y: 10},
-		{X: 12, Y: 10},
-		{X: 13, Y: 10},
-		{X: 14, Y: 10},
-		{X: 15, Y: 10},
-	}
-	return path
+	// Use the same path as the classic level
+	return classicPath()
 }
 
 // IsOnPath checks if a position is part of the path.
@@ -243,17 +254,20 @@ func (g *Game) Update(dt float64) {
 		return
 	}
 
+	// Apply game speed multiplier
+	scaledDt := dt * float64(g.GameSpeed)
+
 	// Update wave spawning
-	g.updateWaveSpawning(dt)
+	g.updateWaveSpawning(scaledDt)
 
 	// Update enemies
-	g.updateEnemies(dt)
+	g.updateEnemies(scaledDt)
 
 	// Update towers and create projectiles
-	g.updateTowers(dt)
+	g.updateTowers(scaledDt)
 
 	// Update projectiles and handle collisions
-	g.updateProjectiles(dt)
+	g.updateProjectiles(scaledDt)
 
 	// Check win/lose conditions
 	g.checkGameEnd()
@@ -302,7 +316,13 @@ func (g *Game) updateWaveSpawning(dt float64) {
 		return
 	}
 
-	wave := GetWave(g.Wave)
+	// Use level's wave function if set, otherwise use default
+	waveFunc := g.WaveFunc
+	if waveFunc == nil {
+		waveFunc = GetWave
+	}
+	wave := waveFunc(g.Wave)
+
 	if g.SpawnIndex >= len(wave.Spawns) {
 		// Check if wave is complete (all enemies dead)
 		if len(g.Enemies) == 0 {
@@ -431,7 +451,7 @@ func (g *Game) TogglePause() {
 		g.State = StatePaused
 	case StatePaused:
 		g.State = StatePlaying
-	case StateMenu, StateChallengeActive, StateChallengeWaiting, StateWaveComplete, StateGameOver, StateVictory:
+	case StateMenu, StateLevelSelect, StateSettings, StateChallengeActive, StateChallengeWaiting, StateWaveComplete, StateGameOver, StateVictory:
 		// Cannot toggle pause in these states
 	}
 }

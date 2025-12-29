@@ -6,6 +6,7 @@
 ---@field keybind_submit string Keybind to submit challenge in buffer (default: "<CR>")
 ---@field keybind_cancel string Keybind to cancel challenge in buffer (default: "<Esc>")
 ---@field difficulty string Difficulty level: "easy", "normal", "hard" (default: "normal")
+---@field game_speed number Game speed multiplier: 0.5, 1.0, 1.5, 2.0 (default: 1.0)
 ---@field use_nerd_fonts boolean Use Nerd Font icons (default: true)
 ---@field starting_gold number Initial gold amount (default: 200)
 ---@field starting_health number Initial health (default: 100)
@@ -23,6 +24,7 @@ local default_config = {
   keybind_submit = "<CR>",
   keybind_cancel = "<Esc>",
   difficulty = "normal",
+  game_speed = 1.0,
   use_nerd_fonts = true,
   starting_gold = 200,
   starting_health = 100,
@@ -199,8 +201,16 @@ function M._launch_game()
   M._term_win = vim.api.nvim_get_current_win()
 
   -- Start the game process in nvim mode with socket RPC
-  -- Terminal handles display + input, socket handles RPC
-  local cmd = string.format("%s --nvim-mode --rpc-socket %s", binary, M._socket_path)
+  -- Pass config values as command-line flags
+  local cmd = string.format(
+    "%s --nvim-mode --rpc-socket %s --difficulty %s --game-speed %.1f --starting-gold %d --starting-health %d",
+    binary,
+    M._socket_path,
+    M.config.difficulty,
+    M.config.game_speed,
+    M.config.starting_gold,
+    M.config.starting_health
+  )
   M._job_id = vim.fn.termopen(cmd, {
     on_exit = function(_, code)
       vim.schedule(function()

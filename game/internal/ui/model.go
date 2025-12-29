@@ -16,6 +16,9 @@ const (
 	GridWidth  = 20
 	GridHeight = 14
 	TargetFPS  = 60
+
+	keyEnter = "enter"
+	keySpace = " "
 )
 
 // TickMsg is sent on each frame update.
@@ -32,6 +35,13 @@ type Model struct {
 	CurrentChallenge *engine.Challenge
 	VimEditor        *vim.Editor
 
+	// Start screen state
+	LevelRegistry     *engine.LevelRegistry
+	SelectedLevel     *engine.Level
+	Settings          engine.GameSettings
+	LevelMenuIndex    int // Selected level in level browser
+	SettingsMenuIndex int // Selected setting in settings menu
+
 	// Neovim integration
 	NvimMode           bool
 	NvimClient         *nvim.Client       // Legacy stdin/stderr RPC
@@ -45,18 +55,42 @@ type Model struct {
 	ChallengeResultChan chan *nvim.ChallengeResult
 }
 
-// NewModel creates a new game model.
+// NewModel creates a new game model with default settings.
 func NewModel() Model {
+	return NewModelWithSettings(engine.DefaultGameSettings())
+}
+
+// NewModelWithSettings creates a new game model with specified settings.
+func NewModelWithSettings(settings engine.GameSettings) Model {
 	cm, _ := engine.NewChallengeManager()
+	registry := engine.NewLevelRegistry()
+
+	// Get the first level as default selection
+	levels := registry.GetAll()
+	var selectedLevel *engine.Level
+	if len(levels) > 0 {
+		selectedLevel = &levels[0]
+	}
+
+	// Create a placeholder game (will be replaced when starting from settings)
+	// Start in level select state
+	game := engine.NewGame(GridWidth, GridHeight)
+	game.State = engine.StateLevelSelect
+
 	return Model{
-		Game:                engine.NewGame(GridWidth, GridHeight),
+		Game:                game,
 		LastUpdate:          time.Now(),
 		Width:               GridWidth,
 		Height:              GridHeight,
 		Quitting:            false,
 		ChallengeManager:    cm,
 		CurrentChallenge:    nil,
-		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10), // Buffered channel for RPC results
+		LevelRegistry:       registry,
+		SelectedLevel:       selectedLevel,
+		Settings:            settings,
+		LevelMenuIndex:      0,
+		SettingsMenuIndex:   0,
+		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10),
 	}
 }
 
@@ -235,28 +269,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 }
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
-	// Global keys
-	switch msg.String() {
-	case "ctrl+c", "q":
-		if m.Game.State == engine.StatePlaying || m.Game.State == engine.StatePaused {
-			m.Quitting = true
-			return m, tea.Quit
-		}
-		// In game over or victory, q quits
+	// Global quit
+	if msg.String() == "ctrl+c" {
 		m.Quitting = true
 		return m, tea.Quit
-
-	case "r":
-		// Restart game
-		if m.Game.State == engine.StateGameOver || m.Game.State == engine.StateVictory {
-			m.Game = engine.NewGame(GridWidth, GridHeight)
-			m.LastUpdate = time.Now()
-		}
-		return m, nil
 	}
 
 	// Game state specific keys
 	switch m.Game.State {
+	case engine.StateLevelSelect:
+		return m.handleLevelSelectKeys(msg)
+	case engine.StateSettings:
+		return m.handleSettingsKeys(msg)
 	case engine.StatePlaying:
 		return m.handlePlayingKeys(msg)
 	case engine.StatePaused:
@@ -265,10 +289,168 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:go
 		return m.handleChallengeKeys(msg)
 	case engine.StateChallengeWaiting:
 		return m.handleChallengeWaitingKeys(msg)
-	case engine.StateMenu, engine.StateWaveComplete, engine.StateGameOver, engine.StateVictory:
-		// These states are handled by global keys above
+	case engine.StateGameOver, engine.StateVictory:
+		return m.handleEndGameKeys(msg)
+	case engine.StateMenu, engine.StateWaveComplete:
+		// Fallthrough to quit handling
 	}
 
+	// Quit handling for other states
+	if msg.String() == "q" {
+		m.Quitting = true
+		return m, tea.Quit
+	}
+
+	return m, nil
+}
+
+func (m Model) handleLevelSelectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	levels := m.LevelRegistry.GetAll()
+
+	switch msg.String() {
+	case "j", "down":
+		if m.LevelMenuIndex < len(levels)-1 {
+			m.LevelMenuIndex++
+		}
+	case "k", "up":
+		if m.LevelMenuIndex > 0 {
+			m.LevelMenuIndex--
+		}
+	case keyEnter, keySpace:
+		// Select level and go to settings
+		if m.LevelMenuIndex < len(levels) {
+			m.SelectedLevel = &levels[m.LevelMenuIndex]
+			m.Game.State = engine.StateSettings
+			m.SettingsMenuIndex = 0
+		}
+	case "q":
+		m.Quitting = true
+		return m, tea.Quit
+	}
+
+	return m, nil
+}
+
+func (m Model) handleSettingsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	maxIndex := 4 // 0: difficulty, 1: speed, 2: gold, 3: health, 4: start button
+
+	switch msg.String() {
+	case "j", "down":
+		if m.SettingsMenuIndex < maxIndex {
+			m.SettingsMenuIndex++
+		}
+	case "k", "up":
+		if m.SettingsMenuIndex > 0 {
+			m.SettingsMenuIndex--
+		}
+	case "h", "left":
+		m.adjustSetting(-1)
+	case "l", "right":
+		m.adjustSetting(1)
+	case keyEnter, keySpace:
+		if m.SettingsMenuIndex == 4 {
+			// Start game
+			m.startGameFromSettings()
+		}
+	case "esc":
+		// Back to level select
+		m.Game.State = engine.StateLevelSelect
+	case "q":
+		m.Quitting = true
+		return m, tea.Quit
+	}
+
+	return m, nil
+}
+
+func (m *Model) adjustSetting(delta int) {
+	switch m.SettingsMenuIndex {
+	case 0: // Difficulty
+		difficulties := []string{engine.DifficultyEasy, engine.DifficultyNormal, engine.DifficultyHard}
+		idx := 1 // default normal
+		for i, d := range difficulties {
+			if d == m.Settings.Difficulty {
+				idx = i
+				break
+			}
+		}
+		idx += delta
+		if idx < 0 {
+			idx = 0
+		}
+		if idx >= len(difficulties) {
+			idx = len(difficulties) - 1
+		}
+		m.Settings.Difficulty = difficulties[idx]
+	case 1: // Speed
+		speeds := engine.GameSpeedOptions()
+		idx := 1 // default 1x
+		for i, s := range speeds {
+			if s == m.Settings.GameSpeed {
+				idx = i
+				break
+			}
+		}
+		idx += delta
+		if idx < 0 {
+			idx = 0
+		}
+		if idx >= len(speeds) {
+			idx = len(speeds) - 1
+		}
+		m.Settings.GameSpeed = speeds[idx]
+	case 2: // Starting Gold
+		m.Settings.StartingGold += delta * 25
+		if m.Settings.StartingGold < 100 {
+			m.Settings.StartingGold = 100
+		}
+		if m.Settings.StartingGold > 500 {
+			m.Settings.StartingGold = 500
+		}
+	case 3: // Starting Health
+		m.Settings.StartingHealth += delta * 10
+		if m.Settings.StartingHealth < 50 {
+			m.Settings.StartingHealth = 50
+		}
+		if m.Settings.StartingHealth > 200 {
+			m.Settings.StartingHealth = 200
+		}
+	}
+}
+
+func (m *Model) startGameFromSettings() {
+	if m.SelectedLevel == nil {
+		return
+	}
+	m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
+	m.LastUpdate = time.Now()
+	m.CurrentChallenge = nil
+	m.VimEditor = nil
+	m.NvimChallengeID = ""
+	m.PrevGameState = engine.StatePlaying
+
+	// Notify Neovim that game is ready (if in nvim mode)
+	if m.NvimMode && m.NvimRPC != nil {
+		_ = m.NvimRPC.SendGameReady()
+	}
+}
+
+func (m Model) handleEndGameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:gocritic // hugeParam: returns modified model
+	switch msg.String() {
+	case "r":
+		// Restart with same level and settings
+		if m.SelectedLevel != nil {
+			m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
+			m.LastUpdate = time.Now()
+		}
+	case "m":
+		// Return to menu
+		m.Game.State = engine.StateLevelSelect
+		m.SettingsMenuIndex = 0
+	case "q":
+		m.Quitting = true
+		return m, tea.Quit
+	}
 	return m, nil
 }
 
@@ -524,6 +706,10 @@ func (m Model) View() string { //nolint:gocritic // hugeParam: required by Bubbl
 	}
 
 	switch m.Game.State {
+	case engine.StateLevelSelect:
+		return RenderStartScreen(&m)
+	case engine.StateSettings:
+		return RenderSettingsScreen(&m)
 	case engine.StateGameOver:
 		return RenderGameOver(&m)
 	case engine.StateVictory:

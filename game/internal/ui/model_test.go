@@ -12,6 +12,14 @@ import (
 	"github.com/keyforge/keyforge/internal/nvim"
 )
 
+// newTestModel creates a model ready for testing with game in playing state.
+func newTestModel() Model {
+	model := NewModel()
+	// Set game to playing state for tests (skip level select/settings)
+	model.Game.State = engine.StatePlaying
+	return model
+}
+
 // MockRPCClient implements nvim.RPCClient for testing.
 type MockRPCClient struct {
 	ChallengeRequests []ChallengeRequestRecord
@@ -59,7 +67,7 @@ func (m *MockRPCClient) SendVictory(wave, gold, towers, health int) error {
 // TestChallengeResultChannel tests that challenge results are properly
 // communicated via channel even when Model is copied (as Bubbletea does).
 func TestChallengeResultChannel(t *testing.T) {
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 	model.NvimRPC = &MockRPCClient{}
 
@@ -108,7 +116,7 @@ func TestChallengeResultChannel(t *testing.T) {
 // of the model (as Bubbletea does), the channel still works.
 func TestChallengeResultChannelWithCopy(t *testing.T) {
 	// Create original model
-	original := NewModel()
+	original := newTestModel()
 	original.NvimMode = true
 	original.NvimRPC = &MockRPCClient{}
 
@@ -152,7 +160,7 @@ func TestChallengeResultChannelWithCopy(t *testing.T) {
 
 // TestChallengeResultMismatchedID tests that stale results are ignored.
 func TestChallengeResultMismatchedID(t *testing.T) {
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 	model.NvimRPC = &MockRPCClient{}
 
@@ -195,7 +203,7 @@ func TestChallengeResultMismatchedID(t *testing.T) {
 
 // TestChallengeResultGoldAwarded tests that gold is properly awarded on success.
 func TestChallengeResultGoldAwarded(t *testing.T) {
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 	model.NvimRPC = &MockRPCClient{}
 
@@ -224,7 +232,7 @@ func TestChallengeResultGoldAwarded(t *testing.T) {
 
 // TestChallengeResultNoGoldOnFailure tests that no gold is awarded on failure.
 func TestChallengeResultNoGoldOnFailure(t *testing.T) {
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 	model.NvimRPC = &MockRPCClient{}
 
@@ -262,7 +270,7 @@ func TestChallengeResultNoGoldOnFailure(t *testing.T) {
 // - Handler is called on original, but Update runs on copy.
 func TestHandleChallengeCompleteViaPointer(t *testing.T) {
 	// Create model and get a pointer (like socket server does)
-	original := NewModel()
+	original := newTestModel()
 	original.NvimMode = true
 	original.NvimRPC = &MockRPCClient{}
 
@@ -311,7 +319,7 @@ func TestHandleChallengeCompleteViaPointer(t *testing.T) {
 // TestMultipleTicksDoNotDuplicateProcessing ensures we don't process
 // the same result multiple times.
 func TestMultipleTicksDoNotDuplicateProcessing(t *testing.T) {
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 	model.NvimRPC = &MockRPCClient{}
 
@@ -355,7 +363,7 @@ func TestMultipleTicksDoNotDuplicateProcessing(t *testing.T) {
 // 5. Update called on BUBBLETEA'S copy.
 func TestRealisticBubbleteaFlow(t *testing.T) {
 	// Step 1: Create model (like in main.go)
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 
 	// Step 2: Socket server gets pointer to model
@@ -417,7 +425,7 @@ func TestRealisticBubbleteaFlow(t *testing.T) {
 // socket server has pointer to original, but Bubbletea evolves separately.
 func TestSocketServerHandlerWithSeparateModels(t *testing.T) {
 	// Create the original model
-	original := NewModel()
+	original := newTestModel()
 	original.NvimMode = true
 	original.NvimRPC = &MockRPCClient{}
 
@@ -464,7 +472,7 @@ func TestIntegrationWithRealSocketServer(t *testing.T) {
 	defer os.Remove(socketPath)
 
 	// Create model
-	model := NewModel()
+	model := newTestModel()
 	model.NvimMode = true
 
 	// Initialize socket server (this stores &model as handler)
