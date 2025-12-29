@@ -56,7 +56,7 @@ func TestRenderStartScreen(t *testing.T) {
 // TestRenderSettingsScreen tests the settings menu rendering.
 func TestRenderSettingsScreen(t *testing.T) {
 	model := NewModel()
-	model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+	model.SelectedLevel = model.LevelRegistry.GetByID("level-5") // Classic level
 
 	t.Run("renders title", func(t *testing.T) {
 		output := RenderSettingsScreen(&model)
@@ -223,7 +223,7 @@ func TestSettingsNavigation(t *testing.T) {
 	t.Run("j moves to next setting", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
@@ -237,7 +237,7 @@ func TestSettingsNavigation(t *testing.T) {
 	t.Run("k moves to previous setting", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 2
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
@@ -251,7 +251,7 @@ func TestSettingsNavigation(t *testing.T) {
 	t.Run("cannot go below 0", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
@@ -265,7 +265,7 @@ func TestSettingsNavigation(t *testing.T) {
 	t.Run("cannot go above max index", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 4 // Start Game button is last
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
@@ -279,7 +279,7 @@ func TestSettingsNavigation(t *testing.T) {
 	t.Run("escape goes back to level select", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyEsc})
 		m := newModel.(Model)
@@ -295,7 +295,7 @@ func TestDifficultyAdjustment(t *testing.T) {
 	t.Run("l increases difficulty", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0 // Difficulty
 		model.Settings.Difficulty = engine.DifficultyNormal
 
@@ -310,7 +310,7 @@ func TestDifficultyAdjustment(t *testing.T) {
 	t.Run("h decreases difficulty", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0 // Difficulty
 		model.Settings.Difficulty = engine.DifficultyNormal
 
@@ -325,7 +325,7 @@ func TestDifficultyAdjustment(t *testing.T) {
 	t.Run("cannot go below easy", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0
 		model.Settings.Difficulty = engine.DifficultyEasy
 
@@ -340,7 +340,7 @@ func TestDifficultyAdjustment(t *testing.T) {
 	t.Run("cannot go above hard", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 0
 		model.Settings.Difficulty = engine.DifficultyHard
 
@@ -358,7 +358,7 @@ func TestGameSpeedAdjustment(t *testing.T) {
 	t.Run("l increases speed", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 1 // Game Speed
 		model.Settings.GameSpeed = engine.SpeedNormal
 
@@ -373,7 +373,7 @@ func TestGameSpeedAdjustment(t *testing.T) {
 	t.Run("h decreases speed", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 1
 		model.Settings.GameSpeed = engine.SpeedNormal
 
@@ -388,7 +388,7 @@ func TestGameSpeedAdjustment(t *testing.T) {
 	t.Run("cannot go below 0.5x", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 1
 		model.Settings.GameSpeed = engine.SpeedHalf
 
@@ -403,7 +403,7 @@ func TestGameSpeedAdjustment(t *testing.T) {
 	t.Run("cannot go above 2x", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 1
 		model.Settings.GameSpeed = engine.SpeedDouble
 
@@ -421,7 +421,7 @@ func TestGoldSliderAdjustment(t *testing.T) {
 	t.Run("l increases gold by 25", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 2 // Starting Gold
 		model.Settings.StartingGold = 200
 
@@ -436,7 +436,7 @@ func TestGoldSliderAdjustment(t *testing.T) {
 	t.Run("h decreases gold by 25", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 2
 		model.Settings.StartingGold = 200
 
@@ -451,7 +451,7 @@ func TestGoldSliderAdjustment(t *testing.T) {
 	t.Run("cannot go below 100", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 2
 		model.Settings.StartingGold = 100
 
@@ -466,7 +466,7 @@ func TestGoldSliderAdjustment(t *testing.T) {
 	t.Run("cannot go above 500", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 2
 		model.Settings.StartingGold = 500
 
@@ -484,7 +484,7 @@ func TestHealthSliderAdjustment(t *testing.T) {
 	t.Run("l increases health by 10", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 3 // Starting Health
 		model.Settings.StartingHealth = 100
 
@@ -499,7 +499,7 @@ func TestHealthSliderAdjustment(t *testing.T) {
 	t.Run("h decreases health by 10", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 3
 		model.Settings.StartingHealth = 100
 
@@ -514,7 +514,7 @@ func TestHealthSliderAdjustment(t *testing.T) {
 	t.Run("cannot go below 50", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 3
 		model.Settings.StartingHealth = 50
 
@@ -529,7 +529,7 @@ func TestHealthSliderAdjustment(t *testing.T) {
 	t.Run("cannot go above 200", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 3
 		model.Settings.StartingHealth = 200
 
@@ -547,7 +547,7 @@ func TestStartGameFromSettings(t *testing.T) {
 	t.Run("enter on Start Game button starts game", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 4 // Start Game button
 		model.Settings = engine.GameSettings{
 			Difficulty:     engine.DifficultyEasy,
@@ -567,7 +567,7 @@ func TestStartGameFromSettings(t *testing.T) {
 	t.Run("game uses selected settings", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 4
 		model.Settings = engine.GameSettings{
 			Difficulty:     engine.DifficultyEasy,
@@ -593,16 +593,16 @@ func TestStartGameFromSettings(t *testing.T) {
 	t.Run("game uses selected level", func(t *testing.T) {
 		model := NewModel()
 		model.Game.State = engine.StateSettings
-		model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+		model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 		model.SettingsMenuIndex = 4
 		model.Settings = engine.DefaultGameSettings()
 
 		newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		m := newModel.(Model)
 
-		// Classic level has 10 waves
-		if m.Game.TotalWaves != 10 {
-			t.Errorf("Expected 10 total waves from Classic level, got %d", m.Game.TotalWaves)
+		// Level 5 (Classic) has 8 waves
+		if m.Game.TotalWaves != 8 {
+			t.Errorf("Expected 8 total waves from Classic level, got %d", m.Game.TotalWaves)
 		}
 	})
 }
@@ -807,7 +807,7 @@ func TestQuitDuringPausedReturnsToStartScreen(t *testing.T) {
 func TestGameRestartKeepsLevelAndSettings(t *testing.T) {
 	model := NewModel()
 	model.Game.State = engine.StateSettings
-	model.SelectedLevel = model.LevelRegistry.GetByID("classic")
+	model.SelectedLevel = model.LevelRegistry.GetByID("level-5")
 	model.Settings = engine.GameSettings{
 		Difficulty:     engine.DifficultyEasy,
 		GameSpeed:      engine.SpeedDouble,

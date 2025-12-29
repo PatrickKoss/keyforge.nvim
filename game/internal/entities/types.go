@@ -63,10 +63,13 @@ type TowerUpgrade struct {
 type EnemyType int
 
 const (
-	EnemyBug EnemyType = iota
-	EnemyGremlin
-	EnemyDaemon
-	EnemyBoss
+	EnemyMite    EnemyType = iota // Very weak, fast - early game fodder
+	EnemyBug                      // Baseline enemy
+	EnemyGremlin                  // Fast, medium health
+	EnemyCrawler                  // Slow tank, high health
+	EnemySpecter                  // Very fast, fragile
+	EnemyDaemon                   // Late-game tank
+	EnemyBoss                     // Final challenge
 )
 
 // EnemyInfo contains configuration for each enemy type.
@@ -80,53 +83,62 @@ type EnemyInfo struct {
 }
 
 // TowerTypes contains all tower configurations.
+// Rebalanced: cost correlates with power, each tower has distinct role.
 var TowerTypes = map[TowerType]TowerInfo{
 	TowerArrow: {
 		Name:     "Arrow",
 		Cost:     50,
-		Damage:   10,
-		Range:    3.0,
-		Cooldown: 1.0,
+		Damage:   8,   // Fast attacker, lower damage
+		Range:    2.5, // Short range
+		Cooldown: 0.8, // Fast attack speed
 		Category: "movement",
 		Symbol:   "🏹",
 		Color:    "#22c55e",
 		Upgrades: []TowerUpgrade{
-			{Cost: 30, DamageBonus: 5, RangeBonus: 0.5, CooldownMult: 0.9},
-			{Cost: 60, DamageBonus: 10, RangeBonus: 1.0, CooldownMult: 0.8},
+			{Cost: 30, DamageBonus: 1, RangeBonus: 0.3, CooldownMult: 0.9}, // +15% dmg (1.2 -> rounds to 1), +0.3 range, -10% cooldown
+			{Cost: 60, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
 		},
 	},
 	TowerLSP: {
 		Name:     "LSP",
 		Cost:     100,
-		Damage:   25,
-		Range:    5.0,
-		Cooldown: 2.0,
+		Damage:   20,  // Sniper, high damage
+		Range:    5.0, // Long range
+		Cooldown: 1.5, // Slower attack
 		Category: "lsp-navigation",
 		Symbol:   "🔮",
 		Color:    "#8b5cf6",
 		Upgrades: []TowerUpgrade{
-			{Cost: 60, DamageBonus: 15, RangeBonus: 1.0, CooldownMult: 0.85},
-			{Cost: 120, DamageBonus: 30, RangeBonus: 2.0, CooldownMult: 0.7},
+			{Cost: 60, DamageBonus: 3, RangeBonus: 0.3, CooldownMult: 0.9},  // +15% dmg (3), +0.3 range, -10% cooldown
+			{Cost: 120, DamageBonus: 3, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
 		},
 	},
 	TowerRefactor: {
 		Name:     "Refactor",
 		Cost:     150,
-		Damage:   15,
-		Range:    2.5,
-		Cooldown: 1.5,
+		Damage:   12,  // Balanced area damage
+		Range:    3.0, // Medium range
+		Cooldown: 1.0, // Medium attack speed
 		Category: "text-objects",
 		Symbol:   "⚡",
 		Color:    "#f59e0b",
 		Upgrades: []TowerUpgrade{
-			{Cost: 80, DamageBonus: 10, RangeBonus: 0.5, CooldownMult: 0.9},
-			{Cost: 150, DamageBonus: 20, RangeBonus: 1.0, CooldownMult: 0.75},
+			{Cost: 90, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9},  // +15% dmg (1.8 -> 2), +0.3 range, -10% cooldown
+			{Cost: 180, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
 		},
 	},
 }
 
 // EnemyTypes contains all enemy configurations.
 var EnemyTypes = map[EnemyType]EnemyInfo{
+	EnemyMite: {
+		Name:      "Mite",
+		Health:    5,
+		Speed:     2.0,
+		Symbol:    "🦟",
+		Color:     "#a3e635",
+		GoldValue: 2,
+	},
 	EnemyBug: {
 		Name:      "Bug",
 		Health:    10,
@@ -142,6 +154,22 @@ var EnemyTypes = map[EnemyType]EnemyInfo{
 		Symbol:    "👹",
 		Color:     "#f97316",
 		GoldValue: 10,
+	},
+	EnemyCrawler: {
+		Name:      "Crawler",
+		Health:    40,
+		Speed:     0.6,
+		Symbol:    "🐌",
+		Color:     "#78716c",
+		GoldValue: 15,
+	},
+	EnemySpecter: {
+		Name:      "Specter",
+		Health:    15,
+		Speed:     3.5,
+		Symbol:    "👻",
+		Color:     "#c4b5fd",
+		GoldValue: 8,
 	},
 	EnemyDaemon: {
 		Name:      "Daemon",

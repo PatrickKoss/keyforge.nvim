@@ -103,6 +103,16 @@ func renderGrid(m *Model) string {
 	// Create and populate grid
 	grid := initEmptyGrid(g.Width, g.Height)
 	populateGridEntities(grid, g)
+
+	// Render range overlay before cursor (so cursor is on top)
+	// Show range when hovering over existing tower, or when placing new tower
+	tower := g.GetTowerAt(g.CursorX, g.CursorY)
+	if tower != nil {
+		RenderRangeForHover(grid, g)
+	} else if g.CanPlaceTower(g.CursorX, g.CursorY) {
+		RenderRangeForPlacement(grid, g)
+	}
+
 	renderGridCursor(grid, g)
 
 	// Build grid rows
@@ -258,12 +268,21 @@ func renderEnemy(enemy *entities.Enemy) string {
 	var char string
 
 	switch enemy.Type {
+	case entities.EnemyMite:
+		style = EnemyMiteStyle
+		char = EnemyMiteChar
 	case entities.EnemyBug:
 		style = EnemyBugStyle
 		char = EnemyBugChar
 	case entities.EnemyGremlin:
 		style = EnemyGremlinStyle
 		char = EnemyGremlinChar
+	case entities.EnemyCrawler:
+		style = EnemyCrawlerStyle
+		char = EnemyCrawlerChar
+	case entities.EnemySpecter:
+		style = EnemySpecterStyle
+		char = EnemySpecterChar
 	case entities.EnemyDaemon:
 		style = EnemyDaemonStyle
 		char = EnemyDaemonChar

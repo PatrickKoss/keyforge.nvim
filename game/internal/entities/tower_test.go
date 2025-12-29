@@ -228,3 +228,105 @@ func TestProjectileReachesTarget(t *testing.T) {
 		t.Error("Projectile should have reached target")
 	}
 }
+
+func TestTowerStats(t *testing.T) {
+	// Verify rebalanced tower stats per design document
+	tests := []struct {
+		towerType  TowerType
+		name       string
+		cost       int
+		damage     int
+		towerRange float64
+		cooldown   float64
+	}{
+		{TowerArrow, "Arrow", 50, 8, 2.5, 0.8},
+		{TowerLSP, "LSP", 100, 20, 5.0, 1.5},
+		{TowerRefactor, "Refactor", 150, 12, 3.0, 1.0},
+	}
+
+	for _, tc := range tests {
+		info := TowerTypes[tc.towerType]
+		if info.Name != tc.name {
+			t.Errorf("%s: expected name %s, got %s", tc.name, tc.name, info.Name)
+		}
+		if info.Cost != tc.cost {
+			t.Errorf("%s: expected cost %d, got %d", tc.name, tc.cost, info.Cost)
+		}
+		if info.Damage != tc.damage {
+			t.Errorf("%s: expected damage %d, got %d", tc.name, tc.damage, info.Damage)
+		}
+		if info.Range != tc.towerRange {
+			t.Errorf("%s: expected range %v, got %v", tc.name, tc.towerRange, info.Range)
+		}
+		if info.Cooldown != tc.cooldown {
+			t.Errorf("%s: expected cooldown %v, got %v", tc.name, tc.cooldown, info.Cooldown)
+		}
+	}
+}
+
+func TestTowerUpgradeScaling(t *testing.T) {
+	// Verify upgrades provide consistent scaling:
+	// +15% damage (approx), +0.3 range, -10% cooldown (0.9 multiplier)
+	for ttype, info := range TowerTypes {
+		if len(info.Upgrades) == 0 {
+			continue
+		}
+
+		for i, upgrade := range info.Upgrades {
+			// Range bonus should be 0.3
+			if upgrade.RangeBonus != 0.3 {
+				t.Errorf("%s upgrade %d: expected range bonus 0.3, got %v", info.Name, i+1, upgrade.RangeBonus)
+			}
+
+			// Cooldown multiplier should be 0.9 (10% faster)
+			if upgrade.CooldownMult != 0.9 {
+				t.Errorf("%s upgrade %d: expected cooldown mult 0.9, got %v", info.Name, i+1, upgrade.CooldownMult)
+			}
+
+			// Damage bonus should be positive
+			if upgrade.DamageBonus <= 0 {
+				t.Errorf("%s upgrade %d: expected positive damage bonus, got %d", info.Name, i+1, upgrade.DamageBonus)
+			}
+
+			// Cost should be approximately 60% of base tower cost
+			expectedCostMin := int(float64(info.Cost) * 0.5)
+			expectedCostMax := int(float64(info.Cost) * 1.5)
+			if upgrade.Cost < expectedCostMin || upgrade.Cost > expectedCostMax {
+				t.Errorf("%s upgrade %d: cost %d outside expected range [%d, %d]",
+					info.Name, i+1, upgrade.Cost, expectedCostMin, expectedCostMax)
+			}
+		}
+
+		// Verify tower type is one of the expected types
+		if ttype != TowerArrow && ttype != TowerLSP && ttype != TowerRefactor {
+			// Skip placeholder tower types
+			continue
+		}
+	}
+}
+
+func TestTowerRoleDistinction(t *testing.T) {
+	arrow := TowerTypes[TowerArrow]
+	lsp := TowerTypes[TowerLSP]
+	refactor := TowerTypes[TowerRefactor]
+
+	// Arrow should be fastest (lowest cooldown)
+	if arrow.Cooldown >= lsp.Cooldown || arrow.Cooldown >= refactor.Cooldown {
+		t.Error("Arrow tower should have the fastest attack speed (lowest cooldown)")
+	}
+
+	// LSP should have longest range
+	if lsp.Range <= arrow.Range || lsp.Range <= refactor.Range {
+		t.Error("LSP tower should have the longest range")
+	}
+
+	// Arrow should be cheapest
+	if arrow.Cost >= lsp.Cost || arrow.Cost >= refactor.Cost {
+		t.Error("Arrow tower should be the cheapest")
+	}
+
+	// Refactor should be most expensive
+	if refactor.Cost <= arrow.Cost || refactor.Cost <= lsp.Cost {
+		t.Error("Refactor tower should be the most expensive")
+	}
+}

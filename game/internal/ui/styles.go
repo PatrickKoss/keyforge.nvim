@@ -71,11 +71,20 @@ var (
 				Foreground(lipgloss.Color("#f59e0b"))
 
 		// Enemy styles.
+	EnemyMiteStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#a3e635")) // Lime green
+
 	EnemyBugStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ef4444"))
 
 	EnemyGremlinStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#f97316"))
+
+	EnemyCrawlerStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#78716c")) // Stone gray
+
+	EnemySpecterStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#c4b5fd")) // Light purple
 
 	EnemyDaemonStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#dc2626"))
@@ -162,8 +171,11 @@ const (
 	TowerLSPChar      = "🔮"
 	TowerRefactorChar = "⚡"
 
+	EnemyMiteChar    = "🦟"
 	EnemyBugChar     = "🐛"
 	EnemyGremlinChar = "👹"
+	EnemyCrawlerChar = "🐌"
+	EnemySpecterChar = "👻"
 	EnemyDaemonChar  = "👿"
 	EnemyBossChar    = "💀"
 

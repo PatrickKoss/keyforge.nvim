@@ -777,9 +777,10 @@ func TestLevelRegistryHasLevels(t *testing.T) {
 		t.Error("Expected at least one level in registry")
 	}
 
-	classic := registry.GetByID("classic")
+	// Classic level is now level-5
+	classic := registry.GetByID("level-5")
 	if classic == nil {
-		t.Error("Expected to find classic level")
+		t.Error("Expected to find classic level (level-5)")
 	}
 
 	if classic != nil && classic.Name != "Classic" {

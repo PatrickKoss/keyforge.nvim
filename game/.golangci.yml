@@ -176,6 +176,13 @@ linters:
       - path: internal/nvim/
         linters:
           - dupl
+      # Level definitions intentionally have similar patterns
+      - path: internal/engine/level\.go
+        linters:
+          - dupl
+      - path: internal/engine/wave\.go
+        linters:
+          - dupl
 
 formatters:
   enable:
