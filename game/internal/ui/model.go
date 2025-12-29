@@ -719,8 +719,16 @@ func (m Model) View() string { //nolint:gocritic // hugeParam: required by Bubbl
 	case engine.StateSettings:
 		return RenderSettingsScreen(&m)
 	case engine.StateGameOver:
+		// In Nvim mode, Lua handles the popup overlay
+		if m.NvimMode {
+			return "\n"
+		}
 		return RenderGameOver(&m)
 	case engine.StateVictory:
+		// In Nvim mode, Lua handles the popup overlay
+		if m.NvimMode {
+			return "\n"
+		}
 		return RenderVictory(&m)
 	default:
 		return RenderGame(&m)

@@ -128,21 +128,30 @@ function M.restart()
   local keyforge = require("keyforge")
   local rpc = require("keyforge.rpc")
 
+  -- Close popup first
   M.close()
 
   -- Send restart command to game
   rpc.notify("restart_game", {})
 
-  -- Focus game tab
-  keyforge.focus_game_tab()
+  -- Schedule focus to run after RPC is sent and popup is fully closed
+  vim.schedule(function()
+    keyforge.focus_game_tab()
+  end)
 end
 
 --- Quit the game
 function M.quit()
   local keyforge = require("keyforge")
 
+  -- Close popup first
   M.close()
-  keyforge.stop()
+
+  -- Schedule stop to run after current event loop completes
+  -- This ensures the popup window is fully closed before buffer cleanup
+  vim.schedule(function()
+    keyforge.stop()
+  end)
 end
 
 return M

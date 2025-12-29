@@ -44,6 +44,7 @@ M._plugin_dir = nil
 M._current_challenge_id = nil
 M._game_state = "idle" -- idle, playing, paused, challenge_waiting, game_over, victory
 M._socket_path = nil   -- Unix socket path for RPC
+M._stopping = false    -- Guard against re-entry in stop()
 
 --- Get the plugin directory path
 ---@return string
@@ -258,6 +259,12 @@ end
 
 --- Stop the game
 function M.stop()
+  -- Prevent re-entry (BufWipeout autocmd can trigger stop() again)
+  if M._stopping then
+    return
+  end
+  M._stopping = true
+
   -- Disconnect RPC first
   local rpc = require("keyforge.rpc")
   rpc.disconnect()
@@ -267,8 +274,13 @@ function M.stop()
     M._job_id = nil
   end
 
-  if M._term_buf and vim.api.nvim_buf_is_valid(M._term_buf) then
-    vim.api.nvim_buf_delete(M._term_buf, { force = true })
+  -- Clear buffer reference first to prevent autocmd re-entry issues
+  local buf = M._term_buf
+  M._term_buf = nil
+
+  -- Delete buffer with pcall to handle "buffer in use" errors gracefully
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
   end
 
   -- Clean up socket file
@@ -277,11 +289,11 @@ function M.stop()
     M._socket_path = nil
   end
 
-  M._term_buf = nil
   M._term_win = nil
   M._term_tab = nil
   M._game_state = "idle"
   M._current_challenge_id = nil
+  M._stopping = false
 end
 
 --- Get the game tab page
