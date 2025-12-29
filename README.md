@@ -25,14 +25,25 @@ A tower defense game integrated into Neovim that gamifies learning vim keybindin
 
 ```lua
 {
-  "yourusername/keyforge.nvim",
-  dependencies = { "nvim-lua/plenary.nvim" },
+  "patrickkoss/keyforge.nvim",
+  cmd = { "Keyforge", "KeyforgeStop", "KeyforgeBuild" },
   build = "make build",
-  config = function()
-    require("keyforge").setup({
-      keybind = "<leader>kf",
-    })
-  end
+  opts = {
+    keybind = "<leader>K",
+    keybind_next_challenge = "<leader>kn",
+    keybind_complete = "<leader>kc",
+    keybind_skip = "<leader>ks",
+    keybind_submit = "<CR>",
+    keybind_cancel = "<Esc>",
+    difficulty = "normal",
+    starting_gold = 200,
+    starting_health = 100,
+    auto_build = true,
+    challenge_timeout = 300,
+  },
+  keys = {
+    { "<leader>K", "<cmd>Keyforge<cr>", desc = "Keyforge: Start game" },
+  },
 }
 ```
 
@@ -40,11 +51,12 @@ A tower defense game integrated into Neovim that gamifies learning vim keybindin
 
 ```lua
 use {
-  "yourusername/keyforge.nvim",
-  requires = { "nvim-lua/plenary.nvim" },
+  "patrickkoss/keyforge.nvim",
   run = "make build",
   config = function()
-    require("keyforge").setup()
+    require("keyforge").setup({
+      keybind = "<leader>K",
+    })
   end
 }
 ```
@@ -53,7 +65,7 @@ use {
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/keyforge.nvim ~/.local/share/nvim/lazy/keyforge.nvim
+git clone https://github.com/patrickkoss/keyforge.nvim ~/.local/share/nvim/lazy/keyforge.nvim
 
 # Build the game binary
 cd ~/.local/share/nvim/lazy/keyforge.nvim
@@ -72,7 +84,7 @@ make build
 :Keyforge
 
 " Using the default keybind
-<leader>kf
+<leader>K
 ```
 
 ### Controls
@@ -162,18 +174,17 @@ Complete challenges faster for bonus gold:
 ```lua
 require("keyforge").setup({
   -- Keybind to launch game (set to "" to disable)
-  keybind = "<leader>kf",
+  keybind = "<leader>K",
 
   -- Challenge keybinds
   keybind_next_challenge = "<leader>kn",
   keybind_complete = "<leader>kc",
   keybind_skip = "<leader>ks",
+  keybind_submit = "<CR>",
+  keybind_cancel = "<Esc>",
 
   -- Difficulty level: "easy", "normal", "hard"
   difficulty = "normal",
-
-  -- Use Nerd Font icons (set false for ASCII fallback)
-  use_nerd_fonts = true,
 
   -- Starting resources
   starting_gold = 200,
@@ -181,6 +192,9 @@ require("keyforge").setup({
 
   -- Auto-build binary on first run
   auto_build = true,
+
+  -- Challenge timeout in seconds
+  challenge_timeout = 300,
 })
 ```
 
