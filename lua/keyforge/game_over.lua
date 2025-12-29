@@ -7,15 +7,14 @@ M._buf = nil
 --- Show the game over or victory screen
 ---@param params table Game state params (state, wave, gold, health, towers)
 function M.show(params)
-  local keyforge = require("keyforge")
   local state = params.state or "game_over"
 
   -- Close any existing window
   M.close()
 
   -- Build content based on state
-  local lines = {}
-  local title = ""
+  local lines
+  local title
 
   if state == "victory" then
     title = " VICTORY! "

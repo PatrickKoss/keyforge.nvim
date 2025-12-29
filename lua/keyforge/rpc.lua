@@ -247,7 +247,7 @@ function M.disconnect()
   M._socket_path = nil
 
   -- Cancel pending requests
-  for id, callback in pairs(M._pending_requests) do
+  for _, callback in pairs(M._pending_requests) do
     callback({ message = "RPC disconnected" }, nil)
   end
   M._pending_requests = {}
@@ -269,17 +269,17 @@ end
 
 --- Connect to an RPC channel (job ID) - DEPRECATED
 --- This is kept for backward compatibility but no longer used
----@param job_id number
+---@param _job_id number (unused, deprecated)
 ---@deprecated Use M.connect(socket_path) instead
-function M.connect_job(job_id)
+function M.connect_job(_job_id)
   -- No-op - socket connection replaces job-based RPC
   vim.notify("rpc.connect_job is deprecated, use socket connection", vim.log.levels.WARN)
 end
 
 --- Handle stdout data from job - DEPRECATED
----@param data string[]
+---@param _data string[] (unused, deprecated)
 ---@deprecated Socket-based RPC handles data internally
-function M.on_stdout(data)
+function M.on_stdout(_data)
   -- No-op - socket connection handles data internally
 end
 
@@ -288,7 +288,6 @@ end
 --- Handler for gold_update notifications from the game
 ---@param params table GoldUpdate params
 function M.handle_gold_update(params)
-  local gold = params.gold or 0
   local earned = params.earned or 0
   local source = params.source or "unknown"
   local speed_bonus = params.speed_bonus or 1.0
@@ -388,8 +387,8 @@ function M.handle_victory(params)
 end
 
 --- Handler for game_ready notification from the game
----@param params table GameReady params
-function M.handle_game_ready(params)
+---@param _params table GameReady params (reserved for future use)
+function M.handle_game_ready(_params)
   local keyforge = require("keyforge")
 
   vim.schedule(function()

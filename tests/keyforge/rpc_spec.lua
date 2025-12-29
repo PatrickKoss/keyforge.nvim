@@ -54,7 +54,7 @@ describe("rpc", function()
       local received_error = nil
 
       rpc._job_id = 123
-      rpc._pending_requests[1] = function(err, result)
+      rpc._pending_requests[1] = function(err, _result)
         callback_called = true
         received_error = err
       end
@@ -95,7 +95,7 @@ describe("rpc", function()
       local callback_called = false
       local received_result = nil
 
-      rpc._pending_requests[42] = function(err, result)
+      rpc._pending_requests[42] = function(_err, result)
         callback_called = true
         received_result = result
       end
@@ -114,7 +114,7 @@ describe("rpc", function()
     it("should pass error to callback on error response", function()
       local received_error = nil
 
-      rpc._pending_requests[43] = function(err, result)
+      rpc._pending_requests[43] = function(err, _result)
         received_error = err
       end
 

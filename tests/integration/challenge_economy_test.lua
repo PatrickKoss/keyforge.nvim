@@ -5,8 +5,6 @@
 -- nvim --headless -c "luafile tests/integration/challenge_economy_test.lua"
 
 local function test_economy_balance()
-  local engine = {}
-  local challenges = require("keyforge.challenges")
   local challenge_queue = require("keyforge.challenge_queue")
 
   -- Simulate game economy

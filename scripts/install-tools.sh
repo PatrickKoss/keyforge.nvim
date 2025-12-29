@@ -48,7 +48,6 @@ install_golangci_lint() {
 
 install_luacheck() {
     local target="$BIN_DIR/luacheck"
-    local lua_modules="$PROJECT_ROOT/lua_modules"
 
     if [[ -x "$target" ]]; then
         local current_version
@@ -60,15 +59,23 @@ install_luacheck() {
         warn "luacheck version mismatch (have: $current_version, want: $LUACHECK_VERSION), reinstalling..."
     fi
 
-    # Check if luarocks is available
-    if ! command -v luarocks &> /dev/null; then
-        error "luarocks is not installed. Please install it first:
-  - Ubuntu/Debian: sudo apt install luarocks
-  - macOS: brew install luarocks
-  - Arch: sudo pacman -S luarocks"
+    # Try different installation methods in order of preference
+    if command -v luarocks &> /dev/null; then
+        install_luacheck_luarocks "$target"
+    elif command -v docker &> /dev/null; then
+        install_luacheck_docker "$target"
+    else
+        error "Neither luarocks nor docker is available. Please install one of:
+  - luarocks: sudo apt install luarocks (Ubuntu/Debian)
+  - docker: https://docs.docker.com/get-docker/"
     fi
+}
 
-    info "Installing luacheck $LUACHECK_VERSION..."
+install_luacheck_luarocks() {
+    local target="$1"
+    local lua_modules="$PROJECT_ROOT/lua_modules"
+
+    info "Installing luacheck $LUACHECK_VERSION via luarocks..."
 
     # Install luacheck locally using luarocks
     luarocks install --tree="$lua_modules" luacheck "$LUACHECK_VERSION"
@@ -85,9 +92,43 @@ WRAPPER
     chmod +x "$target"
 
     if [[ -x "$target" ]]; then
-        info "luacheck installed successfully"
+        info "luacheck installed successfully via luarocks"
     else
         error "Failed to install luacheck"
+    fi
+}
+
+install_luacheck_docker() {
+    local target="$1"
+    local image="ghcr.io/lunarmodules/luacheck:v${LUACHECK_VERSION}"
+
+    info "Installing luacheck $LUACHECK_VERSION via docker..."
+
+    # Pull the docker image
+    if ! docker pull "$image" > /dev/null 2>&1; then
+        error "Failed to pull docker image: $image"
+    fi
+
+    # Create wrapper script that runs luacheck via docker
+    cat > "$target" << WRAPPER
+#!/usr/bin/env bash
+# Luacheck wrapper using Docker
+# Image: $image
+
+# Get the project root (parent of bin/)
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="\$(dirname "\$SCRIPT_DIR")"
+
+# Run luacheck in docker, mounting project root
+exec docker run --rm -v "\$PROJECT_ROOT:/data" -w /data "$image" "\$@"
+WRAPPER
+    chmod +x "$target"
+
+    # Verify wrapper works
+    if [[ -x "$target" ]] && "$target" --version > /dev/null 2>&1; then
+        info "luacheck installed successfully via docker"
+    else
+        error "Failed to install luacheck docker wrapper"
     fi
 }
 

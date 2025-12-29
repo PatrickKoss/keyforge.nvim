@@ -191,7 +191,6 @@ function M.complete_challenge()
   end
 
   local final_content = M.get_buffer_content()
-  local keyforge = require("keyforge")
   local challenges = require("keyforge.challenges")
 
   -- Validate the challenge
