@@ -377,12 +377,30 @@ func (s *SocketServer) Notify(method string, params interface{}) error {
 }
 
 // RequestChallenge asks Neovim to present a challenge.
-func (s *SocketServer) RequestChallenge(requestID, category string, difficulty int) error {
-	return s.Notify(MethodRequestChallenge, &ChallengeRequest{
-		RequestID:  requestID,
-		Category:   category,
-		Difficulty: difficulty,
-	})
+func (s *SocketServer) RequestChallenge(requestID string, challenge *ChallengeData) error {
+	req := &ChallengeRequest{
+		RequestID: requestID,
+	}
+	if challenge != nil {
+		req.ChallengeID = challenge.ID
+		req.ChallengeName = challenge.Name
+		req.Category = challenge.Category
+		req.Difficulty = challenge.Difficulty
+		req.Description = challenge.Description
+		req.InitialBuffer = challenge.InitialBuffer
+		req.ExpectedBuffer = challenge.ExpectedBuffer
+		req.ValidationType = challenge.ValidationType
+		req.ExpectedCursor = challenge.ExpectedCursor
+		req.ExpectedContent = challenge.ExpectedContent
+		req.FunctionName = challenge.FunctionName
+		req.CursorStart = challenge.CursorStart
+		req.ParKeystrokes = challenge.ParKeystrokes
+		req.GoldBase = challenge.GoldBase
+		req.Filetype = challenge.Filetype
+		req.HintAction = challenge.HintAction
+		req.HintFallback = challenge.HintFallback
+	}
+	return s.Notify(MethodRequestChallenge, req)
 }
 
 // SendGameState sends current game state to Neovim.

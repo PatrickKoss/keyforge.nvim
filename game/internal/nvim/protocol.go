@@ -4,8 +4,29 @@ package nvim
 
 // RPCClient is the interface for sending RPC messages to Neovim.
 // Both Client (stdin/stderr) and SocketServer implement this.
+// ChallengeData holds the challenge information needed for RPC.
+type ChallengeData struct {
+	ID              string
+	Name            string
+	Category        string
+	Difficulty      int
+	Description     string
+	InitialBuffer   string
+	ExpectedBuffer  string
+	ValidationType  string
+	ExpectedCursor  []int
+	ExpectedContent string
+	FunctionName    string
+	CursorStart     []int
+	ParKeystrokes   int
+	GoldBase        int
+	Filetype        string
+	HintAction      string
+	HintFallback    string
+}
+
 type RPCClient interface {
-	RequestChallenge(requestID, category string, difficulty int) error
+	RequestChallenge(requestID string, challenge *ChallengeData) error
 	SendGameState(state string, wave, gold, health, enemies, towers int) error
 	SendGameReady() error
 	SendGoldUpdate(gold, earned int, source string, speedBonus float64) error
@@ -62,10 +83,26 @@ const (
 // Game -> Neovim message types
 
 // ChallengeRequest asks Neovim to present a challenge to the user.
+// Now includes full challenge data so Neovim doesn't need its own challenge list.
 type ChallengeRequest struct {
-	RequestID  string `json:"request_id"`
-	Category   string `json:"category"`
-	Difficulty int    `json:"difficulty"`
+	RequestID       string `json:"request_id"`
+	Category        string `json:"category"`
+	Difficulty      int    `json:"difficulty"`
+	ChallengeID     string `json:"challenge_id,omitempty"`
+	ChallengeName   string `json:"challenge_name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	InitialBuffer   string `json:"initial_buffer,omitempty"`
+	ExpectedBuffer  string `json:"expected_buffer,omitempty"`
+	ValidationType  string `json:"validation_type,omitempty"`
+	ExpectedCursor  []int  `json:"expected_cursor,omitempty"`
+	ExpectedContent string `json:"expected_content,omitempty"`
+	FunctionName    string `json:"function_name,omitempty"`
+	CursorStart     []int  `json:"cursor_start,omitempty"`
+	ParKeystrokes   int    `json:"par_keystrokes,omitempty"`
+	GoldBase        int    `json:"gold_base,omitempty"`
+	Filetype        string `json:"filetype,omitempty"`
+	HintAction      string `json:"hint_action,omitempty"`
+	HintFallback    string `json:"hint_fallback,omitempty"`
 }
 
 // GameStateUpdate notifies Neovim of game state changes.

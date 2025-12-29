@@ -158,7 +158,12 @@ func TestSocketServerSendsRequestChallenge(t *testing.T) {
 	conn.Read(buf) // Discard game_ready notification
 
 	// Now send a request_challenge from the server
-	err = server.RequestChallenge("req_123", "movement", 2)
+	challenge := &ChallengeData{
+		ID:       "test_challenge",
+		Name:     "Test Challenge",
+		Category: "movement",
+	}
+	err = server.RequestChallenge("req_123", challenge)
 	if err != nil {
 		t.Fatalf("Failed to request challenge: %v", err)
 	}
@@ -214,7 +219,12 @@ func TestEndToEndChallengeFlow(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Step 1: Server requests a challenge
-	err = server.RequestChallenge("e2e_challenge_1", "lsp", 1)
+	challenge := &ChallengeData{
+		ID:       "e2e_test_challenge",
+		Name:     "E2E Test Challenge",
+		Category: "lsp",
+	}
+	err = server.RequestChallenge("e2e_challenge_1", challenge)
 	if err != nil {
 		t.Fatalf("Failed to request challenge: %v", err)
 	}

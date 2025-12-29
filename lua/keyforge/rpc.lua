@@ -339,7 +339,8 @@ function M.handle_request_challenge(params)
     keyforge._game_state = "challenge_waiting"
 
     -- Start the challenge using the new file-based buffer system
-    challenge_buffer.start_challenge(params.request_id, params.category, params.difficulty)
+    -- Pass the full params which now includes challenge data from Go engine
+    challenge_buffer.start_challenge(params.request_id, params)
   end)
 
   return { ok = true }

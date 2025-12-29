@@ -566,7 +566,7 @@ func (m *Model) startChallenge() {
 		m.NvimChallengeCount++
 		m.NvimChallengeID = fmt.Sprintf("challenge_%d", m.NvimChallengeCount)
 
-		// Request challenge from Neovim - game PAUSES while user edits
+		// Use selector to pick challenge (with variety and anti-repetition)
 		difficulty := 1
 		if m.Game.Wave >= 4 {
 			difficulty = 2
@@ -575,7 +575,37 @@ func (m *Model) startChallenge() {
 			difficulty = 3
 		}
 
-		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, category, difficulty); err != nil {
+		// Get challenge from selector
+		var challengeData *nvim.ChallengeData
+		if m.ChallengeSelector != nil {
+			challenge := m.ChallengeSelector.GetChallenge(category, difficulty)
+			if challenge == nil {
+				challenge = m.ChallengeSelector.GetChallenge("", 0)
+			}
+			if challenge != nil {
+				challengeData = &nvim.ChallengeData{
+					ID:              challenge.ID,
+					Name:            challenge.Name,
+					Category:        challenge.Category,
+					Difficulty:      challenge.Difficulty,
+					Description:     challenge.Description,
+					InitialBuffer:   challenge.InitialBuffer,
+					ExpectedBuffer:  challenge.ExpectedBuffer,
+					ValidationType:  challenge.ValidationType,
+					ExpectedCursor:  challenge.ExpectedCursor,
+					ExpectedContent: challenge.ExpectedContent,
+					FunctionName:    challenge.FunctionName,
+					CursorStart:     challenge.CursorStart,
+					ParKeystrokes:   challenge.ParKeystrokes,
+					GoldBase:        challenge.GoldBase,
+					Filetype:        challenge.Filetype,
+					HintAction:      challenge.HintAction,
+					HintFallback:    challenge.HintFallback,
+				}
+			}
+		}
+
+		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, challengeData); err != nil {
 			// Failed to request challenge, don't enter waiting state
 			m.NvimChallengeID = ""
 			return

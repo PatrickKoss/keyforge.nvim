@@ -28,16 +28,14 @@ type MockRPCClient struct {
 }
 
 type ChallengeRequestRecord struct {
-	RequestID  string
-	Category   string
-	Difficulty int
+	RequestID     string
+	ChallengeData *nvim.ChallengeData
 }
 
-func (m *MockRPCClient) RequestChallenge(requestID, category string, difficulty int) error {
+func (m *MockRPCClient) RequestChallenge(requestID string, challenge *nvim.ChallengeData) error {
 	m.ChallengeRequests = append(m.ChallengeRequests, ChallengeRequestRecord{
-		RequestID:  requestID,
-		Category:   category,
-		Difficulty: difficulty,
+		RequestID:     requestID,
+		ChallengeData: challenge,
 	})
 	return nil
 }

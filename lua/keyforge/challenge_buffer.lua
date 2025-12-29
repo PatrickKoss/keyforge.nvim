@@ -203,9 +203,8 @@ end
 
 --- Start a new challenge
 ---@param request_id string RPC request ID from game
----@param category string Challenge category
----@param difficulty number Difficulty level (1-3)
-function M.start_challenge(request_id, category, difficulty)
+---@param challenge_data table|nil Challenge data from game engine (or nil for legacy fallback)
+function M.start_challenge(request_id, challenge_data)
   local keyforge = require("keyforge")
 
   -- Don't start if one is already active
@@ -214,11 +213,37 @@ function M.start_challenge(request_id, category, difficulty)
     return
   end
 
-  -- Get a matching challenge
-  local challenge = challenges.get_random_challenge(category, difficulty)
-  if not challenge then
-    -- Fallback to any challenge
-    challenge = challenges.get_random_challenge(nil, nil)
+  -- Use challenge from game engine (Go), or fallback to local sample challenges
+  local challenge
+  if challenge_data and challenge_data.challenge_id then
+    -- New protocol: full challenge data from Go engine
+    challenge = {
+      id = challenge_data.challenge_id,
+      name = challenge_data.challenge_name,
+      category = challenge_data.category,
+      difficulty = challenge_data.difficulty,
+      description = challenge_data.description,
+      initial_buffer = challenge_data.initial_buffer,
+      expected_buffer = challenge_data.expected_buffer,
+      validation_type = challenge_data.validation_type,
+      expected_cursor = challenge_data.expected_cursor,
+      expected_content = challenge_data.expected_content,
+      function_name = challenge_data.function_name,
+      cursor_start = challenge_data.cursor_start,
+      par_keystrokes = challenge_data.par_keystrokes,
+      gold_base = challenge_data.gold_base,
+      filetype = challenge_data.filetype,
+      hint_action = challenge_data.hint_action,
+      hint_fallback = challenge_data.hint_fallback,
+    }
+  else
+    -- Legacy fallback: use local sample challenges
+    local category = challenge_data and challenge_data.category
+    local difficulty = challenge_data and challenge_data.difficulty
+    challenge = challenges.get_random_challenge(category, difficulty)
+    if not challenge then
+      challenge = challenges.get_random_challenge(nil, nil)
+    end
   end
 
   if not challenge then
