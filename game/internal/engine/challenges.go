@@ -29,6 +29,37 @@ type Challenge struct {
 	ParKeystrokes   int    `yaml:"par_keystrokes"`
 	GoldBase        int    `yaml:"gold_base"`
 	RequiredPlugin  string `yaml:"required_plugin,omitempty"`
+	HintAction      string `yaml:"hint_action,omitempty"`
+	HintFallback    string `yaml:"hint_fallback,omitempty"`
+}
+
+// DurationTier returns the duration tier based on par_keystrokes.
+// quick: 1-5, standard: 6-15, complex: 16-40, expert: 40+
+func (c *Challenge) DurationTier() string {
+	switch {
+	case c.ParKeystrokes <= 5:
+		return "quick"
+	case c.ParKeystrokes <= 15:
+		return "standard"
+	case c.ParKeystrokes <= 40:
+		return "complex"
+	default:
+		return "expert"
+	}
+}
+
+// ParTime returns the par time in seconds based on duration tier.
+func (c *Challenge) ParTime() int {
+	switch c.DurationTier() {
+	case "quick":
+		return 5
+	case "standard":
+		return 15
+	case "complex":
+		return 45
+	default:
+		return 90
+	}
 }
 
 // ChallengeFile represents the YAML file structure.

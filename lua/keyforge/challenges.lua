@@ -1,6 +1,364 @@
 --- Challenge validation and scoring for Keyforge
 local M = {}
 
+-- Plugin detection cache (persists for session)
+M._plugin_cache = {}
+
+-- Action patterns for runtime keymap resolution
+-- Maps hint_action values to search patterns for rhs and desc
+M.action_patterns = {
+  -- Telescope actions
+  find_files = {
+    rhs = { "telescope%.builtin%.find_files", "Telescope find_files", "fzf#" },
+    desc = { "find file", "find files", "file finder" },
+  },
+  live_grep = {
+    rhs = { "telescope%.builtin%.live_grep", "Telescope live_grep", "live grep" },
+    desc = { "live grep", "search in files", "grep" },
+  },
+  buffers = {
+    rhs = { "telescope%.builtin%.buffers", "Telescope buffers" },
+    desc = { "buffers", "find buffer" },
+  },
+  oldfiles = {
+    rhs = { "telescope%.builtin%.oldfiles", "Telescope oldfiles", "recent" },
+    desc = { "recent", "oldfiles", "old files" },
+  },
+  help_tags = {
+    rhs = { "telescope%.builtin%.help_tags", "Telescope help_tags" },
+    desc = { "help", "help tags" },
+  },
+  keymaps = {
+    rhs = { "telescope%.builtin%.keymaps", "Telescope keymaps" },
+    desc = { "keymap", "keymaps" },
+  },
+  current_buffer_fuzzy = {
+    rhs = { "telescope%.builtin%.current_buffer_fuzzy_find", "current_buffer_fuzzy" },
+    desc = { "fuzzy find", "current buffer" },
+  },
+  resume = {
+    rhs = { "telescope%.builtin%.resume", "Telescope resume" },
+    desc = { "resume" },
+  },
+
+  -- LSP actions
+  goto_definition = {
+    rhs = { "vim%.lsp%.buf%.definition", "lsp.*definition" },
+    desc = { "definition", "go to def" },
+  },
+  goto_declaration = {
+    rhs = { "vim%.lsp%.buf%.declaration", "lsp.*declaration" },
+    desc = { "declaration" },
+  },
+  goto_implementation = {
+    rhs = { "vim%.lsp%.buf%.implementation", "lsp.*implementation" },
+    desc = { "implementation" },
+  },
+  find_references = {
+    rhs = { "vim%.lsp%.buf%.references", "lsp.*references" },
+    desc = { "references", "find ref" },
+  },
+  hover = {
+    rhs = { "vim%.lsp%.buf%.hover" },
+    desc = { "hover" },
+  },
+  signature_help = {
+    rhs = { "vim%.lsp%.buf%.signature_help" },
+    desc = { "signature" },
+  },
+  code_action = {
+    rhs = { "vim%.lsp%.buf%.code_action", "lsp.*code_action" },
+    desc = { "code action" },
+  },
+  rename = {
+    rhs = { "vim%.lsp%.buf%.rename", "lsp.*rename" },
+    desc = { "rename" },
+  },
+  format = {
+    rhs = { "vim%.lsp%.buf%.format", "conform%.format", "format" },
+    desc = { "format" },
+  },
+  type_definition = {
+    rhs = { "vim%.lsp%.buf%.type_definition" },
+    desc = { "type def" },
+  },
+  document_symbols = {
+    rhs = { "document_symbols", "DocumentSymbol" },
+    desc = { "document symbol" },
+  },
+  workspace_symbols = {
+    rhs = { "workspace_symbols", "WorkspaceSymbol" },
+    desc = { "workspace symbol" },
+  },
+
+  -- Diagnostics
+  diagnostic_float = {
+    rhs = { "vim%.diagnostic%.open_float", "diagnostic.*float" },
+    desc = { "diagnostic", "show error" },
+  },
+  diagnostic_next = {
+    rhs = { "vim%.diagnostic%.goto_next", "diagnostic.*next" },
+    desc = { "next diagnostic" },
+  },
+  diagnostic_prev = {
+    rhs = { "vim%.diagnostic%.goto_prev", "diagnostic.*prev" },
+    desc = { "prev diagnostic" },
+  },
+
+  -- Git/gitsigns actions
+  git_next_hunk = {
+    rhs = { "gitsigns%.next_hunk", "next_hunk" },
+    desc = { "next hunk" },
+  },
+  git_prev_hunk = {
+    rhs = { "gitsigns%.prev_hunk", "prev_hunk" },
+    desc = { "prev hunk" },
+  },
+  git_stage_hunk = {
+    rhs = { "gitsigns%.stage_hunk", "stage_hunk" },
+    desc = { "stage hunk" },
+  },
+  git_reset_hunk = {
+    rhs = { "gitsigns%.reset_hunk", "reset_hunk" },
+    desc = { "reset hunk" },
+  },
+  git_preview_hunk = {
+    rhs = { "gitsigns%.preview_hunk", "preview_hunk" },
+    desc = { "preview hunk" },
+  },
+  git_blame_line = {
+    rhs = { "gitsigns%.blame_line", "blame_line" },
+    desc = { "blame", "git blame" },
+  },
+  git_toggle_blame = {
+    rhs = { "gitsigns%.toggle_current_line_blame", "toggle.*blame" },
+    desc = { "toggle blame" },
+  },
+  git_diff_this = {
+    rhs = { "gitsigns%.diffthis", "diff_this" },
+    desc = { "diff" },
+  },
+  git_stage_buffer = {
+    rhs = { "gitsigns%.stage_buffer", "stage_buffer" },
+    desc = { "stage buffer" },
+  },
+
+  -- Harpoon actions
+  harpoon_add = {
+    rhs = { "harpoon.*add", "mark%.add_file" },
+    desc = { "add.*harpoon", "harpoon add" },
+  },
+  harpoon_menu = {
+    rhs = { "harpoon.*menu", "harpoon.*toggle" },
+    desc = { "harpoon menu", "harpoon toggle" },
+  },
+  harpoon_nav_1 = {
+    rhs = { "harpoon.*1", "nav_file%(1%)" },
+    desc = { "harpoon 1" },
+  },
+  harpoon_nav_2 = {
+    rhs = { "harpoon.*2", "nav_file%(2%)" },
+    desc = { "harpoon 2" },
+  },
+
+  -- Surround actions (mini.surround or nvim-surround)
+  surround_add = {
+    rhs = { "surround%.add", "MiniSurround%.add" },
+    desc = { "surround add", "add surround" },
+  },
+  surround_delete = {
+    rhs = { "surround%.delete", "MiniSurround%.delete" },
+    desc = { "surround delete", "delete surround" },
+  },
+  surround_replace = {
+    rhs = { "surround%.replace", "MiniSurround%.replace" },
+    desc = { "surround replace", "change surround" },
+  },
+
+  -- Window management
+  window_split_horizontal = {
+    rhs = { "split" },
+    desc = { "split horizontal", "horizontal split" },
+  },
+  window_split_vertical = {
+    rhs = { "vsplit" },
+    desc = { "split vertical", "vertical split" },
+  },
+
+  -- Buffer management
+  buffer_close = {
+    rhs = { "bdelete", "bd", "Bdelete" },
+    desc = { "close buffer", "delete buffer" },
+  },
+  buffer_save = {
+    rhs = { ":w<", "write" },
+    desc = { "save", "write" },
+  },
+
+  -- Folding (nvim-ufo)
+  fold_peek = {
+    rhs = { "ufo%.peekFoldedLines", "preview.*fold" },
+    desc = { "peek fold", "preview fold" },
+  },
+}
+
+-- Plugin name aliases for detection
+M.plugin_aliases = {
+  ["telescope"] = { "telescope", "telescope.nvim", "telescope.builtin" },
+  ["nvim-surround"] = { "nvim-surround", "mini.surround", "surround" },
+  ["mini.surround"] = { "mini.surround", "nvim-surround", "surround" },
+  ["harpoon"] = { "harpoon" },
+  ["gitsigns"] = { "gitsigns", "gitsigns.nvim" },
+  ["nvim-tree"] = { "nvim-tree", "nvim-tree.lua", "neo-tree" },
+  ["nvim-ufo"] = { "ufo", "nvim-ufo" },
+  ["conform"] = { "conform", "conform.nvim" },
+  ["diffview"] = { "diffview", "diffview.nvim" },
+}
+
+--- Check if a plugin is available
+---@param name string Plugin name to check
+---@return boolean
+function M.plugin_available(name)
+  -- Check cache first
+  if M._plugin_cache[name] ~= nil then
+    return M._plugin_cache[name]
+  end
+
+  -- Get aliases to try
+  local aliases = M.plugin_aliases[name] or { name, name:gsub("-", "_"), name:gsub("%.nvim$", "") }
+
+  for _, alias in ipairs(aliases) do
+    -- Try requiring the module
+    local ok = pcall(require, alias)
+    if ok then
+      M._plugin_cache[name] = true
+      return true
+    end
+  end
+
+  -- Try checking if command exists (for vimscript plugins)
+  local cmd_name = name:gsub("%-", ""):gsub("^%l", string.upper)
+  if vim.fn.exists(":" .. cmd_name) == 2 then
+    M._plugin_cache[name] = true
+    return true
+  end
+
+  M._plugin_cache[name] = false
+  return false
+end
+
+--- Resolve a hint_action to the user's actual keymap
+---@param action string The action identifier (e.g., "find_files")
+---@return string|nil lhs The keymap (e.g., "<leader>ff") or nil if not found
+---@return string|nil desc The keymap description or nil
+function M.resolve_keymap(action)
+  local patterns = M.action_patterns[action]
+  if not patterns then
+    return nil, nil
+  end
+
+  -- Search all normal mode keymaps
+  for _, keymap in ipairs(vim.api.nvim_get_keymap("n")) do
+    -- Check rhs patterns
+    if keymap.rhs then
+      for _, pattern in ipairs(patterns.rhs or {}) do
+        if keymap.rhs:lower():find(pattern:lower()) then
+          return keymap.lhs, keymap.desc
+        end
+      end
+    end
+    -- Check callback (for lua functions, check desc)
+    if keymap.desc then
+      for _, pattern in ipairs(patterns.desc or {}) do
+        if keymap.desc:lower():find(pattern:lower()) then
+          return keymap.lhs, keymap.desc
+        end
+      end
+    end
+  end
+
+  return nil, nil -- Fallback to hint_fallback
+end
+
+--- Format a keymap for display (convert <leader> to actual key, etc.)
+---@param lhs string The raw keymap lhs (e.g., "<leader>ff")
+---@return string formatted The formatted keymap (e.g., "Space f f")
+function M.format_keymap_display(lhs)
+  if not lhs then
+    return ""
+  end
+
+  -- Get the mapleader value
+  local leader = vim.g.mapleader or "\\"
+  local leader_display = "Space"
+  if leader == "\\" then
+    leader_display = "\\"
+  elseif leader == "," then
+    leader_display = ","
+  end
+
+  local formatted = lhs
+  -- Replace <leader> with actual leader key display
+  formatted = formatted:gsub("<[Ll]eader>", leader_display .. " ")
+  -- Replace common special keys
+  formatted = formatted:gsub("<[Cc]%-(%w)>", "Ctrl+%1 ")
+  formatted = formatted:gsub("<[Ss]%-(%w)>", "Shift+%1 ")
+  formatted = formatted:gsub("<[Aa]%-(%w)>", "Alt+%1 ")
+  formatted = formatted:gsub("<[Cc][Rr]>", "Enter")
+  formatted = formatted:gsub("<[Ee][Ss][Cc]>", "Esc")
+  formatted = formatted:gsub("<[Tt][Aa][Bb]>", "Tab")
+
+  -- Add spaces between characters for readability (but not for special keys)
+  -- Only if it's a simple sequence like "ff" -> "f f"
+  if not formatted:find("[%+%s]") and #formatted > 1 then
+    formatted = formatted:gsub("(.)", "%1 "):gsub("%s+$", "")
+  end
+
+  return formatted
+end
+
+--- Get the hint for a challenge (resolved keymap or fallback)
+---@param challenge table Challenge data
+---@return string hint The hint to display
+function M.get_challenge_hint(challenge)
+  -- If no hint_action, return the description as-is
+  if not challenge.hint_action then
+    return challenge.description or ""
+  end
+
+  -- Try to resolve the keymap
+  local lhs, desc = M.resolve_keymap(challenge.hint_action)
+  if lhs then
+    local formatted = M.format_keymap_display(lhs)
+    local hint = string.format("Use %s", formatted)
+    if desc then
+      hint = hint .. " (" .. desc .. ")"
+    end
+    return hint
+  end
+
+  -- Fallback to hint_fallback or description
+  return challenge.hint_fallback or challenge.description or ""
+end
+
+--- Filter challenges by available plugins
+---@param challenges table[] List of challenges
+---@return table[] filtered Challenges the user can complete
+function M.filter_challenges_by_plugins(challenges)
+  local available = {}
+  for _, challenge in ipairs(challenges) do
+    if not challenge.required_plugin or M.plugin_available(challenge.required_plugin) then
+      table.insert(available, challenge)
+    end
+  end
+  return available
+end
+
+--- Clear the plugin cache (useful for testing or when plugins change)
+function M.clear_plugin_cache()
+  M._plugin_cache = {}
+end
+
 -- Keystroke tracking state
 M._tracking = false
 M._keystroke_count = 0

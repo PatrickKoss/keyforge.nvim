@@ -100,6 +100,7 @@ function M._show_challenge_info()
   end
 
   local challenge = M._challenge_data
+  local challenges_mod = require("keyforge.challenges")
   local lines = {
     "╭─── CHALLENGE ───╮",
     string.format("│ %s", challenge.name or "Unnamed"),
@@ -110,6 +111,13 @@ function M._show_challenge_info()
   local desc = challenge.description or "Complete the editing task"
   for _, line in ipairs(vim.split(desc, "\n")) do
     table.insert(lines, string.format("│ %s", line))
+  end
+
+  -- Add resolved hint if available
+  local hint = challenges_mod.get_challenge_hint(challenge)
+  if hint and hint ~= desc then
+    table.insert(lines, "├──────────────────")
+    table.insert(lines, string.format("│ Hint: %s", hint))
   end
 
   table.insert(lines, "├──────────────────")

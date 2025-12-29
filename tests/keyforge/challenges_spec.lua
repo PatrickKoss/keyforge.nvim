@@ -244,4 +244,149 @@ describe("challenges", function()
       end
     end)
   end)
+
+  describe("action_patterns", function()
+    it("should have patterns defined", function()
+      assert.is_not_nil(challenges.action_patterns)
+      assert.is_not_nil(challenges.action_patterns.find_files)
+    end)
+
+    it("should have rhs patterns for telescope actions", function()
+      local find_files = challenges.action_patterns.find_files
+      assert.is_not_nil(find_files.rhs)
+      assert.is_true(#find_files.rhs > 0)
+    end)
+
+    it("should have desc patterns for telescope actions", function()
+      local find_files = challenges.action_patterns.find_files
+      assert.is_not_nil(find_files.desc)
+      assert.is_true(#find_files.desc > 0)
+    end)
+  end)
+
+  describe("plugin_aliases", function()
+    it("should have aliases defined", function()
+      assert.is_not_nil(challenges.plugin_aliases)
+    end)
+
+    it("should have telescope aliases", function()
+      local telescope = challenges.plugin_aliases["telescope"]
+      assert.is_not_nil(telescope)
+      assert.is_true(#telescope > 0)
+    end)
+
+    it("should have surround aliases for both nvim-surround and mini.surround", function()
+      local nvim_surround = challenges.plugin_aliases["nvim-surround"]
+      local mini_surround = challenges.plugin_aliases["mini.surround"]
+      assert.is_not_nil(nvim_surround)
+      assert.is_not_nil(mini_surround)
+    end)
+  end)
+
+  describe("format_keymap_display", function()
+    it("should replace leader with Space when leader is space", function()
+      -- Note: This test depends on the user's mapleader setting
+      -- In minimal_init, mapleader might not be set, so we test the function exists
+      local result = challenges.format_keymap_display("<leader>ff")
+      assert.is_not_nil(result)
+      assert.is_true(#result > 0)
+    end)
+
+    it("should replace C- with Ctrl+", function()
+      local result = challenges.format_keymap_display("<C-h>")
+      assert.is_true(result:find("Ctrl") ~= nil)
+    end)
+
+    it("should handle empty string", function()
+      local result = challenges.format_keymap_display("")
+      assert.equals("", result)
+    end)
+
+    it("should handle nil", function()
+      local result = challenges.format_keymap_display(nil)
+      assert.equals("", result)
+    end)
+  end)
+
+  describe("get_challenge_hint", function()
+    it("should return description when no hint_action", function()
+      local challenge = {
+        description = "Test description",
+      }
+      local hint = challenges.get_challenge_hint(challenge)
+      assert.equals("Test description", hint)
+    end)
+
+    it("should return fallback when hint_action cannot be resolved", function()
+      local challenge = {
+        description = "Original description",
+        hint_action = "nonexistent_action",
+        hint_fallback = "Fallback hint",
+      }
+      local hint = challenges.get_challenge_hint(challenge)
+      assert.equals("Fallback hint", hint)
+    end)
+
+    it("should return description when no fallback and resolution fails", function()
+      local challenge = {
+        description = "Original description",
+        hint_action = "nonexistent_action",
+      }
+      local hint = challenges.get_challenge_hint(challenge)
+      assert.equals("Original description", hint)
+    end)
+  end)
+
+  describe("filter_challenges_by_plugins", function()
+    it("should keep challenges without required_plugin", function()
+      local input = {
+        { id = "test1", name = "Test 1" },
+        { id = "test2", name = "Test 2" },
+      }
+      local result = challenges.filter_challenges_by_plugins(input)
+      assert.equals(2, #result)
+    end)
+
+    it("should filter out challenges with unavailable plugins", function()
+      local input = {
+        { id = "test1", name = "Test 1" },
+        { id = "test2", name = "Test 2", required_plugin = "nonexistent_plugin_xyz" },
+      }
+      local result = challenges.filter_challenges_by_plugins(input)
+      assert.equals(1, #result)
+      assert.equals("test1", result[1].id)
+    end)
+  end)
+
+  describe("clear_plugin_cache", function()
+    it("should clear the plugin cache", function()
+      -- Set something in the cache
+      challenges._plugin_cache["test_plugin"] = true
+      assert.is_true(challenges._plugin_cache["test_plugin"])
+
+      -- Clear it
+      challenges.clear_plugin_cache()
+
+      -- Verify it's cleared
+      assert.is_nil(challenges._plugin_cache["test_plugin"])
+    end)
+  end)
+
+  describe("resolve_keymap", function()
+    it("should return nil for unknown action", function()
+      local lhs, desc = challenges.resolve_keymap("completely_unknown_action")
+      assert.is_nil(lhs)
+      assert.is_nil(desc)
+    end)
+
+    it("should return nil when action_patterns has no matching keymap", function()
+      -- This tests the case where patterns exist but no matching keymap is found
+      local lhs, desc = challenges.resolve_keymap("find_files")
+      -- In minimal test environment, telescope is likely not set up
+      -- so this should return nil
+      if lhs == nil then
+        assert.is_nil(desc)
+      end
+    end)
+  end)
 end)

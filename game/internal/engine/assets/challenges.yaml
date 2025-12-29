@@ -1,12 +1,13 @@
 # Keyforge Challenge Definitions
 # Each challenge is a kata-style editing task
+# 150 challenges across 15 categories
 
 challenges:
   # ============================================
-  # MOVEMENT CHALLENGES
+  # MOVEMENT CHALLENGES (20 total)
   # ============================================
 
-  # Basic Movement
+  # Quick Movement (10)
   - id: movement_end_of_line
     name: "Jump to End"
     category: movement
@@ -33,24 +34,65 @@ challenges:
     par_keystrokes: 1
     gold_base: 20
 
-  - id: movement_word_forward
-    name: "Word Hop"
+  - id: movement_line_zero
+    name: "Column Zero"
     category: movement
     difficulty: 1
-    description: "Move forward 5 words using 5w"
+    description: "Move to column 0 using 0"
     filetype: text
     initial_buffer: |
-      one two three four five six seven eight
+          indented text here
+    cursor_start: [0, 10]
     validation_type: cursor_position
-    expected_cursor: [0, 24]
-    par_keystrokes: 2
-    gold_base: 25
+    expected_cursor: [0, 0]
+    par_keystrokes: 1
+    gold_base: 20
 
-  - id: movement_find_char
-    name: "Find the X"
+  - id: movement_word_forward
+    name: "Word Forward"
     category: movement
     difficulty: 1
-    description: "Jump to the letter 'x' using f"
+    description: "Move forward one word using w"
+    filetype: text
+    initial_buffer: |
+      one two three four five
+    validation_type: cursor_position
+    expected_cursor: [0, 4]
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: movement_word_backward
+    name: "Word Backward"
+    category: movement
+    difficulty: 1
+    description: "Move backward one word using b"
+    filetype: text
+    initial_buffer: |
+      one two three four five
+    cursor_start: [0, 14]
+    validation_type: cursor_position
+    expected_cursor: [0, 8]
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: movement_word_end
+    name: "Word End"
+    category: movement
+    difficulty: 1
+    description: "Move to end of word using e"
+    filetype: text
+    initial_buffer: |
+      hello world example
+    validation_type: cursor_position
+    expected_cursor: [0, 4]
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: movement_find_char
+    name: "Find Character"
+    category: movement
+    difficulty: 1
+    description: "Jump to the letter 'x' using fx"
     filetype: text
     initial_buffer: |
       The fox jumped over the box
@@ -59,10 +101,65 @@ challenges:
     par_keystrokes: 2
     gold_base: 25
 
+  - id: movement_till_char
+    name: "Till Character"
+    category: movement
+    difficulty: 1
+    description: "Move till (before) the letter 'x' using tx"
+    filetype: text
+    initial_buffer: |
+      The fox jumped over the box
+    validation_type: cursor_position
+    expected_cursor: [0, 5]
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: movement_find_char_back
+    name: "Find Backward"
+    category: movement
+    difficulty: 1
+    description: "Find 'o' backward using Fo"
+    filetype: text
+    initial_buffer: |
+      The fox jumped over the box
+    cursor_start: [0, 20]
+    validation_type: cursor_position
+    expected_cursor: [0, 17]
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: movement_till_char_back
+    name: "Till Backward"
+    category: movement
+    difficulty: 1
+    description: "Move till 'o' backward using To"
+    filetype: text
+    initial_buffer: |
+      The fox jumped over the box
+    cursor_start: [0, 20]
+    validation_type: cursor_position
+    expected_cursor: [0, 18]
+    par_keystrokes: 2
+    gold_base: 25
+
+  # Standard Movement (7)
+  - id: movement_word_forward_5
+    name: "Word Hop"
+    category: movement
+    difficulty: 2
+    description: "Move forward 5 words using 5w"
+    filetype: text
+    initial_buffer: |
+      one two three four five six seven eight
+    validation_type: cursor_position
+    expected_cursor: [0, 24]
+    par_keystrokes: 2
+    gold_base: 30
+
   - id: movement_goto_line
     name: "Line Jump"
     category: movement
-    difficulty: 1
+    difficulty: 2
     description: "Go to line 5 using 5G or :5"
     filetype: text
     initial_buffer: |
@@ -75,10 +172,10 @@ challenges:
     validation_type: cursor_position
     expected_cursor: [4, 0]
     par_keystrokes: 2
-    gold_base: 25
+    gold_base: 30
 
-  - id: movement_paragraph
-    name: "Paragraph Skip"
+  - id: movement_paragraph_forward
+    name: "Paragraph Forward"
     category: movement
     difficulty: 2
     description: "Jump to the next paragraph using }"
@@ -92,6 +189,23 @@ challenges:
       on this line.
     validation_type: cursor_position
     expected_cursor: [4, 0]
+    par_keystrokes: 1
+    gold_base: 30
+
+  - id: movement_paragraph_backward
+    name: "Paragraph Backward"
+    category: movement
+    difficulty: 2
+    description: "Jump to the previous paragraph using {"
+    filetype: text
+    initial_buffer: |
+      First paragraph with
+      multiple lines.
+
+      Second paragraph here.
+    cursor_start: [3, 0]
+    validation_type: cursor_position
+    expected_cursor: [0, 0]
     par_keystrokes: 1
     gold_base: 30
 
@@ -113,8 +227,8 @@ challenges:
     par_keystrokes: 1
     gold_base: 35
 
-  - id: movement_search
-    name: "Search Mission"
+  - id: movement_search_forward
+    name: "Search Forward"
     category: movement
     difficulty: 2
     description: "Search for 'error' using /error"
@@ -133,27 +247,23 @@ challenges:
     par_keystrokes: 7
     gold_base: 40
 
-  - id: movement_screen_top
-    name: "Top of Screen"
+  - id: movement_search_backward
+    name: "Search Backward"
     category: movement
     difficulty: 2
-    description: "Move to the top of the screen using H"
-    filetype: text
+    description: "Search backward for 'const' using ?const"
+    filetype: javascript
     initial_buffer: |
-      Line 1 - target
-      Line 2
-      Line 3
-      Line 4
-      Line 5
-      Line 6
-      Line 7
-      Line 8
-    cursor_start: [7, 0]
+      const first = 1;
+      const second = 2;
+      let current = 3;
+    cursor_start: [2, 0]
     validation_type: cursor_position
-    expected_cursor: [0, 0]
-    par_keystrokes: 1
-    gold_base: 25
+    expected_cursor: [1, 0]
+    par_keystrokes: 7
+    gold_base: 40
 
+  # Complex Movement (3)
   - id: movement_mark_jump
     name: "Mark and Return"
     category: movement
@@ -172,14 +282,139 @@ challenges:
     par_keystrokes: 6
     gold_base: 50
 
+  - id: movement_jump_list_back
+    name: "Jump Back"
+    category: movement
+    difficulty: 3
+    description: "Use Ctrl-O to jump back in the jump list"
+    filetype: text
+    initial_buffer: |
+      First location
+      Second location
+      Third location
+      Fourth location
+      Fifth location
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 45
+
+  - id: movement_jump_list_forward
+    name: "Jump Forward"
+    category: movement
+    difficulty: 3
+    description: "Use Ctrl-I to jump forward in the jump list"
+    filetype: text
+    initial_buffer: |
+      First location
+      Second location
+      Third location
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 45
+
   # ============================================
-  # TEXT OBJECT CHALLENGES
+  # TEXT OBJECT CHALLENGES (18 total)
   # ============================================
+
+  # Quick Text Objects (6)
+  - id: text_delete_word
+    name: "Delete Word"
+    category: text-objects
+    difficulty: 1
+    description: "Delete the word 'remove' using dw"
+    filetype: text
+    initial_buffer: |
+      Please remove this word
+    cursor_start: [0, 7]
+    expected_buffer: |
+      Please this word
+    validation_type: exact_match
+    par_keystrokes: 2
+    gold_base: 25
 
   - id: text_change_word
     name: "Change Word"
     category: text-objects
     difficulty: 1
+    description: "Change 'hello' to 'world' using cw"
+    filetype: text
+    initial_buffer: |
+      Say hello friend
+    cursor_start: [0, 4]
+    expected_buffer: |
+      Say world friend
+    validation_type: exact_match
+    par_keystrokes: 8
+    gold_base: 30
+
+  - id: text_delete_line
+    name: "Delete Line"
+    category: text-objects
+    difficulty: 1
+    description: "Delete the entire line using dd"
+    filetype: text
+    initial_buffer: |
+      Keep this line
+      Delete this line
+      Keep this too
+    cursor_start: [1, 0]
+    expected_buffer: |
+      Keep this line
+      Keep this too
+    validation_type: exact_match
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: text_yank_line
+    name: "Yank Line"
+    category: text-objects
+    difficulty: 1
+    description: "Yank the line and paste it below using yyp"
+    filetype: text
+    initial_buffer: |
+      Duplicate me
+    expected_buffer: |
+      Duplicate me
+      Duplicate me
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 25
+
+  - id: text_delete_to_end
+    name: "Delete to End"
+    category: text-objects
+    difficulty: 1
+    description: "Delete from cursor to end of line using D"
+    filetype: text
+    initial_buffer: |
+      Keep this delete this part
+    cursor_start: [0, 10]
+    expected_buffer: |
+      Keep this
+    validation_type: exact_match
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: text_change_to_end
+    name: "Change to End"
+    category: text-objects
+    difficulty: 1
+    description: "Change from cursor to end of line using C"
+    filetype: text
+    initial_buffer: |
+      Keep this old ending
+    cursor_start: [0, 10]
+    expected_buffer: |
+      Keep this new ending
+    validation_type: exact_match
+    par_keystrokes: 12
+    gold_base: 30
+
+  # Standard Text Objects (8)
+  - id: text_change_inner_word
+    name: "Change Inner Word"
+    category: text-objects
+    difficulty: 2
     description: "Change 'hello' to 'world' using ciw"
     filetype: text
     initial_buffer: |
@@ -188,6 +423,21 @@ challenges:
       Say world to everyone
     validation_type: exact_match
     par_keystrokes: 9
+    gold_base: 35
+
+  - id: text_delete_around_word
+    name: "Delete Around Word"
+    category: text-objects
+    difficulty: 2
+    description: "Delete the word including spaces using daw"
+    filetype: text
+    initial_buffer: |
+      one two three four
+    cursor_start: [0, 4]
+    expected_buffer: |
+      one three four
+    validation_type: exact_match
+    par_keystrokes: 3
     gold_base: 35
 
   - id: text_change_inner_quotes
@@ -204,26 +454,83 @@ challenges:
     par_keystrokes: 12
     gold_base: 45
 
-  - id: text_delete_around_parens
-    name: "Delete Parentheses"
+  - id: text_delete_inner_parens
+    name: "Delete Inside Parens"
     category: text-objects
     difficulty: 2
-    description: "Delete the parentheses and their contents using da("
+    description: "Delete everything inside parentheses using di("
     filetype: javascript
     initial_buffer: |
       console.log(getValue());
-    expected_buffer: |
-      console.log;
     cursor_start: [0, 12]
+    expected_buffer: |
+      console.log();
     validation_type: exact_match
     par_keystrokes: 3
     gold_base: 40
+
+  - id: text_change_inner_brackets
+    name: "Change Inside Brackets"
+    category: text-objects
+    difficulty: 2
+    description: "Change array contents using ci["
+    filetype: javascript
+    initial_buffer: |
+      const items = [1, 2, 3];
+    cursor_start: [0, 15]
+    expected_buffer: |
+      const items = [4, 5, 6];
+    validation_type: exact_match
+    par_keystrokes: 11
+    gold_base: 45
+
+  - id: text_delete_inner_braces
+    name: "Empty Function Body"
+    category: text-objects
+    difficulty: 2
+    description: "Delete everything inside braces using di{"
+    filetype: javascript
+    initial_buffer: |
+      function cleanup() {
+        const temp = getData();
+        return temp;
+      }
+    cursor_start: [0, 20]
+    expected_buffer: |
+      function cleanup() {
+      }
+    validation_type: exact_match
+    par_keystrokes: 3
+    gold_base: 45
+
+  - id: text_yank_paragraph
+    name: "Yank Paragraph"
+    category: text-objects
+    difficulty: 2
+    description: "Yank paragraph and paste at end using yipGp"
+    filetype: text
+    initial_buffer: |
+      First paragraph
+      with two lines.
+
+      Second paragraph.
+    expected_buffer: |
+      First paragraph
+      with two lines.
+
+      Second paragraph.
+
+      First paragraph
+      with two lines.
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 55
 
   - id: text_change_inner_tag
     name: "Change Tag Content"
     category: text-objects
     difficulty: 2
-    description: "Change the text inside the <p> tag to 'New content'"
+    description: "Change text inside HTML tag using cit"
     filetype: html
     initial_buffer: |
       <p>Old content here</p>
@@ -233,26 +540,61 @@ challenges:
     par_keystrokes: 15
     gold_base: 50
 
-  - id: text_delete_inner_bracket
-    name: "Clear Array"
+  # Complex Text Objects (4)
+  - id: text_change_around_quotes
+    name: "Change Around Quotes"
     category: text-objects
-    difficulty: 2
-    description: "Delete everything inside the brackets using di["
+    difficulty: 3
+    description: "Change text including quotes using ca\""
     filetype: javascript
     initial_buffer: |
-      const items = [1, 2, 3, 4, 5];
+      const msg = "hello";
+    cursor_start: [0, 14]
     expected_buffer: |
-      const items = [];
-    cursor_start: [0, 15]
+      const msg = 'world';
+    validation_type: exact_match
+    par_keystrokes: 11
+    gold_base: 55
+
+  - id: text_visual_inner_block
+    name: "Visual Inner Block"
+    category: text-objects
+    difficulty: 3
+    description: "Select and delete inner block using vibd"
+    filetype: javascript
+    initial_buffer: |
+      if (condition) {
+        code here;
+        more code;
+      }
+    cursor_start: [1, 2]
+    expected_buffer: |
+      if (condition) {
+      }
+    validation_type: exact_match
+    par_keystrokes: 4
+    gold_base: 55
+
+  - id: text_delete_nested_parens
+    name: "Delete Nested Parens"
+    category: text-objects
+    difficulty: 3
+    description: "Delete outer parentheses content using da("
+    filetype: javascript
+    initial_buffer: |
+      result = outer(inner(value));
+    cursor_start: [0, 9]
+    expected_buffer: |
+      result = ;
     validation_type: exact_match
     par_keystrokes: 3
-    gold_base: 40
+    gold_base: 60
 
   - id: text_change_sentence
     name: "Rewrite Sentence"
     category: text-objects
-    difficulty: 2
-    description: "Change the first sentence to 'Hello there.'"
+    difficulty: 3
+    description: "Change entire sentence using cis"
     filetype: text
     initial_buffer: |
       This is the old sentence. Keep this one.
@@ -260,119 +602,116 @@ challenges:
       Hello there. Keep this one.
     validation_type: exact_match
     par_keystrokes: 16
-    gold_base: 50
-
-  - id: text_yank_paragraph
-    name: "Copy Paragraph"
-    category: text-objects
-    difficulty: 2
-    description: "Yank the first paragraph and paste it at the end"
-    filetype: text
-    initial_buffer: |
-      First paragraph
-      with two lines.
-
-      Second paragraph.
-    expected_buffer: |
-      First paragraph
-      with two lines.
-
-      Second paragraph.
-
-      First paragraph
-      with two lines.
-    validation_type: exact_match
-    par_keystrokes: 5
-    gold_base: 55
-
-  - id: text_change_inside_braces
-    name: "Empty Function Body"
-    category: text-objects
-    difficulty: 2
-    description: "Delete everything inside the function braces"
-    filetype: javascript
-    initial_buffer: |
-      function cleanup() {
-        const temp = getData();
-        processTemp(temp);
-        return temp;
-      }
-    expected_buffer: |
-      function cleanup() {
-      }
-    cursor_start: [0, 20]
-    validation_type: exact_match
-    par_keystrokes: 3
-    gold_base: 45
-
-  - id: text_select_function
-    name: "Select Function"
-    category: text-objects
-    difficulty: 3
-    description: "Delete the entire function using daf (requires vim-textobj-function or similar)"
-    filetype: javascript
-    initial_buffer: |
-      const x = 1;
-
-      function toDelete() {
-        return 42;
-      }
-
-      const y = 2;
-    expected_buffer: |
-      const x = 1;
-
-
-      const y = 2;
-    validation_type: exact_match
-    par_keystrokes: 4
-    gold_base: 60
-
-  - id: text_surround_word
-    name: "Surround with Quotes"
-    category: text-objects
-    difficulty: 3
-    description: "Surround 'hello' with double quotes (using vim-surround: ysiw\")"
-    filetype: text
-    initial_buffer: |
-      Say hello to the world
-    expected_buffer: |
-      Say "hello" to the world
-    cursor_start: [0, 4]
-    validation_type: exact_match
-    par_keystrokes: 5
     gold_base: 55
 
   # ============================================
-  # LSP NAVIGATION CHALLENGES
+  # LSP NAVIGATION CHALLENGES (15 total)
   # ============================================
+
+  # Quick LSP (5)
+  - id: lsp_hover
+    name: "Hover Info"
+    category: lsp-navigation
+    difficulty: 1
+    description: "View hover information using K"
+    hint_action: "hover"
+    hint_fallback: "Use K or your hover keymap"
+    filetype: typescript
+    initial_buffer: |
+      function calculateSum(a: number, b: number): number {
+        return a + b;
+      }
+      const result = calculateSum(5, 3);
+    cursor_start: [3, 17]
+    validation_type: different
+    par_keystrokes: 1
+    gold_base: 30
+
+  - id: lsp_signature_help
+    name: "Signature Help"
+    category: lsp-navigation
+    difficulty: 1
+    description: "View function signature in insert mode"
+    hint_action: "signature_help"
+    hint_fallback: "Use Ctrl-K in insert mode"
+    filetype: typescript
+    initial_buffer: |
+      function greet(name: string, age: number) {}
+      greet(
+    cursor_start: [1, 6]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
 
   - id: lsp_goto_definition
-    name: "Find Definition"
+    name: "Go to Definition"
     category: lsp-navigation
-    difficulty: 2
-    description: "Use gd to go to the definition of getUserName"
+    difficulty: 1
+    description: "Jump to function definition using gd"
+    hint_action: "goto_definition"
+    hint_fallback: "Use gd or your definition keymap"
     filetype: javascript
     initial_buffer: |
       function getUserName(user) {
         return user.name;
       }
 
-      function displayUser(user) {
-        const name = getUserName(user);
-        console.log(name);
-      }
-    cursor_start: [5, 17]
+      const name = getUserName(currentUser);
+    cursor_start: [4, 15]
     validation_type: cursor_position
     expected_cursor: [0, 9]
     par_keystrokes: 2
-    gold_base: 50
+    gold_base: 40
 
+  - id: lsp_goto_declaration
+    name: "Go to Declaration"
+    category: lsp-navigation
+    difficulty: 1
+    description: "Jump to declaration using gD"
+    hint_action: "goto_declaration"
+    hint_fallback: "Use gD or your declaration keymap"
+    filetype: javascript
+    initial_buffer: |
+      let counter = 0;
+
+      function increment() {
+        counter++;
+      }
+    cursor_start: [3, 4]
+    validation_type: cursor_position
+    expected_cursor: [0, 4]
+    par_keystrokes: 2
+    gold_base: 40
+
+  - id: lsp_goto_implementation
+    name: "Go to Implementation"
+    category: lsp-navigation
+    difficulty: 1
+    description: "Jump to implementation using gi"
+    hint_action: "goto_implementation"
+    hint_fallback: "Use gi or your implementation keymap"
+    filetype: typescript
+    initial_buffer: |
+      interface Logger {
+        log(msg: string): void;
+      }
+
+      class ConsoleLogger implements Logger {
+        log(msg: string) { console.log(msg); }
+      }
+    cursor_start: [1, 4]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 45
+
+  # Standard LSP (7)
   - id: lsp_find_references
-    name: "Find All References"
+    name: "Find References"
     category: lsp-navigation
     difficulty: 2
-    description: "Use gr to find all references to 'count'"
+    description: "Find all references using gr"
+    hint_action: "find_references"
+    hint_fallback: "Use gr or your references keymap"
     filetype: javascript
     initial_buffer: |
       let count = 0;
@@ -387,30 +726,51 @@ challenges:
     cursor_start: [0, 4]
     validation_type: different
     par_keystrokes: 2
-    gold_base: 55
+    gold_base: 50
 
-  - id: lsp_hover_info
-    name: "Check Type Info"
+  - id: lsp_type_definition
+    name: "Type Definition"
     category: lsp-navigation
-    difficulty: 1
-    description: "Use K to view hover information for the function"
+    difficulty: 2
+    description: "Go to type definition"
+    hint_action: "type_definition"
+    hint_fallback: "Use your type definition keymap"
     filetype: typescript
     initial_buffer: |
-      function calculateSum(a: number, b: number): number {
-        return a + b;
+      interface User {
+        name: string;
+        age: number;
       }
 
-      const result = calculateSum(5, 3);
-    cursor_start: [4, 17]
+      const user: User = { name: "John", age: 30 };
+    cursor_start: [5, 12]
     validation_type: different
-    par_keystrokes: 1
-    gold_base: 40
+    par_keystrokes: 3
+    gold_base: 50
+
+  - id: lsp_code_action
+    name: "Code Action"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Trigger code action menu"
+    hint_action: "code_action"
+    hint_fallback: "Use your code action keymap"
+    filetype: typescript
+    initial_buffer: |
+      const unused = 5;
+      console.log("hello");
+    cursor_start: [0, 6]
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 55
 
   - id: lsp_rename_symbol
-    name: "Rename Variable"
+    name: "Rename Symbol"
     category: lsp-navigation
-    difficulty: 3
+    difficulty: 2
     description: "Rename 'oldName' to 'newName' using LSP rename"
+    hint_action: "rename"
+    hint_fallback: "Use your rename keymap"
     filetype: javascript
     initial_buffer: |
       const oldName = "test";
@@ -423,30 +783,192 @@ challenges:
     cursor_start: [0, 6]
     validation_type: exact_match
     par_keystrokes: 12
-    gold_base: 70
+    gold_base: 65
 
-  - id: lsp_code_action
-    name: "Quick Fix"
+  - id: lsp_document_symbols
+    name: "Document Symbols"
     category: lsp-navigation
     difficulty: 2
-    description: "Use code action to add missing import"
+    description: "Open document symbols picker"
+    hint_action: "document_symbols"
+    hint_fallback: "Use your document symbols keymap"
+    filetype: javascript
+    initial_buffer: |
+      function first() {}
+      function second() {}
+      const third = () => {};
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+    required_plugin: telescope
+
+  - id: lsp_workspace_symbols
+    name: "Workspace Symbols"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Search workspace symbols"
+    hint_action: "workspace_symbols"
+    hint_fallback: "Use your workspace symbols keymap"
+    filetype: javascript
+    initial_buffer: |
+      // Search for symbols across workspace
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 50
+    required_plugin: telescope
+
+  - id: lsp_diagnostic_float
+    name: "Show Diagnostic"
+    category: lsp-navigation
+    difficulty: 2
+    description: "Show diagnostic in floating window"
+    hint_action: "diagnostic_float"
+    hint_fallback: "Use your diagnostic float keymap"
     filetype: typescript
     initial_buffer: |
-      const result = someFunction();
-    validation_type: contains
-    expected_content: "import"
-    par_keystrokes: 5
+      const x: number = "string";
+    cursor_start: [0, 18]
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 40
+
+  # Complex LSP (3)
+  - id: lsp_go_to_interface
+    name: "Go to Interface"
+    category: lsp-navigation
+    difficulty: 3
+    description: "Navigate to the interface definition"
+    hint_action: "goto_definition"
+    hint_fallback: "Use gd on the type"
+    filetype: typescript
+    initial_buffer: |
+      interface Printable {
+        print(): void;
+      }
+
+      class Document implements Printable {
+        print() { console.log("doc"); }
+      }
+    cursor_start: [4, 30]
+    validation_type: cursor_position
+    expected_cursor: [0, 10]
+    par_keystrokes: 2
     gold_base: 60
 
+  - id: lsp_find_implementations
+    name: "Find Implementations"
+    category: lsp-navigation
+    difficulty: 3
+    description: "Find all implementations of interface"
+    hint_action: "goto_implementation"
+    hint_fallback: "Use gi or implementations keymap"
+    filetype: typescript
+    initial_buffer: |
+      interface Animal {
+        speak(): void;
+      }
+
+      class Dog implements Animal {
+        speak() { console.log("woof"); }
+      }
+
+      class Cat implements Animal {
+        speak() { console.log("meow"); }
+      }
+    cursor_start: [1, 4]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 65
+
+  - id: lsp_organize_imports
+    name: "Organize Imports"
+    category: lsp-navigation
+    difficulty: 3
+    description: "Auto-organize imports via code action"
+    hint_action: "code_action"
+    hint_fallback: "Use code action to organize imports"
+    filetype: typescript
+    initial_buffer: |
+      import { z } from 'zod';
+      import { a } from 'alpha';
+
+      const schema = z.string();
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 70
+
   # ============================================
-  # SEARCH AND REPLACE CHALLENGES
+  # SEARCH AND REPLACE CHALLENGES (12 total)
   # ============================================
 
-  - id: search_simple_replace
-    name: "Simple Replace"
+  # Quick Search (4)
+  - id: search_current_word
+    name: "Search Word"
     category: search-replace
     difficulty: 1
-    description: "Replace 'foo' with 'bar' using :s/foo/bar/"
+    description: "Search for word under cursor using *"
+    filetype: text
+    initial_buffer: |
+      The word appears here.
+      Find the word again.
+      The word is common.
+    cursor_start: [0, 4]
+    validation_type: cursor_position
+    expected_cursor: [1, 9]
+    par_keystrokes: 1
+    gold_base: 25
+
+  - id: search_current_word_back
+    name: "Search Word Backward"
+    category: search-replace
+    difficulty: 1
+    description: "Search backward for word under cursor using #"
+    filetype: text
+    initial_buffer: |
+      The word appears here.
+      Find the word again.
+      The word is common.
+    cursor_start: [2, 4]
+    validation_type: cursor_position
+    expected_cursor: [1, 9]
+    par_keystrokes: 1
+    gold_base: 25
+
+  - id: search_next
+    name: "Next Match"
+    category: search-replace
+    difficulty: 1
+    description: "Go to next search match using n"
+    filetype: text
+    initial_buffer: |
+      First match here.
+      Second match here.
+      Third match here.
+    validation_type: different
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: search_prev
+    name: "Previous Match"
+    category: search-replace
+    difficulty: 1
+    description: "Go to previous search match using N"
+    filetype: text
+    initial_buffer: |
+      First match here.
+      Second match here.
+      Third match here.
+    cursor_start: [2, 0]
+    validation_type: different
+    par_keystrokes: 1
+    gold_base: 20
+
+  # Standard Search (5)
+  - id: search_replace_line
+    name: "Replace on Line"
+    category: search-replace
+    difficulty: 2
+    description: "Replace 'foo' with 'bar' on this line using :s/foo/bar/"
     filetype: text
     initial_buffer: |
       The foo is here
@@ -456,7 +978,7 @@ challenges:
     par_keystrokes: 13
     gold_base: 35
 
-  - id: search_global_replace
+  - id: search_replace_global
     name: "Global Replace"
     category: search-replace
     difficulty: 2
@@ -474,27 +996,11 @@ challenges:
     par_keystrokes: 16
     gold_base: 50
 
-  - id: search_line_replace
-    name: "Line Replace All"
+  - id: search_replace_confirm
+    name: "Confirm Replace"
     category: search-replace
     difficulty: 2
-    description: "Replace all 'a' with 'X' on the current line only"
-    filetype: text
-    initial_buffer: |
-      banana and apple
-      another line with a
-    expected_buffer: |
-      bXnXnX Xnd Xpple
-      another line with a
-    validation_type: exact_match
-    par_keystrokes: 12
-    gold_base: 45
-
-  - id: search_confirm_replace
-    name: "Confirm Each Replace"
-    category: search-replace
-    difficulty: 2
-    description: "Replace 'TODO' with 'DONE' but only the first two using :s/TODO/DONE/gc"
+    description: "Replace with confirmation using :%s/TODO/DONE/gc"
     filetype: text
     initial_buffer: |
       TODO: first task
@@ -507,20 +1013,6 @@ challenges:
     validation_type: exact_match
     par_keystrokes: 20
     gold_base: 55
-
-  - id: search_regex_replace
-    name: "Regex Replace"
-    category: search-replace
-    difficulty: 3
-    description: "Use regex to convert snake_case to camelCase for 'user_name'"
-    filetype: javascript
-    initial_buffer: |
-      const user_name = "John";
-    expected_buffer: |
-      const userName = "John";
-    validation_type: exact_match
-    par_keystrokes: 25
-    gold_base: 70
 
   - id: search_delete_lines
     name: "Delete Matching Lines"
@@ -542,10 +1034,109 @@ challenges:
     par_keystrokes: 12
     gold_base: 50
 
+  - id: search_visual_selection
+    name: "Search Selection"
+    category: search-replace
+    difficulty: 2
+    description: "Search for visually selected text"
+    filetype: text
+    initial_buffer: |
+      Find this phrase here.
+      The phrase appears again.
+      Another phrase instance.
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 45
+
+  # Complex Search (3)
+  - id: search_regex_groups
+    name: "Regex with Groups"
+    category: search-replace
+    difficulty: 3
+    description: "Swap first and last name using regex capture groups"
+    filetype: text
+    initial_buffer: |
+      John Smith
+    expected_buffer: |
+      Smith John
+    validation_type: exact_match
+    par_keystrokes: 25
+    gold_base: 70
+
+  - id: search_visual_replace
+    name: "Replace in Selection"
+    category: search-replace
+    difficulty: 3
+    description: "Replace only within visual selection"
+    hint_action: "visual_replace"
+    hint_fallback: "Select text, then use :s/old/new/g"
+    filetype: text
+    initial_buffer: |
+      foo bar foo
+      foo bar foo
+      foo bar foo
+    expected_buffer: |
+      foo bar foo
+      baz bar baz
+      foo bar foo
+    validation_type: exact_match
+    par_keystrokes: 20
+    gold_base: 65
+
+  - id: search_very_magic
+    name: "Very Magic Regex"
+    category: search-replace
+    difficulty: 3
+    description: "Use very magic mode for cleaner regex"
+    filetype: text
+    initial_buffer: |
+      phone: 123-456-7890
+    expected_buffer: |
+      phone: (123) 456-7890
+    validation_type: exact_match
+    par_keystrokes: 30
+    gold_base: 75
+
   # ============================================
-  # REFACTORING CHALLENGES
+  # REFACTORING CHALLENGES (10 total)
   # ============================================
 
+  # Quick Refactoring (2)
+  - id: refactor_join_lines
+    name: "Join Lines"
+    category: refactoring
+    difficulty: 1
+    description: "Join two lines using J"
+    filetype: text
+    initial_buffer: |
+      First part
+      second part
+    expected_buffer: |
+      First part second part
+    validation_type: exact_match
+    par_keystrokes: 1
+    gold_base: 20
+
+  - id: refactor_indent
+    name: "Indent Line"
+    category: refactoring
+    difficulty: 1
+    description: "Indent the line using >>"
+    filetype: javascript
+    initial_buffer: |
+      if (true) {
+      code();
+      }
+    cursor_start: [1, 0]
+    expected_buffer: |
+      if (true) {
+        code();
+      }
+    validation_type: exact_match
+    par_keystrokes: 2
+    gold_base: 25
+
+  # Standard Refactoring (5)
   - id: refactor_extract_variable
     name: "Extract Variable"
     category: refactoring
@@ -556,15 +1147,10 @@ challenges:
       function getPrice(items) {
         return items.reduce((a, b) => a + b.price, 0) * 1.1;
       }
-    expected_buffer: |
-      function getPrice(items) {
-        const total = items.reduce((a, b) => a + b.price, 0);
-        return total * 1.1;
-      }
     validation_type: contains
     expected_content: "const total"
     par_keystrokes: 40
-    gold_base: 80
+    gold_base: 75
 
   - id: refactor_inline_variable
     name: "Inline Variable"
@@ -585,29 +1171,11 @@ challenges:
     par_keystrokes: 15
     gold_base: 55
 
-  - id: refactor_extract_function
-    name: "Extract Function"
-    category: refactoring
-    difficulty: 3
-    description: "Extract the validation logic into a function called 'validateEmail'"
-    filetype: javascript
-    initial_buffer: |
-      function processForm(data) {
-        if (!data.email || !data.email.includes('@')) {
-          throw new Error('Invalid email');
-        }
-        saveData(data);
-      }
-    validation_type: function_exists
-    function_name: validateEmail
-    par_keystrokes: 60
-    gold_base: 100
-
   - id: refactor_rename_function
     name: "Rename Function"
     category: refactoring
     difficulty: 2
-    description: "Rename 'fn' to 'calculateTotal'"
+    description: "Rename 'fn' to 'calculateTotal' everywhere"
     filetype: javascript
     initial_buffer: |
       function fn(items) {
@@ -629,30 +1197,356 @@ challenges:
     name: "Add Parameter"
     category: refactoring
     difficulty: 2
-    description: "Add a 'multiplier' parameter with default value 1"
+    description: "Add 'multiplier' parameter with default 1"
     filetype: javascript
     initial_buffer: |
       function calculate(value) {
         return value * 2;
-      }
-    expected_buffer: |
-      function calculate(value, multiplier = 1) {
-        return value * multiplier;
       }
     validation_type: contains
     expected_content: "multiplier"
     par_keystrokes: 35
     gold_base: 65
 
+  - id: refactor_change_signature
+    name: "Change Signature"
+    category: refactoring
+    difficulty: 2
+    description: "Swap parameter order in function"
+    filetype: javascript
+    initial_buffer: |
+      function greet(name, greeting) {
+        return greeting + ", " + name;
+      }
+    expected_buffer: |
+      function greet(greeting, name) {
+        return greeting + ", " + name;
+      }
+    validation_type: exact_match
+    par_keystrokes: 20
+    gold_base: 60
+
+  # Complex Refactoring (3)
+  - id: refactor_extract_function
+    name: "Extract Function"
+    category: refactoring
+    difficulty: 3
+    description: "Extract validation into 'validateEmail' function"
+    filetype: javascript
+    initial_buffer: |
+      function processForm(data) {
+        if (!data.email || !data.email.includes('@')) {
+          throw new Error('Invalid email');
+        }
+        saveData(data);
+      }
+    validation_type: function_exists
+    function_name: validateEmail
+    par_keystrokes: 60
+    gold_base: 100
+
+  - id: refactor_convert_to_arrow
+    name: "Convert to Arrow"
+    category: refactoring
+    difficulty: 3
+    description: "Convert function to arrow function"
+    filetype: javascript
+    initial_buffer: |
+      const double = function(x) {
+        return x * 2;
+      };
+    expected_buffer: |
+      const double = (x) => x * 2;
+    validation_type: exact_match
+    par_keystrokes: 25
+    gold_base: 65
+
+  - id: refactor_destructure
+    name: "Destructure Object"
+    category: refactoring
+    difficulty: 3
+    description: "Use destructuring for cleaner code"
+    filetype: javascript
+    initial_buffer: |
+      function greet(person) {
+        console.log(person.name + " is " + person.age);
+      }
+    expected_buffer: |
+      function greet({ name, age }) {
+        console.log(name + " is " + age);
+      }
+    validation_type: contains
+    expected_content: "{ name, age }"
+    par_keystrokes: 40
+    gold_base: 80
+
   # ============================================
-  # WINDOW AND BUFFER NAVIGATION
+  # GIT OPERATIONS CHALLENGES (12 total)
   # ============================================
+
+  # Quick Git (4)
+  - id: git_next_hunk
+    name: "Next Hunk"
+    category: git-operations
+    difficulty: 1
+    description: "Jump to next git hunk"
+    hint_action: "next_hunk"
+    hint_fallback: "Use ]h or ]c for next hunk"
+    filetype: javascript
+    initial_buffer: |
+      const unchanged = 1;
+      const modified = "changed";
+      const alsoChanged = true;
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+    required_plugin: gitsigns
+
+  - id: git_prev_hunk
+    name: "Previous Hunk"
+    category: git-operations
+    difficulty: 1
+    description: "Jump to previous git hunk"
+    hint_action: "prev_hunk"
+    hint_fallback: "Use [h or [c for previous hunk"
+    filetype: javascript
+    initial_buffer: |
+      const modified = "changed";
+      const unchanged = 1;
+    cursor_start: [1, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+    required_plugin: gitsigns
+
+  - id: git_stage_hunk
+    name: "Stage Hunk"
+    category: git-operations
+    difficulty: 1
+    description: "Stage the current hunk"
+    hint_action: "stage_hunk"
+    hint_fallback: "Use your stage hunk keymap"
+    filetype: javascript
+    initial_buffer: |
+      const unstaged = "new code";
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 40
+    required_plugin: gitsigns
+
+  - id: git_reset_hunk
+    name: "Reset Hunk"
+    category: git-operations
+    difficulty: 1
+    description: "Reset (undo) the current hunk"
+    hint_action: "reset_hunk"
+    hint_fallback: "Use your reset hunk keymap"
+    filetype: javascript
+    initial_buffer: |
+      const changed = "revert me";
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 40
+    required_plugin: gitsigns
+
+  # Standard Git (5)
+  - id: git_preview_hunk
+    name: "Preview Hunk"
+    category: git-operations
+    difficulty: 2
+    description: "Preview the current hunk diff"
+    hint_action: "preview_hunk"
+    hint_fallback: "Use your preview hunk keymap"
+    filetype: javascript
+    initial_buffer: |
+      const modified = "changed";
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 45
+    required_plugin: gitsigns
+
+  - id: git_blame_line
+    name: "Blame Line"
+    category: git-operations
+    difficulty: 2
+    description: "Show git blame for current line"
+    hint_action: "blame_line"
+    hint_fallback: "Use your blame keymap"
+    filetype: text
+    initial_buffer: |
+      Who wrote this code?
+      Show the blame info.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+    required_plugin: gitsigns
+
+  - id: git_toggle_blame
+    name: "Toggle Blame"
+    category: git-operations
+    difficulty: 2
+    description: "Toggle inline git blame"
+    hint_action: "toggle_blame"
+    hint_fallback: "Use your toggle blame keymap"
+    filetype: text
+    initial_buffer: |
+      Toggle the blame display
+      for all lines.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+    required_plugin: gitsigns
+
+  - id: git_diff_this
+    name: "Diff This"
+    category: git-operations
+    difficulty: 2
+    description: "Show diff for current file"
+    hint_action: "diff_this"
+    hint_fallback: "Use your diff keymap"
+    filetype: javascript
+    initial_buffer: |
+      const modified = "changed";
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 45
+    required_plugin: gitsigns
+
+  - id: git_stage_buffer
+    name: "Stage Buffer"
+    category: git-operations
+    difficulty: 2
+    description: "Stage entire buffer"
+    hint_action: "stage_buffer"
+    hint_fallback: "Use your stage buffer keymap"
+    filetype: javascript
+    initial_buffer: |
+      const allNew = "stage everything";
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 50
+    required_plugin: gitsigns
+
+  # Complex Git (3)
+  - id: git_conflict_ours
+    name: "Choose Ours"
+    category: git-operations
+    difficulty: 3
+    description: "Resolve conflict by choosing our version"
+    hint_action: "conflict_ours"
+    hint_fallback: "Use your conflict ours keymap"
+    filetype: text
+    initial_buffer: |
+      <<<<<<< HEAD
+      our version
+      =======
+      their version
+      >>>>>>> branch
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 60
+
+  - id: git_conflict_theirs
+    name: "Choose Theirs"
+    category: git-operations
+    difficulty: 3
+    description: "Resolve conflict by choosing their version"
+    hint_action: "conflict_theirs"
+    hint_fallback: "Use your conflict theirs keymap"
+    filetype: text
+    initial_buffer: |
+      <<<<<<< HEAD
+      our version
+      =======
+      their version
+      >>>>>>> branch
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 60
+
+  - id: git_diffview_open
+    name: "Open Diffview"
+    category: git-operations
+    difficulty: 3
+    description: "Open the diffview panel"
+    hint_action: "diffview_open"
+    hint_fallback: "Use your diffview keymap"
+    filetype: text
+    initial_buffer: |
+      Open the diff viewer to see all changes.
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 55
+    required_plugin: diffview
+
+  # ============================================
+  # WINDOW MANAGEMENT CHALLENGES (10 total)
+  # ============================================
+
+  # Quick Window (5)
+  - id: window_go_left
+    name: "Window Left"
+    category: window-management
+    difficulty: 1
+    description: "Go to the left window"
+    hint_action: "window_left"
+    hint_fallback: "Use Ctrl-h or Ctrl-w h"
+    filetype: text
+    initial_buffer: |
+      Navigate to the left window
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: window_go_down
+    name: "Window Down"
+    category: window-management
+    difficulty: 1
+    description: "Go to the window below"
+    hint_action: "window_down"
+    hint_fallback: "Use Ctrl-j or Ctrl-w j"
+    filetype: text
+    initial_buffer: |
+      Navigate to the window below
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: window_go_up
+    name: "Window Up"
+    category: window-management
+    difficulty: 1
+    description: "Go to the window above"
+    hint_action: "window_up"
+    hint_fallback: "Use Ctrl-k or Ctrl-w k"
+    filetype: text
+    initial_buffer: |
+      Navigate to the window above
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 25
+
+  - id: window_go_right
+    name: "Window Right"
+    category: window-management
+    difficulty: 1
+    description: "Go to the right window"
+    hint_action: "window_right"
+    hint_fallback: "Use Ctrl-l or Ctrl-w l"
+    filetype: text
+    initial_buffer: |
+      Navigate to the right window
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 25
 
   - id: window_split_horizontal
     name: "Horizontal Split"
-    category: movement
+    category: window-management
     difficulty: 1
-    description: "Create a horizontal split using :split or <C-w>s"
+    description: "Create a horizontal split"
+    hint_action: "split_horizontal"
+    hint_fallback: "Use :split or Ctrl-w s"
     filetype: text
     initial_buffer: |
       Split me horizontally
@@ -660,276 +1554,1012 @@ challenges:
     par_keystrokes: 4
     gold_base: 30
 
+  # Standard Window (4)
   - id: window_split_vertical
     name: "Vertical Split"
-    category: movement
-    difficulty: 1
-    description: "Create a vertical split using :vsplit or <C-w>v"
+    category: window-management
+    difficulty: 2
+    description: "Create a vertical split"
+    hint_action: "split_vertical"
+    hint_fallback: "Use :vsplit or Ctrl-w v"
     filetype: text
     initial_buffer: |
       Split me vertically
     validation_type: different
     par_keystrokes: 4
+    gold_base: 35
+
+  - id: window_resize_height
+    name: "Resize Height"
+    category: window-management
+    difficulty: 2
+    description: "Increase window height"
+    hint_action: "resize_up"
+    hint_fallback: "Use Ctrl-Up or Ctrl-w +"
+    filetype: text
+    initial_buffer: |
+      Make this window taller
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
+
+  - id: window_resize_width
+    name: "Resize Width"
+    category: window-management
+    difficulty: 2
+    description: "Decrease window width"
+    hint_action: "resize_left"
+    hint_fallback: "Use Ctrl-Left or Ctrl-w <"
+    filetype: text
+    initial_buffer: |
+      Make this window narrower
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
+
+  - id: window_close
+    name: "Close Window"
+    category: window-management
+    difficulty: 2
+    description: "Close the current window"
+    filetype: text
+    initial_buffer: |
+      Close this window
+    validation_type: different
+    par_keystrokes: 3
     gold_base: 30
 
+  # Complex Window (1)
+  - id: window_rotate
+    name: "Rotate Windows"
+    category: window-management
+    difficulty: 3
+    description: "Rotate window layout"
+    filetype: text
+    initial_buffer: |
+      Rotate the window positions
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 50
+
+  # ============================================
+  # BUFFER MANAGEMENT CHALLENGES (8 total)
+  # ============================================
+
+  # Quick Buffer (4)
   - id: buffer_next
     name: "Next Buffer"
-    category: movement
+    category: buffer-management
     difficulty: 1
-    description: "Switch to the next buffer using :bn or your configured keybind"
+    description: "Switch to the next buffer"
+    hint_action: "buffer_next"
+    hint_fallback: "Use :bn or your next buffer keymap"
     filetype: text
     initial_buffer: |
-      Current buffer - switch to next
+      Switch to the next buffer
     validation_type: different
-    par_keystrokes: 3
+    par_keystrokes: 2
     gold_base: 25
 
-  - id: buffer_previous
+  - id: buffer_prev
     name: "Previous Buffer"
-    category: movement
+    category: buffer-management
     difficulty: 1
-    description: "Switch to the previous buffer using :bp or your configured keybind"
+    description: "Switch to the previous buffer"
+    hint_action: "buffer_prev"
+    hint_fallback: "Use :bp or your prev buffer keymap"
     filetype: text
     initial_buffer: |
-      Current buffer - switch to previous
+      Switch to the previous buffer
     validation_type: different
-    par_keystrokes: 3
+    par_keystrokes: 2
     gold_base: 25
 
-  # ============================================
-  # TELESCOPE CHALLENGES (requires telescope)
-  # ============================================
-
-  - id: telescope_find_files
-    name: "Fuzzy Find File"
-    category: lsp-navigation
+  - id: buffer_close
+    name: "Close Buffer"
+    category: buffer-management
     difficulty: 1
-    description: "Use Telescope to find a file (hint: check your keybindings)"
+    description: "Close the current buffer"
+    hint_action: "buffer_close"
+    hint_fallback: "Use :bd or your close buffer keymap"
     filetype: text
     initial_buffer: |
-      Use your fuzzy finder to locate any file in the project.
-      This challenge validates when you open the Telescope picker.
+      Close this buffer
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 30
+
+  - id: buffer_save
+    name: "Save Buffer"
+    category: buffer-management
+    difficulty: 1
+    description: "Save the current buffer"
+    hint_action: "save"
+    hint_fallback: "Use :w or your save keymap"
+    filetype: text
+    initial_buffer: |
+      Save this buffer
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 25
+
+  # Standard Buffer (3)
+  - id: buffer_close_all_but
+    name: "Close Other Buffers"
+    category: buffer-management
+    difficulty: 2
+    description: "Close all buffers except current"
+    hint_action: "buffer_close_others"
+    hint_fallback: "Use your close other buffers keymap"
+    filetype: text
+    initial_buffer: |
+      Keep only this buffer open
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+
+  - id: buffer_close_keep_window
+    name: "Close Keep Window"
+    category: buffer-management
+    difficulty: 2
+    description: "Close buffer but keep the window"
+    hint_action: "buffer_close_keep"
+    hint_fallback: "Use bp|bd# or similar"
+    filetype: text
+    initial_buffer: |
+      Close buffer, keep window
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 45
+
+  - id: buffer_list
+    name: "List Buffers"
+    category: buffer-management
+    difficulty: 2
+    description: "Show list of open buffers"
+    filetype: text
+    initial_buffer: |
+      List all open buffers
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+
+  # Complex Buffer (1)
+  - id: buffer_reopen
+    name: "Reopen Closed"
+    category: buffer-management
+    difficulty: 3
+    description: "Reopen the last closed buffer"
+    filetype: text
+    initial_buffer: |
+      Reopen the buffer you just closed
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 55
+
+  # ============================================
+  # FOLDING CHALLENGES (8 total)
+  # ============================================
+
+  # Quick Folding (3)
+  - id: fold_toggle
+    name: "Toggle Fold"
+    category: folding
+    difficulty: 1
+    description: "Toggle fold under cursor using za"
+    filetype: javascript
+    initial_buffer: |
+      function example() {
+        const a = 1;
+        const b = 2;
+        return a + b;
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  - id: fold_open
+    name: "Open Fold"
+    category: folding
+    difficulty: 1
+    description: "Open fold under cursor using zo"
+    filetype: javascript
+    initial_buffer: |
+      function example() {
+        const a = 1;
+        return a;
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  - id: fold_close
+    name: "Close Fold"
+    category: folding
+    difficulty: 1
+    description: "Close fold under cursor using zc"
+    filetype: javascript
+    initial_buffer: |
+      function example() {
+        const a = 1;
+        return a;
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  # Standard Folding (4)
+  - id: fold_open_all
+    name: "Open All Folds"
+    category: folding
+    difficulty: 2
+    description: "Open all folds using zR"
+    hint_action: "fold_open_all"
+    hint_fallback: "Use zR to open all folds"
+    filetype: javascript
+    initial_buffer: |
+      function one() { return 1; }
+      function two() { return 2; }
+      function three() { return 3; }
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 40
+    required_plugin: nvim-ufo
+
+  - id: fold_close_all
+    name: "Close All Folds"
+    category: folding
+    difficulty: 2
+    description: "Close all folds using zM"
+    hint_action: "fold_close_all"
+    hint_fallback: "Use zM to close all folds"
+    filetype: javascript
+    initial_buffer: |
+      function one() {
+        return 1;
+      }
+      function two() {
+        return 2;
+      }
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 40
+    required_plugin: nvim-ufo
+
+  - id: fold_peek
+    name: "Peek Fold"
+    category: folding
+    difficulty: 2
+    description: "Preview fold contents without opening"
+    hint_action: "fold_peek"
+    hint_fallback: "Use zK or your peek keymap"
+    filetype: javascript
+    initial_buffer: |
+      function hidden() {
+        // peek at this content
+        return secret;
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 45
+    required_plugin: nvim-ufo
+
+  - id: fold_open_recursive
+    name: "Open Recursive"
+    category: folding
+    difficulty: 2
+    description: "Open folds recursively using zO"
+    filetype: javascript
+    initial_buffer: |
+      function outer() {
+        function inner() {
+          return 1;
+        }
+        return inner();
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 45
+
+  # Complex Folding (1)
+  - id: fold_close_recursive
+    name: "Close Recursive"
+    category: folding
+    difficulty: 3
+    description: "Close folds recursively using zC"
+    filetype: javascript
+    initial_buffer: |
+      function outer() {
+        function inner() {
+          function deep() {
+            return 1;
+          }
+          return deep();
+        }
+        return inner();
+      }
+    cursor_start: [0, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 55
+
+  # ============================================
+  # QUICKFIX CHALLENGES (8 total)
+  # ============================================
+
+  # Quick Quickfix (3)
+  - id: quickfix_next
+    name: "Next Quickfix"
+    category: quickfix
+    difficulty: 1
+    description: "Go to next quickfix item"
+    hint_action: "quickfix_next"
+    hint_fallback: "Use ]q or :cnext"
+    filetype: text
+    initial_buffer: |
+      Navigate to next quickfix item
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  - id: quickfix_prev
+    name: "Previous Quickfix"
+    category: quickfix
+    difficulty: 1
+    description: "Go to previous quickfix item"
+    hint_action: "quickfix_prev"
+    hint_fallback: "Use [q or :cprev"
+    filetype: text
+    initial_buffer: |
+      Navigate to previous quickfix item
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  - id: quickfix_close
+    name: "Close Quickfix"
+    category: quickfix
+    difficulty: 1
+    description: "Close the quickfix window"
+    hint_action: "quickfix_close"
+    hint_fallback: "Use :cclose or your keymap"
+    filetype: text
+    initial_buffer: |
+      Close the quickfix window
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 30
+
+  # Standard Quickfix (4)
+  - id: quickfix_open
+    name: "Open Quickfix"
+    category: quickfix
+    difficulty: 2
+    description: "Open the quickfix window"
+    hint_action: "quickfix_open"
+    hint_fallback: "Use :copen or your keymap"
+    filetype: text
+    initial_buffer: |
+      Open the quickfix window
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+
+  - id: quickfix_first
+    name: "First Quickfix"
+    category: quickfix
+    difficulty: 2
+    description: "Go to first quickfix item"
+    hint_action: "quickfix_first"
+    hint_fallback: "Use [Q or :cfirst"
+    filetype: text
+    initial_buffer: |
+      Go to first quickfix item
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
+
+  - id: quickfix_last
+    name: "Last Quickfix"
+    category: quickfix
+    difficulty: 2
+    description: "Go to last quickfix item"
+    hint_action: "quickfix_last"
+    hint_fallback: "Use ]Q or :clast"
+    filetype: text
+    initial_buffer: |
+      Go to last quickfix item
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
+
+  - id: location_next
+    name: "Next Location"
+    category: quickfix
+    difficulty: 2
+    description: "Go to next location list item"
+    hint_action: "location_next"
+    hint_fallback: "Use ]l or :lnext"
+    filetype: text
+    initial_buffer: |
+      Navigate to next location item
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 35
+
+  # Complex Quickfix (1)
+  - id: quickfix_do
+    name: "Quickfix Do"
+    category: quickfix
+    difficulty: 3
+    description: "Run command on all quickfix items using :cdo"
+    filetype: text
+    initial_buffer: |
+      Apply a change to all quickfix items
+    validation_type: different
+    par_keystrokes: 10
+    gold_base: 65
+
+  # ============================================
+  # DIAGNOSTICS CHALLENGES (6 total)
+  # ============================================
+
+  # Quick Diagnostics (2)
+  - id: diagnostic_next
+    name: "Next Diagnostic"
+    category: diagnostics
+    difficulty: 1
+    description: "Go to next diagnostic"
+    hint_action: "diagnostic_next"
+    hint_fallback: "Use ]d or your next diagnostic keymap"
+    filetype: typescript
+    initial_buffer: |
+      const x: number = "string";
+      const y: string = 123;
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  - id: diagnostic_prev
+    name: "Previous Diagnostic"
+    category: diagnostics
+    difficulty: 1
+    description: "Go to previous diagnostic"
+    hint_action: "diagnostic_prev"
+    hint_fallback: "Use [d or your prev diagnostic keymap"
+    filetype: typescript
+    initial_buffer: |
+      const x: number = "string";
+      const y: string = 123;
+    cursor_start: [1, 0]
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 30
+
+  # Standard Diagnostics (3)
+  - id: diagnostic_show
+    name: "Show Diagnostic"
+    category: diagnostics
+    difficulty: 2
+    description: "Show diagnostic in floating window"
+    hint_action: "diagnostic_float"
+    hint_fallback: "Use your show diagnostic keymap"
+    filetype: typescript
+    initial_buffer: |
+      const wrong: number = "not a number";
+    cursor_start: [0, 22]
     validation_type: different
     par_keystrokes: 3
     gold_base: 40
-    required_plugin: telescope
 
-  - id: telescope_live_grep
-    name: "Search in Files"
-    category: search-replace
+  - id: diagnostic_goto_error
+    name: "Go to Error"
+    category: diagnostics
     difficulty: 2
-    description: "Use Telescope live_grep to search for a pattern in the project"
+    description: "Jump to next error (skip warnings)"
+    filetype: typescript
+    initial_buffer: |
+      // warning here
+      const error: number = "string";
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 45
+
+  - id: diagnostic_set_loclist
+    name: "Set Location List"
+    category: diagnostics
+    difficulty: 2
+    description: "Populate location list with diagnostics"
+    filetype: typescript
+    initial_buffer: |
+      const a: number = "1";
+      const b: string = 2;
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 50
+
+  # Complex Diagnostics (1)
+  - id: diagnostic_disable_buffer
+    name: "Disable Diagnostics"
+    category: diagnostics
+    difficulty: 3
+    description: "Disable diagnostics for current buffer"
+    filetype: typescript
+    initial_buffer: |
+      // Disable the red squiggles
+      const x: any = "anything";
+    validation_type: different
+    par_keystrokes: 6
+    gold_base: 55
+
+  # ============================================
+  # TELESCOPE CHALLENGES (10 total)
+  # ============================================
+
+  # Quick Telescope (4)
+  - id: telescope_find_files
+    name: "Find Files"
+    category: telescope
+    difficulty: 1
+    description: "Open file finder"
+    hint_action: "find_files"
+    hint_fallback: "Use your find files keymap"
     filetype: text
     initial_buffer: |
-      Use live grep to search for the word 'function' across all files.
-      This tests your project-wide search capabilities.
+      Find a file in your project
     validation_type: different
-    par_keystrokes: 4
-    gold_base: 50
+    par_keystrokes: 3
+    gold_base: 35
     required_plugin: telescope
 
   - id: telescope_buffers
-    name: "Buffer Picker"
-    category: movement
+    name: "Find Buffers"
+    category: telescope
     difficulty: 1
-    description: "Use Telescope buffers to switch between open buffers"
+    description: "Open buffer picker"
+    hint_action: "find_buffers"
+    hint_fallback: "Use your buffers keymap"
     filetype: text
     initial_buffer: |
-      Open the buffer picker and select a different buffer.
-      Much faster than :ls and :b!
+      Pick from open buffers
     validation_type: different
     par_keystrokes: 3
     gold_base: 35
     required_plugin: telescope
 
-  - id: telescope_help_tags
-    name: "Help Search"
-    category: lsp-navigation
+  - id: telescope_oldfiles
+    name: "Recent Files"
+    category: telescope
     difficulty: 1
-    description: "Use Telescope help_tags to search vim help"
+    description: "Open recent files picker"
+    hint_action: "oldfiles"
+    hint_fallback: "Use your recent files keymap"
     filetype: text
     initial_buffer: |
-      Search for help on 'nvim_buf_set_lines' using your help picker.
+      Find recently opened files
     validation_type: different
-    par_keystrokes: 4
+    par_keystrokes: 3
     gold_base: 35
     required_plugin: telescope
 
-  # ============================================
-  # GIT CHALLENGES
-  # ============================================
-
-  - id: git_status
-    name: "Git Status"
-    category: git-operations
+  - id: telescope_resume
+    name: "Resume Picker"
+    category: telescope
     difficulty: 1
-    description: "View git status using :Git status or gitsigns"
+    description: "Resume last telescope picker"
+    hint_action: "telescope_resume"
+    hint_fallback: "Use your resume keymap"
     filetype: text
     initial_buffer: |
-      Check the current git status of this file.
-      Use your git integration to view changes.
+      Resume the last search
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+    required_plugin: telescope
+
+  # Standard Telescope (4)
+  - id: telescope_live_grep
+    name: "Live Grep"
+    category: telescope
+    difficulty: 2
+    description: "Search text in project"
+    hint_action: "live_grep"
+    hint_fallback: "Use your live grep keymap"
+    filetype: text
+    initial_buffer: |
+      Search for text across all files
     validation_type: different
     par_keystrokes: 4
-    gold_base: 35
+    gold_base: 45
+    required_plugin: telescope
 
-  - id: git_diff
-    name: "View Diff"
-    category: git-operations
+  - id: telescope_keymaps
+    name: "Find Keymaps"
+    category: telescope
     difficulty: 2
-    description: "View the diff for the current file"
-    filetype: javascript
+    description: "Search keymaps"
+    hint_action: "find_keymaps"
+    hint_fallback: "Use your keymaps keymap"
+    filetype: text
     initial_buffer: |
-      function modified() {
-        return "changed";
-      }
+      Search through your keybindings
+    validation_type: different
+    par_keystrokes: 4
+    gold_base: 45
+    required_plugin: telescope
+
+  - id: telescope_current_buffer
+    name: "Search Buffer"
+    category: telescope
+    difficulty: 2
+    description: "Fuzzy find in current buffer"
+    hint_action: "buffer_fuzzy"
+    hint_fallback: "Use your buffer search keymap"
+    filetype: text
+    initial_buffer: |
+      Search within this buffer
+      for specific text
+      anywhere in the file
     validation_type: different
     par_keystrokes: 3
     gold_base: 40
+    required_plugin: telescope
 
-  - id: git_blame
-    name: "Git Blame"
-    category: git-operations
+  - id: telescope_help
+    name: "Search Help"
+    category: telescope
     difficulty: 2
-    description: "Toggle git blame to see who wrote each line"
+    description: "Search help tags"
+    hint_action: "help_tags"
+    hint_fallback: "Use your help tags keymap"
     filetype: text
     initial_buffer: |
-      Who wrote this line?
-      Use git blame to find out.
-      Toggle blame view on.
+      Search vim help documentation
     validation_type: different
     par_keystrokes: 4
-    gold_base: 45
+    gold_base: 40
+    required_plugin: telescope
 
-  - id: git_stage_hunk
-    name: "Stage Hunk"
-    category: git-operations
-    difficulty: 2
-    description: "Stage the current hunk using gitsigns or fugitive"
+  # Complex Telescope (2)
+  - id: telescope_from_directory
+    name: "Find from Directory"
+    category: telescope
+    difficulty: 3
+    description: "Find files starting from a specific directory"
+    hint_action: "find_from_dir"
+    hint_fallback: "Use your find from directory keymap"
+    filetype: text
+    initial_buffer: |
+      Find files in a specific folder
+    validation_type: different
+    par_keystrokes: 6
+    gold_base: 55
+    required_plugin: telescope
+
+  - id: telescope_lsp_references
+    name: "LSP References"
+    category: telescope
+    difficulty: 3
+    description: "Find LSP references via telescope"
+    hint_action: "find_references"
+    hint_fallback: "Use gr or telescope LSP references"
     filetype: javascript
     initial_buffer: |
-      const unstaged = "new code";
-      // Stage this change using your git integration
+      const target = 1;
+      console.log(target);
+      process(target);
+    cursor_start: [0, 6]
     validation_type: different
     par_keystrokes: 3
-    gold_base: 50
-    required_plugin: gitsigns
+    gold_base: 55
+    required_plugin: telescope
 
   # ============================================
-  # FILE EXPLORER CHALLENGES
+  # SURROUND CHALLENGES (8 total)
   # ============================================
 
-  - id: file_explorer_open
-    name: "Open Explorer"
-    category: movement
+  # Quick Surround (3)
+  - id: surround_delete_quotes
+    name: "Delete Quotes"
+    category: surround
     difficulty: 1
-    description: "Open your file explorer (nvim-tree, neo-tree, or oil)"
-    filetype: text
-    initial_buffer: |
-      Open the file explorer sidebar.
-      Navigate to a different directory.
-    validation_type: different
-    par_keystrokes: 3
-    gold_base: 30
-
-  - id: file_explorer_create
-    name: "Create File"
-    category: movement
-    difficulty: 2
-    description: "Create a new file using your file explorer"
-    filetype: text
-    initial_buffer: |
-      Use your file explorer to create a new file.
-      Most explorers use 'a' or 'n' for this.
-    validation_type: different
-    par_keystrokes: 5
-    gold_base: 45
-
-  # ============================================
-  # SURROUND CHALLENGES (requires surround plugin)
-  # ============================================
-
-  - id: surround_change_quotes
-    name: "Change Quotes"
-    category: text-objects
-    difficulty: 2
-    description: "Change single quotes to double quotes using cs'\""
+    description: "Delete surrounding double quotes"
     filetype: javascript
     initial_buffer: |
-      const msg = 'hello world';
+      const msg = "hello";
+    cursor_start: [0, 14]
     expected_buffer: |
-      const msg = "hello world";
-    cursor_start: [0, 12]
+      const msg = hello;
     validation_type: exact_match
-    par_keystrokes: 4
-    gold_base: 45
-    required_plugin: nvim-surround
+    par_keystrokes: 3
+    gold_base: 35
+    required_plugin: mini.surround
 
   - id: surround_delete_parens
-    name: "Delete Surrounding"
-    category: text-objects
-    difficulty: 2
-    description: "Delete the surrounding parentheses using ds("
+    name: "Delete Parens"
+    category: surround
+    difficulty: 1
+    description: "Delete surrounding parentheses"
     filetype: javascript
     initial_buffer: |
       const result = (value + 10);
+    cursor_start: [0, 18]
     expected_buffer: |
       const result = value + 10;
-    cursor_start: [0, 16]
     validation_type: exact_match
     par_keystrokes: 3
-    gold_base: 40
-    required_plugin: nvim-surround
+    gold_base: 35
+    required_plugin: mini.surround
 
-  - id: surround_add_brackets
-    name: "Add Brackets"
-    category: text-objects
+  - id: surround_change_quotes
+    name: "Change Quotes"
+    category: surround
+    difficulty: 1
+    description: "Change single quotes to double quotes"
+    filetype: javascript
+    initial_buffer: |
+      const msg = 'hello';
+    cursor_start: [0, 14]
+    expected_buffer: |
+      const msg = "hello";
+    validation_type: exact_match
+    par_keystrokes: 4
+    gold_base: 40
+    required_plugin: mini.surround
+
+  # Standard Surround (4)
+  - id: surround_add_quotes
+    name: "Add Quotes"
+    category: surround
     difficulty: 2
-    description: "Wrap the array items in brackets using ysiW]"
+    description: "Surround word with double quotes"
+    filetype: javascript
+    initial_buffer: |
+      const msg = hello;
+    cursor_start: [0, 12]
+    expected_buffer: |
+      const msg = "hello";
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 45
+    required_plugin: mini.surround
+
+  - id: surround_add_parens
+    name: "Add Parentheses"
+    category: surround
+    difficulty: 2
+    description: "Surround word with parentheses"
+    filetype: javascript
+    initial_buffer: |
+      return value;
+    cursor_start: [0, 7]
+    expected_buffer: |
+      return (value);
+    validation_type: exact_match
+    par_keystrokes: 5
+    gold_base: 45
+    required_plugin: mini.surround
+
+  - id: surround_visual
+    name: "Visual Surround"
+    category: surround
+    difficulty: 2
+    description: "Surround visual selection with brackets"
     filetype: javascript
     initial_buffer: |
       const arr = 1, 2, 3;
+    cursor_start: [0, 12]
     expected_buffer: |
       const arr = [1, 2, 3];
-    cursor_start: [0, 12]
     validation_type: exact_match
-    par_keystrokes: 5
+    par_keystrokes: 7
     gold_base: 50
-    required_plugin: nvim-surround
+    required_plugin: mini.surround
+
+  - id: surround_change_tag
+    name: "Change Tag"
+    category: surround
+    difficulty: 2
+    description: "Change HTML tag from div to span"
+    filetype: html
+    initial_buffer: |
+      <div>content</div>
+    cursor_start: [0, 5]
+    expected_buffer: |
+      <span>content</span>
+    validation_type: exact_match
+    par_keystrokes: 8
+    gold_base: 55
+    required_plugin: mini.surround
+
+  # Complex Surround (1)
+  - id: surround_function
+    name: "Wrap with Function"
+    category: surround
+    difficulty: 3
+    description: "Wrap expression with function call"
+    filetype: javascript
+    initial_buffer: |
+      const result = value * 2;
+    cursor_start: [0, 15]
+    expected_buffer: |
+      const result = Math.abs(value * 2);
+    validation_type: contains
+    expected_content: "Math.abs("
+    par_keystrokes: 12
+    gold_base: 65
+    required_plugin: mini.surround
 
   # ============================================
-  # QUICK MOTION CHALLENGES
+  # HARPOON CHALLENGES (5 total)
   # ============================================
 
-  - id: quick_motion_word
-    name: "Quick Word Jump"
-    category: movement
-    difficulty: 2
-    description: "Jump to the word 'target' using flash/leap/hop or search"
+  # Quick Harpoon (2)
+  - id: harpoon_add
+    name: "Add to Harpoon"
+    category: harpoon
+    difficulty: 1
+    description: "Add current file to harpoon list"
+    hint_action: "harpoon_add"
+    hint_fallback: "Use your harpoon add keymap"
     filetype: text
     initial_buffer: |
-      There are many words here
-      but you need to find the target word
-      hidden in this text somewhere.
-    validation_type: cursor_position
-    expected_cursor: [1, 27]
-    par_keystrokes: 4
-    gold_base: 45
+      Add this file to harpoon marks
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+    required_plugin: harpoon
 
-  - id: quick_motion_line
-    name: "Quick Line Jump"
-    category: movement
-    difficulty: 2
-    description: "Jump to line 5 as fast as possible"
+  - id: harpoon_menu
+    name: "Harpoon Menu"
+    category: harpoon
+    difficulty: 1
+    description: "Toggle harpoon quick menu"
+    hint_action: "harpoon_menu"
+    hint_fallback: "Use your harpoon menu keymap"
     filetype: text
     initial_buffer: |
-      Line 1
-      Line 2
-      Line 3
-      Line 4
-      Target line 5
-      Line 6
-      Line 7
-    validation_type: cursor_position
-    expected_cursor: [4, 0]
+      Open the harpoon menu
+    validation_type: different
     par_keystrokes: 2
     gold_base: 35
+    required_plugin: harpoon
+
+  # Standard Harpoon (2)
+  - id: harpoon_nav_1
+    name: "Harpoon File 1"
+    category: harpoon
+    difficulty: 2
+    description: "Navigate to harpoon file 1"
+    hint_action: "harpoon_1"
+    hint_fallback: "Use your harpoon 1 keymap"
+    filetype: text
+    initial_buffer: |
+      Jump to first harpooned file
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 40
+    required_plugin: harpoon
+
+  - id: harpoon_nav_2
+    name: "Harpoon File 2"
+    category: harpoon
+    difficulty: 2
+    description: "Navigate to harpoon file 2"
+    hint_action: "harpoon_2"
+    hint_fallback: "Use your harpoon 2 keymap"
+    filetype: text
+    initial_buffer: |
+      Jump to second harpooned file
+    validation_type: different
+    par_keystrokes: 2
+    gold_base: 40
+    required_plugin: harpoon
+
+  # Complex Harpoon (1)
+  - id: harpoon_reorder
+    name: "Reorder Harpoon"
+    category: harpoon
+    difficulty: 3
+    description: "Reorder files in harpoon menu"
+    hint_action: "harpoon_menu"
+    hint_fallback: "Open menu and reorder with j/k"
+    filetype: text
+    initial_buffer: |
+      Reorder your harpoon file list
+    validation_type: different
+    par_keystrokes: 6
+    gold_base: 55
+    required_plugin: harpoon
+
+  # ============================================
+  # FORMATTING CHALLENGES (5 total)
+  # ============================================
+
+  # Quick Formatting (2)
+  - id: format_buffer
+    name: "Format Buffer"
+    category: formatting
+    difficulty: 1
+    description: "Format the entire buffer"
+    hint_action: "format"
+    hint_fallback: "Use your format keymap"
+    filetype: javascript
+    initial_buffer: |
+      const x=1;const y=2;function foo(){return x+y}
+    validation_type: different
+    par_keystrokes: 3
+    gold_base: 35
+
+  - id: format_indent
+    name: "Auto Indent"
+    category: formatting
+    difficulty: 1
+    description: "Auto-indent a block using ="
+    filetype: javascript
+    initial_buffer: |
+      function example() {
+      const a = 1;
+      if (a) {
+      return true;
+      }
+      }
+    expected_buffer: |
+      function example() {
+        const a = 1;
+        if (a) {
+          return true;
+        }
+      }
+    validation_type: exact_match
+    par_keystrokes: 4
+    gold_base: 40
+
+  # Standard Formatting (2)
+  - id: format_organize_imports
+    name: "Organize Imports"
+    category: formatting
+    difficulty: 2
+    description: "Organize imports via code action"
+    hint_action: "code_action"
+    hint_fallback: "Use code action to organize imports"
+    filetype: typescript
+    initial_buffer: |
+      import { z } from 'zod';
+      import { readFile } from 'fs';
+      import { join } from 'path';
+    validation_type: different
+    par_keystrokes: 5
+    gold_base: 50
+
+  - id: format_retab
+    name: "Convert Tabs"
+    category: formatting
+    difficulty: 2
+    description: "Convert tabs to spaces using :retab"
+    filetype: javascript
+    initial_buffer: "function example() {\n\treturn true;\n}"
+    validation_type: different
+    par_keystrokes: 7
+    gold_base: 45
+
+  # Complex Formatting (1)
+  - id: format_visual_range
+    name: "Format Selection"
+    category: formatting
+    difficulty: 3
+    description: "Format only the selected range"
+    filetype: javascript
+    initial_buffer: |
+      const good = true;
+      const ugly={a:1,b:2,c:3};
+      const alsoGood = false;
+    cursor_start: [1, 0]
+    validation_type: different
+    par_keystrokes: 6
+    gold_base: 55

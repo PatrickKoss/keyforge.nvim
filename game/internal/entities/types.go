@@ -40,15 +40,16 @@ const (
 
 // TowerInfo contains configuration for each tower type.
 type TowerInfo struct {
-	Name     string
-	Cost     int
-	Damage   int
-	Range    float64
-	Cooldown float64 // seconds between attacks
-	Category string  // challenge category
-	Symbol   string  // display character
-	Color    string  // hex color
-	Upgrades []TowerUpgrade
+	Name       string
+	Cost       int
+	Damage     int
+	Range      float64
+	Cooldown   float64  // seconds between attacks
+	Category   string   // primary challenge category (for backwards compat)
+	Categories []string // all challenge categories this tower can trigger
+	Symbol     string   // display character
+	Color      string   // hex color
+	Upgrades   []TowerUpgrade
 }
 
 // TowerUpgrade defines an upgrade tier.
@@ -84,44 +85,51 @@ type EnemyInfo struct {
 
 // TowerTypes contains all tower configurations.
 // Rebalanced: cost correlates with power, each tower has distinct role.
+// Categories mapping:
+// - Arrow: movement, buffer-management, window-management, quickfix, folding
+// - LSP: lsp-navigation, telescope, diagnostics, formatting, harpoon
+// - Refactor: text-objects, search-replace, refactoring, surround, git-operations.
 var TowerTypes = map[TowerType]TowerInfo{
 	TowerArrow: {
-		Name:     "Arrow",
-		Cost:     50,
-		Damage:   8,   // Fast attacker, lower damage
-		Range:    2.5, // Short range
-		Cooldown: 0.8, // Fast attack speed
-		Category: "movement",
-		Symbol:   "🏹",
-		Color:    "#22c55e",
+		Name:       "Arrow",
+		Cost:       50,
+		Damage:     8,   // Fast attacker, lower damage
+		Range:      2.5, // Short range
+		Cooldown:   0.8, // Fast attack speed
+		Category:   "movement",
+		Categories: []string{"movement", "buffer-management", "window-management", "quickfix", "folding"},
+		Symbol:     "🏹",
+		Color:      "#22c55e",
 		Upgrades: []TowerUpgrade{
 			{Cost: 30, DamageBonus: 1, RangeBonus: 0.3, CooldownMult: 0.9}, // +15% dmg (1.2 -> rounds to 1), +0.3 range, -10% cooldown
 			{Cost: 60, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
 		},
 	},
 	TowerLSP: {
-		Name:     "LSP",
-		Cost:     100,
-		Damage:   20,  // Sniper, high damage
-		Range:    5.0, // Long range
-		Cooldown: 1.5, // Slower attack
-		Category: "lsp-navigation",
-		Symbol:   "🔮",
-		Color:    "#8b5cf6",
+		Name:       "LSP",
+		Cost:       100,
+		Damage:     20,  // Sniper, high damage
+		Range:      5.0, // Long range
+		Cooldown:   1.5, // Slower attack
+		Category:   "lsp-navigation",
+		Categories: []string{"lsp-navigation", "telescope", "diagnostics", "formatting", "harpoon"},
+		Symbol:     "🔮",
+		Color:      "#8b5cf6",
 		Upgrades: []TowerUpgrade{
 			{Cost: 60, DamageBonus: 3, RangeBonus: 0.3, CooldownMult: 0.9},  // +15% dmg (3), +0.3 range, -10% cooldown
 			{Cost: 120, DamageBonus: 3, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
 		},
 	},
 	TowerRefactor: {
-		Name:     "Refactor",
-		Cost:     150,
-		Damage:   12,  // Balanced area damage
-		Range:    3.0, // Medium range
-		Cooldown: 1.0, // Medium attack speed
-		Category: "text-objects",
-		Symbol:   "⚡",
-		Color:    "#f59e0b",
+		Name:       "Refactor",
+		Cost:       150,
+		Damage:     12,  // Balanced area damage
+		Range:      3.0, // Medium range
+		Cooldown:   1.0, // Medium attack speed
+		Category:   "text-objects",
+		Categories: []string{"text-objects", "search-replace", "refactoring", "surround", "git-operations"},
+		Symbol:     "⚡",
+		Color:      "#f59e0b",
 		Upgrades: []TowerUpgrade{
 			{Cost: 90, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9},  // +15% dmg (1.8 -> 2), +0.3 range, -10% cooldown
 			{Cost: 180, DamageBonus: 2, RangeBonus: 0.3, CooldownMult: 0.9}, // Cumulative
