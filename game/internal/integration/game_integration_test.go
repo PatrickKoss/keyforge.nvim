@@ -246,13 +246,13 @@ func TestChallengeFlowWithSuccess(t *testing.T) {
 
 	initialGold := h.Model.Game.Gold
 
-	// Start a challenge
+	// Start a challenge - game continues running for time pressure
 	h.Model.NvimChallengeCount++
 	h.Model.NvimChallengeID = "test_challenge_1"
-	h.Model.Game.StartChallengeWaiting()
+	h.Model.Game.StartChallenge()
 
-	if h.Model.Game.State != engine.StateChallengeWaiting {
-		t.Fatalf("Expected StateChallengeWaiting, got %v", h.Model.Game.State)
+	if h.Model.Game.State != engine.StateChallengeActive {
+		t.Fatalf("Expected StateChallengeActive, got %v", h.Model.Game.State)
 	}
 
 	// Simulate Neovim completing the challenge
@@ -576,15 +576,16 @@ func TestRPCConnectionResilience(t *testing.T) {
 	defer h.Cleanup()
 
 	// Send a stale challenge result (wrong ID)
+	// Game continues running during challenge for time pressure
 	h.Model.NvimChallengeID = "current_challenge"
-	h.Model.Game.StartChallengeWaiting()
+	h.Model.Game.StartChallenge()
 
 	h.Client.SendChallengeComplete("old_challenge", true, 999)
 	time.Sleep(100 * time.Millisecond)
 	h.Tick()
 
-	// Game should still be waiting (stale result ignored)
-	if h.Model.Game.State != engine.StateChallengeWaiting {
+	// Game should still be in challenge active (stale result ignored)
+	if h.Model.Game.State != engine.StateChallengeActive {
 		t.Log("Note: Game processed stale challenge - checking if this is due to ID mismatch handling")
 	}
 

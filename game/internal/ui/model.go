@@ -341,7 +341,7 @@ func (m *Model) startChallenge() {
 			m.NvimChallengeID = ""
 			return
 		}
-		m.Game.StartChallengeWaiting() // Use waiting state (paused) for nvim mode
+		m.Game.StartChallenge() // Game continues during challenge for time pressure
 		return
 	}
 

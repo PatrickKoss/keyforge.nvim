@@ -64,12 +64,13 @@ func TestChallengeResultChannel(t *testing.T) {
 	model.NvimRPC = &MockRPCClient{}
 
 	// Simulate starting a challenge (this sets NvimChallengeID)
+	// Game continues running during challenge for time pressure
 	model.NvimChallengeCount++
 	model.NvimChallengeID = "challenge_1"
-	model.Game.StartChallengeWaiting()
+	model.Game.StartChallenge()
 
-	if model.Game.State != engine.StateChallengeWaiting {
-		t.Fatalf("Expected StateChallengeWaiting, got %v", model.Game.State)
+	if model.Game.State != engine.StateChallengeActive {
+		t.Fatalf("Expected StateChallengeActive, got %v", model.Game.State)
 	}
 
 	// Send a challenge result to the channel (simulating RPC handler)
@@ -156,9 +157,10 @@ func TestChallengeResultMismatchedID(t *testing.T) {
 	model.NvimRPC = &MockRPCClient{}
 
 	// Start challenge with ID "challenge_2"
+	// Game continues running during challenge for time pressure
 	model.NvimChallengeCount = 2
 	model.NvimChallengeID = "challenge_2"
-	model.Game.StartChallengeWaiting()
+	model.Game.StartChallenge()
 
 	initialGold := model.Game.Gold
 
@@ -180,9 +182,9 @@ func TestChallengeResultMismatchedID(t *testing.T) {
 	newModel, _ := model.Update(tickMsg)
 	updatedModel := newModel.(Model)
 
-	// Should NOT have processed - state should still be waiting
-	if updatedModel.Game.State != engine.StateChallengeWaiting {
-		t.Errorf("Expected StateChallengeWaiting (stale result ignored), got %v", updatedModel.Game.State)
+	// Should NOT have processed - state should still be challenge active
+	if updatedModel.Game.State != engine.StateChallengeActive {
+		t.Errorf("Expected StateChallengeActive (stale result ignored), got %v", updatedModel.Game.State)
 	}
 
 	// Gold should not have changed
@@ -491,12 +493,12 @@ func TestIntegrationWithRealSocketServer(t *testing.T) {
 	btModel := model
 	btModel.NvimChallengeCount++
 	btModel.NvimChallengeID = "int_test_1"
-	btModel.Game.StartChallengeWaiting()
+	btModel.Game.StartChallenge() // Game continues during challenge for time pressure
 
 	t.Logf("Started challenge, state=%v, id=%s", btModel.Game.State, btModel.NvimChallengeID)
 
-	if btModel.Game.State != engine.StateChallengeWaiting {
-		t.Fatalf("Expected StateChallengeWaiting, got %v", btModel.Game.State)
+	if btModel.Game.State != engine.StateChallengeActive {
+		t.Fatalf("Expected StateChallengeActive, got %v", btModel.Game.State)
 	}
 
 	// Client sends challenge_complete (Neovim finished the challenge)
