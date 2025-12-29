@@ -17,6 +17,7 @@ type MockHandler struct {
 	ResumeCalls      int
 	StartChallenges  int
 	RestartCalls     int
+	LevelSelectCalls int
 }
 
 func (h *MockHandler) HandleChallengeComplete(result *ChallengeResult) {
@@ -41,6 +42,10 @@ func (h *MockHandler) HandleStartChallenge() {
 
 func (h *MockHandler) HandleRestart() {
 	h.RestartCalls++
+}
+
+func (h *MockHandler) HandleGoToLevelSelect() {
+	h.LevelSelectCalls++
 }
 
 func TestSocketServerStartStop(t *testing.T) {
@@ -247,5 +252,299 @@ func TestEndToEndChallengeFlow(t *testing.T) {
 	}
 	if result.GoldEarned != 50 {
 		t.Errorf("Expected gold_earned=50, got %d", result.GoldEarned)
+	}
+}
+
+// =============================================================================
+// Game Over / Victory RPC Tests
+// =============================================================================
+
+// TestSocketServerHandlesRestartNotification tests that restart_game RPC is handled.
+func TestSocketServerHandlesRestartNotification(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_restart.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	// Connect as client
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Send restart_game notification
+	notif := Notification{
+		JSONRPC: "2.0",
+		Method:  "restart_game",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(notif)
+	conn.Write(append(data, '\n'))
+
+	time.Sleep(200 * time.Millisecond)
+
+	if handler.RestartCalls != 1 {
+		t.Errorf("Expected 1 restart call, got %d", handler.RestartCalls)
+	}
+}
+
+// TestSocketServerHandlesGoToLevelSelectNotification tests the new RPC method.
+func TestSocketServerHandlesGoToLevelSelectNotification(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_levelselect.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	// Connect as client
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Send go_to_level_select notification
+	notif := Notification{
+		JSONRPC: "2.0",
+		Method:  "go_to_level_select",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(notif)
+	conn.Write(append(data, '\n'))
+
+	time.Sleep(200 * time.Millisecond)
+
+	if handler.LevelSelectCalls != 1 {
+		t.Errorf("Expected 1 level select call, got %d", handler.LevelSelectCalls)
+	}
+}
+
+// TestSocketServerHandlesRestartRequest tests restart_game as JSON-RPC request.
+func TestSocketServerHandlesRestartRequest(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_restart_req.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Consume game_ready
+	buf := make([]byte, 4096)
+	conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+	conn.Read(buf)
+
+	// Send restart_game as request (with ID)
+	req := Request{
+		JSONRPC: "2.0",
+		ID:      1,
+		Method:  "restart_game",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(req)
+	conn.Write(append(data, '\n'))
+
+	// Read response
+	conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatalf("Failed to read response: %v", err)
+	}
+
+	var resp Response
+	err = json.Unmarshal(buf[:n-1], &resp)
+	if err != nil {
+		t.Fatalf("Failed to parse response: %v", err)
+	}
+
+	if resp.Error != nil {
+		t.Errorf("Expected no error, got: %v", resp.Error)
+	}
+
+	if handler.RestartCalls != 1 {
+		t.Errorf("Expected 1 restart call, got %d", handler.RestartCalls)
+	}
+}
+
+// TestSocketServerHandlesGoToLevelSelectRequest tests go_to_level_select as request.
+func TestSocketServerHandlesGoToLevelSelectRequest(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_levelselect_req.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Consume game_ready
+	buf := make([]byte, 4096)
+	conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+	conn.Read(buf)
+
+	// Send go_to_level_select as request
+	req := Request{
+		JSONRPC: "2.0",
+		ID:      1,
+		Method:  "go_to_level_select",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(req)
+	conn.Write(append(data, '\n'))
+
+	// Read response
+	conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatalf("Failed to read response: %v", err)
+	}
+
+	var resp Response
+	err = json.Unmarshal(buf[:n-1], &resp)
+	if err != nil {
+		t.Fatalf("Failed to parse response: %v", err)
+	}
+
+	if resp.Error != nil {
+		t.Errorf("Expected no error, got: %v", resp.Error)
+	}
+
+	if handler.LevelSelectCalls != 1 {
+		t.Errorf("Expected 1 level select call, got %d", handler.LevelSelectCalls)
+	}
+}
+
+// TestEndToEndRestartFlow tests full restart flow via RPC.
+func TestEndToEndRestartFlow(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_e2e_restart.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Simulate game over → user presses 'r' → Lua sends restart_game
+	notif := Notification{
+		JSONRPC: "2.0",
+		Method:  "restart_game",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(notif)
+	conn.Write(append(data, '\n'))
+
+	time.Sleep(200 * time.Millisecond)
+
+	// Handler should have received the restart command
+	if handler.RestartCalls != 1 {
+		t.Errorf("Expected HandleRestart to be called once, got %d", handler.RestartCalls)
+	}
+
+	// Level select should not have been called
+	if handler.LevelSelectCalls != 0 {
+		t.Errorf("Expected no level select calls, got %d", handler.LevelSelectCalls)
+	}
+}
+
+// TestEndToEndLevelSelectFlow tests full level select flow via RPC.
+func TestEndToEndLevelSelectFlow(t *testing.T) {
+	tmpDir := os.TempDir()
+	socketPath := filepath.Join(tmpDir, "test_e2e_levelselect.sock")
+	defer os.Remove(socketPath)
+
+	handler := &MockHandler{}
+	server := NewSocketServer(socketPath, handler)
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer server.Stop()
+
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Simulate game over → user presses 'l' → Lua sends go_to_level_select
+	notif := Notification{
+		JSONRPC: "2.0",
+		Method:  "go_to_level_select",
+		Params:  map[string]interface{}{},
+	}
+	data, _ := json.Marshal(notif)
+	conn.Write(append(data, '\n'))
+
+	time.Sleep(200 * time.Millisecond)
+
+	// Handler should have received the level select command
+	if handler.LevelSelectCalls != 1 {
+		t.Errorf("Expected HandleGoToLevelSelect to be called once, got %d", handler.LevelSelectCalls)
+	}
+
+	// Restart should not have been called
+	if handler.RestartCalls != 0 {
+		t.Errorf("Expected no restart calls, got %d", handler.RestartCalls)
 	}
 }

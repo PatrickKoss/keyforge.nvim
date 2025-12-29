@@ -37,6 +37,7 @@ type Handler interface {
 	HandleResume()
 	HandleStartChallenge()
 	HandleRestart()
+	HandleGoToLevelSelect()
 }
 
 // NewClient creates a new RPC client using stdin for reading and stderr for writing
@@ -212,6 +213,11 @@ func (c *Client) handleRequest(req *Request) {
 			c.handler.HandleRestart()
 		}
 		result = map[string]bool{"ok": true}
+	case MethodGoToLevelSelect:
+		if c.handler != nil {
+			c.handler.HandleGoToLevelSelect()
+		}
+		result = map[string]bool{"ok": true}
 	default:
 		rpcErr = NewError(ErrCodeMethodNotFound, "method not found: "+req.Method)
 	}
@@ -256,6 +262,10 @@ func (c *Client) handleNotification(notif *Notification) {
 	case MethodRestartGame:
 		if c.handler != nil {
 			c.handler.HandleRestart()
+		}
+	case MethodGoToLevelSelect:
+		if c.handler != nil {
+			c.handler.HandleGoToLevelSelect()
 		}
 	}
 }

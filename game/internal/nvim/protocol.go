@@ -138,6 +138,7 @@ const (
 	MethodPauseGame         = "pause_game"
 	MethodResumeGame        = "resume_game"
 	MethodRestartGame       = "restart_game"
+	MethodGoToLevelSelect   = "go_to_level_select"
 )
 
 // GameOverParams contains game over notification data.

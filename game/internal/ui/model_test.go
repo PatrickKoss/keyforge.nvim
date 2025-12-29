@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/keyforge/keyforge/internal/engine"
 	"github.com/keyforge/keyforge/internal/nvim"
 )
@@ -460,6 +462,305 @@ func TestSocketServerHandlerWithSeparateModels(t *testing.T) {
 		t.Errorf("Game should resume after challenge, got state %v", finalModel.Game.State)
 	}
 }
+
+// =============================================================================
+// Game Over / Victory Screen Tests
+// =============================================================================
+
+// TestHandleRestartUsesSelectedLevel tests that HandleRestart uses the
+// selected level and settings instead of creating a generic game.
+func TestHandleRestartUsesSelectedLevel(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+
+	// Select a specific level
+	levels := model.LevelRegistry.GetAll()
+	if len(levels) < 2 {
+		t.Fatal("Need at least 2 levels for this test")
+	}
+	model.SelectedLevel = &levels[1] // Select second level
+	model.Settings.StartingGold = 300
+	model.Settings.StartingHealth = 150
+	model.Settings.Difficulty = engine.DifficultyEasy
+
+	// Start a game and get to game over
+	model.startGameFromSettings()
+	model.Game.State = engine.StateGameOver
+
+	// Call HandleRestart (simulating RPC from Lua)
+	model.HandleRestart()
+
+	// Verify the game was restarted with the same level
+	if model.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after restart, got %v", model.Game.State)
+	}
+
+	// Verify settings were preserved
+	if model.Game.Gold != 300 {
+		t.Errorf("Expected starting gold 300, got %d", model.Game.Gold)
+	}
+
+	if model.Game.Health != 150 {
+		t.Errorf("Expected starting health 150, got %d", model.Game.Health)
+	}
+
+	// Verify level path matches (level-specific)
+	expectedPathLen := len(levels[1].Path)
+	if len(model.Game.Path) != expectedPathLen {
+		t.Errorf("Expected path length %d (from selected level), got %d", expectedPathLen, len(model.Game.Path))
+	}
+}
+
+// TestHandleRestartWithoutSelectedLevel tests fallback when no level is selected.
+func TestHandleRestartWithoutSelectedLevel(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.SelectedLevel = nil // No level selected
+
+	model.Game.State = engine.StateGameOver
+
+	// Should not panic, should create a default game
+	model.HandleRestart()
+
+	if model.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after restart, got %v", model.Game.State)
+	}
+
+	// Should have default dimensions
+	if model.Game.Width != GridWidth || model.Game.Height != GridHeight {
+		t.Errorf("Expected default grid size %dx%d, got %dx%d",
+			GridWidth, GridHeight, model.Game.Width, model.Game.Height)
+	}
+}
+
+// TestHandleRestartClearsState tests that challenge state is properly cleared.
+func TestHandleRestartClearsState(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+
+	// Simulate mid-challenge state
+	model.NvimChallengeID = "challenge_123"
+	model.CurrentChallenge = &engine.Challenge{Name: "test"}
+	model.Game.State = engine.StateGameOver
+
+	model.HandleRestart()
+
+	if model.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID to be cleared, got '%s'", model.NvimChallengeID)
+	}
+
+	if model.CurrentChallenge != nil {
+		t.Error("Expected CurrentChallenge to be nil")
+	}
+
+	if model.VimEditor != nil {
+		t.Error("Expected VimEditor to be nil")
+	}
+}
+
+// TestHandleGoToLevelSelect tests that the level select state transition works.
+func TestHandleGoToLevelSelect(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+
+	// Start a game and get to game over
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+	model.startGameFromSettings()
+	model.Game.State = engine.StateGameOver
+
+	// Set some state that should be cleared
+	model.NvimChallengeID = "challenge_456"
+	model.CurrentChallenge = &engine.Challenge{Name: "test"}
+	model.SettingsMenuIndex = 3
+
+	// Call HandleGoToLevelSelect
+	model.HandleGoToLevelSelect()
+
+	if model.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect, got %v", model.Game.State)
+	}
+
+	if model.SettingsMenuIndex != 0 {
+		t.Errorf("Expected SettingsMenuIndex reset to 0, got %d", model.SettingsMenuIndex)
+	}
+
+	if model.NvimChallengeID != "" {
+		t.Errorf("Expected NvimChallengeID cleared, got '%s'", model.NvimChallengeID)
+	}
+
+	if model.CurrentChallenge != nil {
+		t.Error("Expected CurrentChallenge to be nil")
+	}
+}
+
+// TestHandleGoToLevelSelectFromVictory tests transition from victory state.
+func TestHandleGoToLevelSelectFromVictory(t *testing.T) {
+	model := NewModel()
+	model.NvimMode = true
+
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+	model.startGameFromSettings()
+	model.Game.State = engine.StateVictory
+
+	model.HandleGoToLevelSelect()
+
+	if model.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect from victory, got %v", model.Game.State)
+	}
+}
+
+// TestEndGameKeysRestart tests the 'r' key in game over state.
+func TestEndGameKeysRestart(t *testing.T) {
+	model := NewModel()
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+	model.Settings.StartingGold = 250
+
+	model.startGameFromSettings()
+	model.Game.State = engine.StateGameOver
+	model.Game.Gold = 50 // Simulate spent gold
+
+	// Press 'r'
+	newModel, _ := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated := newModel.(Model)
+
+	if updated.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after 'r', got %v", updated.Game.State)
+	}
+
+	// Gold should be reset to starting value
+	if updated.Game.Gold != 250 {
+		t.Errorf("Expected gold reset to 250, got %d", updated.Game.Gold)
+	}
+}
+
+// TestEndGameKeysLevelSelect tests the 'm' key (menu) in game over state.
+func TestEndGameKeysLevelSelect(t *testing.T) {
+	model := NewModel()
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+	model.startGameFromSettings()
+	model.Game.State = engine.StateGameOver
+	model.SettingsMenuIndex = 2
+
+	// Press 'm'
+	newModel, _ := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	updated := newModel.(Model)
+
+	if updated.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after 'm', got %v", updated.Game.State)
+	}
+
+	if updated.SettingsMenuIndex != 0 {
+		t.Errorf("Expected SettingsMenuIndex reset to 0, got %d", updated.SettingsMenuIndex)
+	}
+}
+
+// TestEndGameKeysQuit tests the 'q' key in game over state.
+func TestEndGameKeysQuit(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateGameOver
+
+	// Press 'q'
+	newModel, cmd := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	updated := newModel.(Model)
+
+	if !updated.Quitting {
+		t.Error("Expected Quitting to be true after 'q'")
+	}
+
+	if cmd == nil {
+		t.Error("Expected quit command to be returned")
+	}
+}
+
+// TestEndGameKeysFromVictory tests keys work from victory state too.
+func TestEndGameKeysFromVictory(t *testing.T) {
+	model := NewModel()
+	model.SelectedLevel = &model.LevelRegistry.GetAll()[0]
+	model.startGameFromSettings()
+	model.Game.State = engine.StateVictory
+
+	// Press 'r'
+	newModel, _ := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated := newModel.(Model)
+
+	if updated.Game.State != engine.StatePlaying {
+		t.Errorf("Expected StatePlaying after 'r' from victory, got %v", updated.Game.State)
+	}
+}
+
+// TestEndGameKeysIgnoresOtherKeys tests that invalid keys are ignored.
+func TestEndGameKeysIgnoresOtherKeys(t *testing.T) {
+	model := NewModel()
+	model.Game.State = engine.StateGameOver
+
+	// Press some random key
+	newModel, cmd := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	updated := newModel.(Model)
+
+	if updated.Game.State != engine.StateGameOver {
+		t.Errorf("State should remain GameOver, got %v", updated.Game.State)
+	}
+
+	if cmd != nil {
+		t.Error("No command should be returned for invalid key")
+	}
+}
+
+// TestRestartPreservesLevelSettings tests that restart uses the exact same
+// level and settings that were used to start the current game.
+func TestRestartPreservesLevelSettings(t *testing.T) {
+	model := NewModel()
+
+	// Select a harder level
+	levels := model.LevelRegistry.GetAll()
+	if len(levels) < 5 {
+		t.Skip("Need at least 5 levels")
+	}
+
+	model.SelectedLevel = &levels[4] // 5th level
+	model.Settings = engine.GameSettings{
+		Difficulty:     engine.DifficultyHard,
+		GameSpeed:      engine.SpeedDouble,
+		StartingGold:   100,
+		StartingHealth: 50,
+	}
+
+	model.startGameFromSettings()
+	originalWaves := model.Game.TotalWaves
+
+	// Play the game, change some state
+	model.Game.Gold = 500
+	model.Game.Health = 10
+	model.Game.Wave = 5
+	model.Game.State = engine.StateGameOver
+
+	// Restart
+	newModel, _ := model.handleEndGameKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated := newModel.(Model)
+
+	// Should be back to starting values
+	if updated.Game.Gold != 100 {
+		t.Errorf("Expected gold 100, got %d", updated.Game.Gold)
+	}
+
+	if updated.Game.Health != 50 {
+		t.Errorf("Expected health 50, got %d", updated.Game.Health)
+	}
+
+	if updated.Game.Wave != 1 {
+		t.Errorf("Expected wave 1, got %d", updated.Game.Wave)
+	}
+
+	// Level-specific settings preserved
+	if updated.Game.TotalWaves != originalWaves {
+		t.Errorf("Expected TotalWaves %d, got %d", originalWaves, updated.Game.TotalWaves)
+	}
+}
+
+// =============================================================================
+// Original Integration Tests
+// =============================================================================
 
 // TestIntegrationWithRealSocketServer tests the FULL integration:
 // - Real SocketServer

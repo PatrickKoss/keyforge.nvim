@@ -291,6 +291,11 @@ func (s *SocketServer) handleRequest(req *Request) {
 			s.handler.HandleRestart()
 		}
 		result = map[string]bool{"ok": true}
+	case MethodGoToLevelSelect:
+		if s.handler != nil {
+			s.handler.HandleGoToLevelSelect()
+		}
+		result = map[string]bool{"ok": true}
 	default:
 		rpcErr = NewError(ErrCodeMethodNotFound, "method not found: "+req.Method)
 	}
@@ -339,6 +344,10 @@ func (s *SocketServer) handleNotification(notif *Notification) {
 	case MethodRestartGame:
 		if s.handler != nil {
 			s.handler.HandleRestart()
+		}
+	case MethodGoToLevelSelect:
+		if s.handler != nil {
+			s.handler.HandleGoToLevelSelect()
 		}
 	}
 }

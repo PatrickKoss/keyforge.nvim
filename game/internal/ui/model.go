@@ -159,12 +159,26 @@ func (m *Model) HandleStartChallenge() {
 
 // HandleRestart handles restart requests from Neovim.
 func (m *Model) HandleRestart() {
-	m.Game = engine.NewGame(GridWidth, GridHeight)
+	// Restart with same level and settings (matching standalone behavior)
+	if m.SelectedLevel != nil {
+		m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
+	} else {
+		m.Game = engine.NewGame(GridWidth, GridHeight)
+	}
 	m.LastUpdate = time.Now()
 	m.CurrentChallenge = nil
 	m.VimEditor = nil
 	m.NvimChallengeID = ""
 	m.PrevGameState = engine.StatePlaying
+}
+
+// HandleGoToLevelSelect handles level select requests from Neovim.
+func (m *Model) HandleGoToLevelSelect() {
+	m.Game.State = engine.StateLevelSelect
+	m.SettingsMenuIndex = 0
+	m.CurrentChallenge = nil
+	m.VimEditor = nil
+	m.NvimChallengeID = ""
 }
 
 // sendStateNotification sends game state notifications to Neovim.

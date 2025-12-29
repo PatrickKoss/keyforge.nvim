@@ -33,7 +33,7 @@ function M.show(params)
       string.format("  Final Gold:   %d", params.gold or 0),
       string.format("  Towers Built: %d", params.towers or 0),
       "",
-      "  Press [r] to play again or [q] to quit",
+      "  Press [r] to play again, [l] for level select, or [q] to quit",
       "",
     }
   else
@@ -51,7 +51,7 @@ function M.show(params)
       string.format("  Final Gold:   %d", params.gold or 0),
       string.format("  Towers Built: %d", params.towers or 0),
       "",
-      "  Press [r] to restart or [q] to quit",
+      "  Press [r] to restart, [l] for level select, or [q] to quit",
       "",
     }
   end
@@ -104,6 +104,10 @@ function M.show(params)
     M.quit()
   end, { buffer = M._buf, desc = "Quit game" })
 
+  vim.keymap.set("n", "l", function()
+    M.level_select()
+  end, { buffer = M._buf, desc = "Go to level select" })
+
   -- Close on any other key after a delay
   vim.keymap.set("n", "<Esc>", function()
     M.close()
@@ -151,6 +155,23 @@ function M.quit()
   -- This ensures the popup window is fully closed before buffer cleanup
   vim.schedule(function()
     keyforge.stop()
+  end)
+end
+
+--- Go to level selection
+function M.level_select()
+  local keyforge = require("keyforge")
+  local rpc = require("keyforge.rpc")
+
+  -- Close popup first
+  M.close()
+
+  -- Send level select command to game
+  rpc.notify("go_to_level_select", {})
+
+  -- Schedule focus to run after RPC is sent and popup is fully closed
+  vim.schedule(function()
+    keyforge.focus_game_tab()
   end)
 end
 
