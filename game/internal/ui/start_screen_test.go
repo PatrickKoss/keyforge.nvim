@@ -777,6 +777,32 @@ func TestGameVictoryMenuKey(t *testing.T) {
 	}
 }
 
+// TestQuitDuringPlayingReturnsToStartScreen tests 'q' during playing goes back to start screen.
+func TestQuitDuringPlayingReturnsToStartScreen(t *testing.T) {
+	model := newTestModel()
+	model.Game.State = engine.StatePlaying
+
+	newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m := newModel.(Model)
+
+	if m.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after 'q' from playing, got %v", m.Game.State)
+	}
+}
+
+// TestQuitDuringPausedReturnsToStartScreen tests 'q' while paused goes back to start screen.
+func TestQuitDuringPausedReturnsToStartScreen(t *testing.T) {
+	model := newTestModel()
+	model.Game.State = engine.StatePaused
+
+	newModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m := newModel.(Model)
+
+	if m.Game.State != engine.StateLevelSelect {
+		t.Errorf("Expected StateLevelSelect after 'q' from paused, got %v", m.Game.State)
+	}
+}
+
 // TestGameRestartKeepsLevelAndSettings tests 'r' restarts with same settings.
 func TestGameRestartKeepsLevelAndSettings(t *testing.T) {
 	model := NewModel()

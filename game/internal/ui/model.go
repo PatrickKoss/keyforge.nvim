@@ -485,6 +485,11 @@ func (m Model) handlePlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint
 	// Challenge
 	case "c":
 		m.startChallenge()
+
+	// Quit to start screen
+	case "q":
+		m.Game.State = engine.StateLevelSelect
+		m.SettingsMenuIndex = 0
 	}
 
 	return m, nil
@@ -562,6 +567,9 @@ func (m Model) handlePausedKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint:
 	switch msg.String() {
 	case "p", " ", "enter":
 		m.Game.TogglePause()
+	case "q":
+		m.Game.State = engine.StateLevelSelect
+		m.SettingsMenuIndex = 0
 	}
 	return m, nil
 }
