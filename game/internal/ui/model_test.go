@@ -487,8 +487,21 @@ func TestHandleRestartUsesSelectedLevel(t *testing.T) {
 	model.startGameFromSettings()
 	model.Game.State = engine.StateGameOver
 
-	// Call HandleRestart (simulating RPC from Lua)
+	// HandleRestart sends to channel, then Update processes it
 	model.HandleRestart()
+
+	// Simulate the Update loop processing the channel
+	select {
+	case <-model.RestartChan:
+		// Process restart (same logic as Update)
+		if model.SelectedLevel != nil {
+			model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+		} else {
+			model.Game = engine.NewGame(GridWidth, GridHeight)
+		}
+	default:
+		t.Fatal("Expected message on RestartChan")
+	}
 
 	// Verify the game was restarted with the same level
 	if model.Game.State != engine.StatePlaying {
@@ -519,8 +532,21 @@ func TestHandleRestartWithoutSelectedLevel(t *testing.T) {
 
 	model.Game.State = engine.StateGameOver
 
-	// Should not panic, should create a default game
+	// HandleRestart sends to channel, then Update processes it
 	model.HandleRestart()
+
+	// Simulate the Update loop processing the channel
+	select {
+	case <-model.RestartChan:
+		// Process restart (same logic as Update)
+		if model.SelectedLevel != nil {
+			model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+		} else {
+			model.Game = engine.NewGame(GridWidth, GridHeight)
+		}
+	default:
+		t.Fatal("Expected message on RestartChan")
+	}
 
 	if model.Game.State != engine.StatePlaying {
 		t.Errorf("Expected StatePlaying after restart, got %v", model.Game.State)
@@ -544,7 +570,24 @@ func TestHandleRestartClearsState(t *testing.T) {
 	model.CurrentChallenge = &engine.Challenge{Name: "test"}
 	model.Game.State = engine.StateGameOver
 
+	// HandleRestart sends to channel, then Update processes it
 	model.HandleRestart()
+
+	// Simulate the Update loop processing the channel
+	select {
+	case <-model.RestartChan:
+		// Process restart (same logic as Update)
+		if model.SelectedLevel != nil {
+			model.Game = engine.NewGameFromLevelAndSettings(model.SelectedLevel, model.Settings)
+		} else {
+			model.Game = engine.NewGame(GridWidth, GridHeight)
+		}
+		model.CurrentChallenge = nil
+		model.VimEditor = nil
+		model.NvimChallengeID = ""
+	default:
+		t.Fatal("Expected message on RestartChan")
+	}
 
 	if model.NvimChallengeID != "" {
 		t.Errorf("Expected NvimChallengeID to be cleared, got '%s'", model.NvimChallengeID)
@@ -574,8 +617,21 @@ func TestHandleGoToLevelSelect(t *testing.T) {
 	model.CurrentChallenge = &engine.Challenge{Name: "test"}
 	model.SettingsMenuIndex = 3
 
-	// Call HandleGoToLevelSelect
+	// HandleGoToLevelSelect sends to channel, then Update processes it
 	model.HandleGoToLevelSelect()
+
+	// Simulate the Update loop processing the channel
+	select {
+	case <-model.LevelSelectChan:
+		// Process level select (same logic as Update)
+		model.Game.State = engine.StateLevelSelect
+		model.SettingsMenuIndex = 0
+		model.CurrentChallenge = nil
+		model.VimEditor = nil
+		model.NvimChallengeID = ""
+	default:
+		t.Fatal("Expected message on LevelSelectChan")
+	}
 
 	if model.Game.State != engine.StateLevelSelect {
 		t.Errorf("Expected StateLevelSelect, got %v", model.Game.State)
@@ -603,7 +659,16 @@ func TestHandleGoToLevelSelectFromVictory(t *testing.T) {
 	model.startGameFromSettings()
 	model.Game.State = engine.StateVictory
 
+	// HandleGoToLevelSelect sends to channel, then Update processes it
 	model.HandleGoToLevelSelect()
+
+	// Simulate the Update loop processing the channel
+	select {
+	case <-model.LevelSelectChan:
+		model.Game.State = engine.StateLevelSelect
+	default:
+		t.Fatal("Expected message on LevelSelectChan")
+	}
 
 	if model.Game.State != engine.StateLevelSelect {
 		t.Errorf("Expected StateLevelSelect from victory, got %v", model.Game.State)

@@ -51,8 +51,10 @@ type Model struct {
 	NvimChallengeCount int                // Counter for generating unique IDs
 	PrevGameState      engine.GameState   // Track state changes for notifications
 
-	// Channel for receiving RPC results from goroutines (thread-safe)
+	// Channels for RPC commands (thread-safe communication with Update loop)
 	ChallengeResultChan chan *nvim.ChallengeResult
+	RestartChan         chan struct{}
+	LevelSelectChan     chan struct{}
 }
 
 // NewModel creates a new game model with default settings.
@@ -91,6 +93,8 @@ func NewModelWithSettings(settings engine.GameSettings) Model {
 		LevelMenuIndex:      0,
 		SettingsMenuIndex:   0,
 		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10),
+		RestartChan:         make(chan struct{}, 1),
+		LevelSelectChan:     make(chan struct{}, 1),
 	}
 }
 
@@ -158,27 +162,21 @@ func (m *Model) HandleStartChallenge() {
 }
 
 // HandleRestart handles restart requests from Neovim.
+// Sends to channel for processing in Update loop (thread-safe with Bubbletea).
 func (m *Model) HandleRestart() {
-	// Restart with same level and settings (matching standalone behavior)
-	if m.SelectedLevel != nil {
-		m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
-	} else {
-		m.Game = engine.NewGame(GridWidth, GridHeight)
+	select {
+	case m.RestartChan <- struct{}{}:
+	default:
 	}
-	m.LastUpdate = time.Now()
-	m.CurrentChallenge = nil
-	m.VimEditor = nil
-	m.NvimChallengeID = ""
-	m.PrevGameState = engine.StatePlaying
 }
 
 // HandleGoToLevelSelect handles level select requests from Neovim.
+// Sends to channel for processing in Update loop (thread-safe with Bubbletea).
 func (m *Model) HandleGoToLevelSelect() {
-	m.Game.State = engine.StateLevelSelect
-	m.SettingsMenuIndex = 0
-	m.CurrentChallenge = nil
-	m.VimEditor = nil
-	m.NvimChallengeID = ""
+	select {
+	case m.LevelSelectChan <- struct{}{}:
+	default:
+	}
 }
 
 // sendStateNotification sends game state notifications to Neovim.
@@ -260,6 +258,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 			}
 		default:
 			// No pending result, continue
+		}
+
+		// Process restart commands from RPC (non-blocking)
+		select {
+		case <-m.RestartChan:
+			// Restart with same level and settings
+			if m.SelectedLevel != nil {
+				m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
+			} else {
+				m.Game = engine.NewGame(GridWidth, GridHeight)
+			}
+			m.LastUpdate = now
+			m.CurrentChallenge = nil
+			m.VimEditor = nil
+			m.NvimChallengeID = ""
+			m.PrevGameState = engine.StatePlaying
+		default:
+		}
+
+		// Process level select commands from RPC (non-blocking)
+		select {
+		case <-m.LevelSelectChan:
+			m.Game.State = engine.StateLevelSelect
+			m.SettingsMenuIndex = 0
+			m.CurrentChallenge = nil
+			m.VimEditor = nil
+			m.NvimChallengeID = ""
+		default:
 		}
 
 		// Store previous state before update
