@@ -304,7 +304,6 @@ function M.start_challenge(request_id, challenge_data)
     end
   end)
 
-  vim.notify(string.format("Challenge started: %s", challenge.name), vim.log.levels.INFO)
 end
 
 --- Submit the current challenge
