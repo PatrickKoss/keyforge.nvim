@@ -179,3 +179,23 @@ func (cm *ChallengeManager) CountByCategory() map[string]int {
 	}
 	return counts
 }
+
+// GetCandidates returns all challenges matching the criteria.
+// If category is empty, all categories are included.
+// If maxDifficulty is 0 or negative, no difficulty filtering is applied.
+func (cm *ChallengeManager) GetCandidates(category string, maxDifficulty int) []*Challenge {
+	var candidates []*Challenge
+
+	for i := range cm.challenges {
+		c := &cm.challenges[i]
+		if category != "" && c.Category != category {
+			continue
+		}
+		if maxDifficulty > 0 && c.Difficulty > maxDifficulty {
+			continue
+		}
+		candidates = append(candidates, c)
+	}
+
+	return candidates
+}

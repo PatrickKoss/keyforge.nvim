@@ -26,14 +26,15 @@ type TickMsg time.Time
 
 // Model is the bubbletea model for the game.
 type Model struct {
-	Game             *engine.Game
-	LastUpdate       time.Time
-	Width            int
-	Height           int
-	Quitting         bool
-	ChallengeManager *engine.ChallengeManager
-	CurrentChallenge *engine.Challenge
-	VimEditor        *vim.Editor
+	Game              *engine.Game
+	LastUpdate        time.Time
+	Width             int
+	Height            int
+	Quitting          bool
+	ChallengeManager  *engine.ChallengeManager
+	ChallengeSelector *engine.ChallengeSelector
+	CurrentChallenge  *engine.Challenge
+	VimEditor         *vim.Editor
 
 	// Start screen state
 	LevelRegistry     *engine.LevelRegistry
@@ -65,6 +66,7 @@ func NewModel() Model {
 // NewModelWithSettings creates a new game model with specified settings.
 func NewModelWithSettings(settings engine.GameSettings) Model {
 	cm, _ := engine.NewChallengeManager()
+	cs := engine.NewChallengeSelector(cm)
 	registry := engine.NewLevelRegistry()
 
 	// Get the first level as default selection
@@ -86,6 +88,7 @@ func NewModelWithSettings(settings engine.GameSettings) Model {
 		Height:              GridHeight,
 		Quitting:            false,
 		ChallengeManager:    cm,
+		ChallengeSelector:   cs,
 		CurrentChallenge:    nil,
 		LevelRegistry:       registry,
 		SelectedLevel:       selectedLevel,
@@ -274,6 +277,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 			m.VimEditor = nil
 			m.NvimChallengeID = ""
 			m.PrevGameState = engine.StatePlaying
+			if m.ChallengeSelector != nil {
+				m.ChallengeSelector.Reset()
+			}
 		default:
 		}
 
@@ -468,6 +474,9 @@ func (m *Model) startGameFromSettings() {
 	m.VimEditor = nil
 	m.NvimChallengeID = ""
 	m.PrevGameState = engine.StatePlaying
+	if m.ChallengeSelector != nil {
+		m.ChallengeSelector.Reset()
+	}
 
 	// Notify Neovim that game is ready (if in nvim mode)
 	if m.NvimMode && m.NvimRPC != nil {
@@ -482,6 +491,9 @@ func (m Model) handleEndGameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //nolint
 		if m.SelectedLevel != nil {
 			m.Game = engine.NewGameFromLevelAndSettings(m.SelectedLevel, m.Settings)
 			m.LastUpdate = time.Now()
+			if m.ChallengeSelector != nil {
+				m.ChallengeSelector.Reset()
+			}
 		}
 	case "m":
 		// Return to menu
@@ -573,15 +585,15 @@ func (m *Model) startChallenge() {
 	}
 
 	// Standalone mode: use internal vim editor
-	if m.ChallengeManager == nil {
+	if m.ChallengeSelector == nil {
 		return
 	}
 
-	// Get a random challenge (matching tower category if available)
-	challenge := m.ChallengeManager.GetRandomChallenge(category, m.Game.Wave)
+	// Get a challenge using the selector (avoids repetition, ensures variety)
+	challenge := m.ChallengeSelector.GetChallenge(category, m.Game.Wave)
 	if challenge == nil {
 		// Fallback to any challenge
-		challenge = m.ChallengeManager.GetRandomChallenge("", 0)
+		challenge = m.ChallengeSelector.GetChallenge("", 0)
 	}
 	if challenge == nil {
 		return
