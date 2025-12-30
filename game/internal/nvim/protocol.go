@@ -24,6 +24,10 @@ type ChallengeData struct {
 	HintAction      string
 	HintFallback    string
 	Mode            string // "challenge_mode", "challenge_selection", or empty for tower defense
+	// Feedback from previous challenge (for continuous modes)
+	PrevSuccess *bool // nil if no previous, true/false for success/fail
+	PrevStreak  int   // Current streak count (challenge mode only)
+	PrevGold    int   // Gold earned from previous challenge
 }
 
 type RPCClient interface {
@@ -105,6 +109,10 @@ type ChallengeRequest struct {
 	HintAction      string `json:"hint_action,omitempty"`
 	HintFallback    string `json:"hint_fallback,omitempty"`
 	Mode            string `json:"mode,omitempty"` // "challenge_mode", "challenge_selection", or empty for tower defense
+	// Feedback from previous challenge (for continuous modes)
+	PrevSuccess *bool `json:"prev_success,omitempty"` // nil if no previous, true/false for success/fail
+	PrevStreak  int   `json:"prev_streak,omitempty"`  // Current streak count (challenge mode only)
+	PrevGold    int   `json:"prev_gold,omitempty"`    // Gold earned from previous challenge
 }
 
 // GameStateUpdate notifies Neovim of game state changes.

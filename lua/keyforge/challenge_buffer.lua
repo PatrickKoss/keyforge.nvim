@@ -16,6 +16,31 @@ M._info_win = nil -- Floating window for challenge info
 M._info_buf = nil -- Buffer for challenge info
 M._timeout_timer = nil -- Timeout timer handle
 
+--- Show feedback notification from previous challenge result
+---@param challenge_data table Challenge data containing prev_success, prev_streak, prev_gold, mode
+local function show_previous_challenge_feedback(challenge_data)
+  if not challenge_data or challenge_data.prev_success == nil then
+    return
+  end
+
+  local msg
+  if challenge_data.prev_success then
+    if challenge_data.mode == "challenge_mode" then
+      msg = string.format("✓ Success! Streak: %d (+%d gold)", challenge_data.prev_streak or 0, challenge_data.prev_gold or 0)
+    else
+      msg = string.format("✓ Success! (+%d gold)", challenge_data.prev_gold or 0)
+    end
+    vim.notify(msg, vim.log.levels.INFO)
+  else
+    if challenge_data.mode == "challenge_mode" then
+      msg = "✗ Try again! Streak reset"
+    else
+      msg = "✗ Try again!"
+    end
+    vim.notify(msg, vim.log.levels.WARN)
+  end
+end
+
 -- File extension mapping by filetype
 local filetype_extensions = {
   lua = ".lua",
@@ -212,6 +237,9 @@ function M.start_challenge(request_id, challenge_data)
     vim.notify("A challenge is already active!", vim.log.levels.WARN)
     return
   end
+
+  -- Show feedback from previous challenge if available
+  show_previous_challenge_feedback(challenge_data)
 
   -- Use challenge from game engine (Go), or fallback to local sample challenges
   local challenge

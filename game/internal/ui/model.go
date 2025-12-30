@@ -46,6 +46,13 @@ type Notification struct {
 	ShowUntil time.Time
 }
 
+// ChallengeFeedback holds feedback from the previous challenge to send with next request.
+type ChallengeFeedback struct {
+	Success bool
+	Streak  int
+	Gold    int
+}
+
 // Model is the bubbletea model for the game.
 type Model struct {
 	Game              *engine.Game
@@ -87,6 +94,8 @@ type Model struct {
 	NvimChallengeID    string             // Current challenge request ID
 	NvimChallengeCount int                // Counter for generating unique IDs
 	PrevGameState      engine.GameState   // Track state changes for notifications
+	// Pending feedback to send with next challenge request
+	PendingFeedback *ChallengeFeedback
 
 	// Channels for RPC commands (thread-safe communication with Update loop)
 	ChallengeResultChan chan *nvim.ChallengeResult
@@ -914,6 +923,12 @@ func (m *Model) handleChallengeResult(result *nvim.ChallengeResult) {
 			m.ChallengeModeStreak = 0
 			m.ShowNotification("Try again!", false)
 		}
+		// Set feedback to send with next challenge
+		m.PendingFeedback = &ChallengeFeedback{
+			Success: result.Success,
+			Streak:  m.ChallengeModeStreak,
+			Gold:    result.GoldEarned,
+		}
 		m.CurrentChallenge = nil
 		m.Game.State = engine.StateChallengeMode
 		m.startChallengeModeChallenge()
@@ -923,6 +938,11 @@ func (m *Model) handleChallengeResult(result *nvim.ChallengeResult) {
 			m.ShowNotification("Success!", true)
 		} else {
 			m.ShowNotification("Try again!", false)
+		}
+		// Set feedback to send with next challenge
+		m.PendingFeedback = &ChallengeFeedback{
+			Success: result.Success,
+			Gold:    result.GoldEarned,
 		}
 		m.CurrentChallenge = nil
 		// Move to next challenge in list
@@ -995,6 +1015,13 @@ func (m *Model) startChallengeModeChallenge() {
 		m.NvimChallengeID = fmt.Sprintf("challenge_mode_%d", m.NvimChallengeCount)
 
 		challengeData := buildChallengeData(challenge, "challenge_mode")
+		// Include feedback from previous challenge if available
+		if m.PendingFeedback != nil {
+			challengeData.PrevSuccess = &m.PendingFeedback.Success
+			challengeData.PrevStreak = m.PendingFeedback.Streak
+			challengeData.PrevGold = m.PendingFeedback.Gold
+			m.PendingFeedback = nil // Clear after using
+		}
 		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, challengeData); err != nil {
 			m.NvimChallengeID = ""
 			m.CurrentChallenge = nil
@@ -1025,6 +1052,12 @@ func (m *Model) startChallengeSelectionChallenge() {
 		m.NvimChallengeID = fmt.Sprintf("challenge_selection_%d", m.NvimChallengeCount)
 
 		challengeData := buildChallengeData(challenge, "challenge_selection")
+		// Include feedback from previous challenge if available
+		if m.PendingFeedback != nil {
+			challengeData.PrevSuccess = &m.PendingFeedback.Success
+			challengeData.PrevGold = m.PendingFeedback.Gold
+			m.PendingFeedback = nil // Clear after using
+		}
 		if err := m.NvimRPC.RequestChallenge(m.NvimChallengeID, challengeData); err != nil {
 			m.NvimChallengeID = ""
 			m.CurrentChallenge = nil

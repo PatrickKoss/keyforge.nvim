@@ -336,6 +336,10 @@ func (c *Client) RequestChallenge(requestID string, challenge *ChallengeData) er
 		req.HintAction = challenge.HintAction
 		req.HintFallback = challenge.HintFallback
 		req.Mode = challenge.Mode
+		// Include feedback from previous challenge
+		req.PrevSuccess = challenge.PrevSuccess
+		req.PrevStreak = challenge.PrevStreak
+		req.PrevGold = challenge.PrevGold
 	}
 	return c.Notify(MethodRequestChallenge, req)
 }
