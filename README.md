@@ -41,7 +41,7 @@ A tower defense game integrated into Neovim that gamifies learning vim keybindin
   <tr>
     <td align="center">
       <img src="media/challenge-selection-screen.png" alt="Level Selection" width="400"/><br/>
-      <em>Level Selection</em>
+      <em>Challenge Selection</em>
     </td>
     <td align="center">
       <img src="media/challenge-mode-screen.png" alt="Challenge Mode" width="400"/><br/>
