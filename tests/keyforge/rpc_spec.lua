@@ -6,10 +6,13 @@ local rpc = require("keyforge.rpc")
 describe("rpc", function()
   before_each(function()
     -- Reset RPC state between tests
-    rpc._job_id = nil
+    rpc._socket = nil
+    rpc._connected = false
+    rpc._socket_path = nil
     rpc._buffer = ""
     rpc._pending_requests = {}
     rpc._request_id = 0
+    rpc._handlers = {}
   end)
 
   describe("is_connected", function()
@@ -18,42 +21,27 @@ describe("rpc", function()
     end)
 
     it("should return true when connected", function()
-      rpc.connect(123)
+      -- Manually simulate connected state (since actual socket connect is async)
+      rpc._connected = true
+      rpc._socket = {} -- Mock socket object
       assert.is_true(rpc.is_connected())
     end)
   end)
 
-  describe("connect", function()
-    it("should set job_id", function()
-      rpc.connect(456)
-      assert.equals(456, rpc._job_id)
-    end)
-
-    it("should reset buffer", function()
-      rpc._buffer = "leftover"
-      rpc.connect(789)
-      assert.equals("", rpc._buffer)
-    end)
-
-    it("should clear pending requests", function()
-      rpc._pending_requests[1] = function() end
-      rpc.connect(101)
-      assert.equals(0, vim.tbl_count(rpc._pending_requests))
-    end)
-  end)
-
   describe("disconnect", function()
-    it("should clear job_id", function()
-      rpc.connect(123)
+    it("should clear connected state", function()
+      rpc._connected = true
+      rpc._socket = { is_closing = function() return false end, read_stop = function() end, close = function() end }
       rpc.disconnect()
-      assert.is_nil(rpc._job_id)
+      assert.is_false(rpc._connected)
     end)
 
     it("should call pending callbacks with error", function()
       local callback_called = false
       local received_error = nil
 
-      rpc._job_id = 123
+      rpc._connected = true
+      rpc._socket = { is_closing = function() return false end, read_stop = function() end, close = function() end }
       rpc._pending_requests[1] = function(err, _result)
         callback_called = true
         received_error = err
@@ -63,6 +51,14 @@ describe("rpc", function()
 
       assert.is_true(callback_called)
       assert.is_not_nil(received_error)
+    end)
+
+    it("should clear socket path", function()
+      rpc._connected = true
+      rpc._socket_path = "/tmp/test.sock"
+      rpc._socket = { is_closing = function() return false end, read_stop = function() end, close = function() end }
+      rpc.disconnect()
+      assert.is_nil(rpc._socket_path)
     end)
   end)
 

@@ -170,13 +170,13 @@ describe("command line generation", function()
       config.starting_health
     )
 
-    -- Verify the command contains all expected flags
-    assert.is_not_nil(string.find(cmd, "--difficulty hard"))
-    assert.is_not_nil(string.find(cmd, "--game-speed 2.0"))
-    assert.is_not_nil(string.find(cmd, "--starting-gold 300"))
-    assert.is_not_nil(string.find(cmd, "--starting-health 150"))
-    assert.is_not_nil(string.find(cmd, "--nvim-mode"))
-    assert.is_not_nil(string.find(cmd, "--rpc-socket"))
+    -- Verify the command contains all expected flags (use plain=true for literal matching)
+    assert.is_not_nil(string.find(cmd, "--difficulty hard", 1, true))
+    assert.is_not_nil(string.find(cmd, "--game-speed 2.0", 1, true))
+    assert.is_not_nil(string.find(cmd, "--starting-gold 300", 1, true))
+    assert.is_not_nil(string.find(cmd, "--starting-health 150", 1, true))
+    assert.is_not_nil(string.find(cmd, "--nvim-mode", 1, true))
+    assert.is_not_nil(string.find(cmd, "--rpc-socket", 1, true))
   end)
 
   it("should format game_speed with one decimal place", function()

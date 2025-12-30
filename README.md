@@ -4,7 +4,7 @@
 [![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://go.dev)
 [![Build](https://img.shields.io/github/actions/workflow/status/patrickkoss/keyforge.nvim/ci.yml?branch=main)](https://github.com/patrickkoss/keyforge.nvim/actions)
 [![Release](https://img.shields.io/github/v/release/patrickkoss/keyforge.nvim)](https://github.com/patrickkoss/keyforge.nvim/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/patrickkoss/keyforge.nvim?style=social)](https://github.com/patrickkoss/keyforge.nvim)
 
 ![Keyforge Title Screen](media/title-screen.png)

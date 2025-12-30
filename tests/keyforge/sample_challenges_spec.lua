@@ -68,7 +68,7 @@ describe("sample challenge validation", function()
       }
       local original_get_cursor = vim.api.nvim_win_get_cursor
       vim.api.nvim_win_get_cursor = function()
-        return { 1, 4 }
+        return { 1, 6 } -- 'x' is at column 6 (0-indexed) in "the fox"
       end
 
       local result = validate_challenge(challenge, { "the fox" }, { "the fox" })
