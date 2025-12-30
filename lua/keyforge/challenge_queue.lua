@@ -4,6 +4,7 @@ local M = {}
 
 local challenges = require("keyforge.challenges")
 local keymap_hints = require("keyforge.keymap_hints")
+local failure_feedback = require("keyforge.failure_feedback")
 
 -- Queue state
 M._state = {
@@ -281,25 +282,64 @@ function M.complete_current()
       result.efficiency * 100,
       result.speed_bonus
     ), vim.log.levels.INFO)
+
+    -- Clean up challenge buffer
+    M._cleanup_challenge_buffer()
+
+    -- Clear current challenge
+    M._state.current = nil
+
+    -- Notify callback
+    if M._on_challenge_complete then
+      M._on_challenge_complete(result)
+    end
+
+    return result
   else
     result.speed_bonus = 1.0
     result.gold_earned = 0
 
-    vim.notify("Challenge failed. Try again or skip.", vim.log.levels.WARN)
+    -- Show failure feedback instead of just a notification
+    failure_feedback.show(challenge, result.failure_details, {
+      on_retry = function()
+        M._retry_current()
+      end,
+      on_skip = function()
+        M.skip_current()
+      end,
+    })
+
+    return nil -- Don't return result yet, waiting for user action
+  end
+end
+
+--- Retry the current challenge (reset buffer to initial state)
+function M._retry_current()
+  if not M.is_challenge_active() then
+    return
   end
 
-  -- Clean up challenge buffer
-  M._cleanup_challenge_buffer()
+  -- Reset buffer content to initial
+  if M._challenge_buf and vim.api.nvim_buf_is_valid(M._challenge_buf) then
+    local initial = M._state.current.initial_buffer or ""
+    local lines = vim.split(initial, "\n")
+    vim.api.nvim_buf_set_option(M._challenge_buf, "modifiable", true)
+    vim.api.nvim_buf_set_lines(M._challenge_buf, 0, -1, false, lines)
+    M._initial_content = vim.deepcopy(lines)
 
-  -- Clear current challenge
-  M._state.current = nil
-
-  -- Notify callback
-  if M._on_challenge_complete then
-    M._on_challenge_complete(result)
+    -- Reset cursor if specified
+    local challenge = M._state.current
+    if challenge.cursor_start then
+      local row_pos = (challenge.cursor_start[1] or 0) + 1
+      local col_pos = challenge.cursor_start[2] or 0
+      pcall(vim.api.nvim_win_set_cursor, M._challenge_win, { row_pos, col_pos })
+    end
   end
 
-  return result
+  -- Restart keystroke tracking
+  challenges.start_tracking()
+
+  vim.notify("Challenge reset. Try again!", vim.log.levels.INFO)
 end
 
 --- Skip the current challenge

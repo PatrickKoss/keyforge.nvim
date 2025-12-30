@@ -359,6 +359,33 @@ function M.clear_plugin_cache()
   M._plugin_cache = {}
 end
 
+--- Generate a simple unified diff between two content arrays
+---@param expected string[] Expected lines
+---@param actual string[] Actual lines
+---@return string[] diff_lines Lines showing differences
+local function generate_diff(expected, actual)
+  local diff = {}
+  local max_lines = math.max(#expected, #actual)
+
+  for i = 1, max_lines do
+    local exp_line = expected[i]
+    local act_line = actual[i]
+
+    if exp_line and act_line then
+      if exp_line ~= act_line then
+        table.insert(diff, "- " .. exp_line)
+        table.insert(diff, "+ " .. act_line)
+      end
+    elseif exp_line then
+      table.insert(diff, "- " .. exp_line)
+    elseif act_line then
+      table.insert(diff, "+ " .. act_line)
+    end
+  end
+
+  return diff
+end
+
 -- Keystroke tracking state
 M._tracking = false
 M._keystroke_count = 0
@@ -409,7 +436,7 @@ end
 ---@param challenge table Challenge data
 ---@param initial string[] Initial buffer content
 ---@param final string[] Final buffer content
----@return table result Validation result
+---@return table result Validation result with failure_details on failure
 function M.validate(challenge, initial, final)
   local keystrokes, time_ms = M.stop_tracking()
 
@@ -419,31 +446,45 @@ function M.validate(challenge, initial, final)
     time_ms = time_ms,
     efficiency = 0,
     error = nil,
+    failure_details = nil,
   }
 
   -- Determine validation type
   local validation_type = challenge.validation_type or "exact_match"
+  local validation_result
 
   if validation_type == "exact_match" then
-    result.success = M._validate_exact_match(challenge, final)
+    validation_result = M._validate_exact_match(challenge, final)
   elseif validation_type == "contains" then
-    result.success = M._validate_contains(challenge, final)
+    validation_result = M._validate_contains(challenge, final)
   elseif validation_type == "function_exists" then
-    result.success = M._validate_function_exists(challenge, final)
+    validation_result = M._validate_function_exists(challenge, final)
   elseif validation_type == "pattern" then
-    result.success = M._validate_pattern(challenge, final)
+    validation_result = M._validate_pattern(challenge, final)
   elseif validation_type == "different" then
-    -- Just check that the content changed
-    result.success = not M._content_equal(initial, final)
+    local changed = not M._content_equal(initial, final)
+    if changed then
+      validation_result = { success = true }
+    else
+      validation_result = {
+        success = false,
+        validation_type = "different",
+        message = "Content must change from initial state",
+      }
+    end
   elseif validation_type == "cursor_position" then
-    -- Check cursor is at expected position
-    result.success = M._validate_cursor_position(challenge)
+    validation_result = M._validate_cursor_position(challenge)
   elseif validation_type == "cursor_on_char" then
-    -- Check cursor is on a specific character
-    result.success = M._validate_cursor_on_char(challenge, final)
+    validation_result = M._validate_cursor_on_char(challenge, final)
   else
     result.error = "Unknown validation type: " .. validation_type
     return result
+  end
+
+  result.success = validation_result.success
+
+  if not result.success then
+    result.failure_details = validation_result
   end
 
   -- Calculate efficiency if successful
@@ -462,39 +503,76 @@ end
 --- Validate exact match
 ---@param challenge table
 ---@param final string[]
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_exact_match(challenge, final)
   local expected = challenge.expected_buffer
   if not expected then
-    return false
+    return {
+      success = false,
+      validation_type = "exact_match",
+      message = "No expected buffer defined in challenge",
+    }
   end
 
   local expected_lines = vim.split(expected, "\n")
-  return M._content_equal(expected_lines, final)
+  local success = M._content_equal(expected_lines, final)
+
+  if success then
+    return { success = true }
+  end
+
+  return {
+    success = false,
+    validation_type = "exact_match",
+    expected = expected_lines,
+    actual = final,
+    diff_lines = generate_diff(expected_lines, final),
+    message = "Buffer content does not match expected result",
+  }
 end
 
 --- Validate contains (final must contain expected)
 ---@param challenge table
 ---@param final string[]
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_contains(challenge, final)
   local expected = challenge.expected_content
   if not expected then
-    return false
+    return {
+      success = false,
+      validation_type = "contains",
+      message = "No expected content defined in challenge",
+    }
   end
 
   local content = table.concat(final, "\n")
-  return content:find(expected, 1, true) ~= nil
+  local found = content:find(expected, 1, true) ~= nil
+
+  if found then
+    return { success = true }
+  end
+
+  return {
+    success = false,
+    validation_type = "contains",
+    expected = expected,
+    actual = content,
+    message = string.format("Expected text not found: '%s'", expected:sub(1, 50)),
+  }
 end
 
 --- Validate function exists
 ---@param challenge table
 ---@param final string[]
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_function_exists(challenge, final)
   local func_name = challenge.function_name
   if not func_name then
-    return false
+    return {
+      success = false,
+      validation_type = "function_exists",
+      message = "No function name defined in challenge",
+    }
   end
 
   local content = table.concat(final, "\n")
@@ -511,34 +589,58 @@ function M._validate_function_exists(challenge, final)
 
   for _, pattern in ipairs(patterns) do
     if content:match(pattern) then
-      return true
+      return { success = true }
     end
   end
 
-  return false
+  return {
+    success = false,
+    validation_type = "function_exists",
+    expected = func_name,
+    message = string.format("Function '%s' not found in code", func_name),
+  }
 end
 
 --- Validate pattern match
 ---@param challenge table
 ---@param final string[]
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_pattern(challenge, final)
   local pattern = challenge.pattern
   if not pattern then
-    return false
+    return {
+      success = false,
+      validation_type = "pattern",
+      message = "No pattern defined in challenge",
+    }
   end
 
   local content = table.concat(final, "\n")
-  return content:match(pattern) ~= nil
+  local matched = content:match(pattern) ~= nil
+
+  if matched then
+    return { success = true }
+  end
+
+  return {
+    success = false,
+    validation_type = "pattern",
+    expected = pattern,
+    message = "Pattern did not match buffer content",
+  }
 end
 
 --- Validate cursor position (for movement challenges)
 ---@param challenge table
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_cursor_position(challenge)
   local expected = challenge.expected_cursor
   if not expected or #expected ~= 2 then
-    return false
+    return {
+      success = false,
+      validation_type = "cursor_position",
+      message = "No expected cursor position defined in challenge",
+    }
   end
 
   local cursor = vim.api.nvim_win_get_cursor(0)
@@ -546,33 +648,66 @@ function M._validate_cursor_position(challenge)
   local expected_row = expected[1] + 1
   local expected_col = expected[2]
 
-  return cursor[1] == expected_row and cursor[2] == expected_col
+  local success = cursor[1] == expected_row and cursor[2] == expected_col
+
+  if success then
+    return { success = true }
+  end
+
+  return {
+    success = false,
+    validation_type = "cursor_position",
+    expected = { row = expected_row, col = expected_col },
+    actual = { row = cursor[1], col = cursor[2] },
+    message = string.format(
+      "Cursor at row %d, col %d (expected row %d, col %d)",
+      cursor[1], cursor[2], expected_row, expected_col
+    ),
+  }
 end
 
 --- Validate cursor is on a specific character (for find/search challenges)
 ---@param challenge table
 ---@param final string[]
----@return boolean
+---@return table validation_result With success and failure details
 function M._validate_cursor_on_char(challenge, final)
   local expected_char = challenge.expected_char
   if not expected_char then
-    return false
+    return {
+      success = false,
+      validation_type = "cursor_on_char",
+      message = "No expected character defined in challenge",
+    }
   end
 
   local cursor = vim.api.nvim_win_get_cursor(0)
   local row = cursor[1]
   local col = cursor[2]
+  local actual_char = nil
 
   -- Get the character at cursor position
   if row <= #final then
     local line = final[row]
     if col < #line then
-      local char = line:sub(col + 1, col + 1)
-      return char == expected_char
+      actual_char = line:sub(col + 1, col + 1)
     end
   end
 
-  return false
+  if actual_char == expected_char then
+    return { success = true }
+  end
+
+  return {
+    success = false,
+    validation_type = "cursor_on_char",
+    expected = expected_char,
+    actual = actual_char or "(end of line)",
+    actual_cursor = { row = row, col = col },
+    message = string.format(
+      "Cursor is on '%s' (expected '%s')",
+      actual_char or "end of line", expected_char
+    ),
+  }
 end
 
 --- Check if two content arrays are equal

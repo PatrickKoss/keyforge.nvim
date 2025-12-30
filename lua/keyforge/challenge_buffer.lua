@@ -3,6 +3,7 @@
 local M = {}
 
 local challenges = require("keyforge.challenges")
+local failure_feedback = require("keyforge.failure_feedback")
 
 -- Challenge state
 M._current = nil -- Current challenge data
@@ -15,6 +16,7 @@ M._initial_content = nil -- Initial file content for validation
 M._info_win = nil -- Floating window for challenge info
 M._info_buf = nil -- Buffer for challenge info
 M._timeout_timer = nil -- Timeout timer handle
+M._last_result = nil -- Last validation result (for skip after failure)
 
 -- File extension mapping by filetype
 local filetype_extensions = {
@@ -376,11 +378,58 @@ function M.submit_challenge()
     -- Calculate gold (feedback shown in next challenge's info window)
     local gold = challenges.calculate_reward(M._current, result.efficiency)
     result.gold_earned = gold
+    M._complete_challenge(true, false, result)
   else
     result.gold_earned = 0
+    -- Store result for potential skip
+    M._last_result = result
+    -- Show failure feedback instead of immediately completing
+    failure_feedback.show(M._current, result.failure_details, {
+      on_retry = function()
+        M._retry_challenge()
+      end,
+      on_skip = function()
+        M._complete_challenge(false, true, M._last_result)
+      end,
+    })
+  end
+end
+
+--- Retry the current challenge (reset to initial state)
+function M._retry_challenge()
+  if not M._current or not M._filepath then
+    vim.notify("No challenge to retry!", vim.log.levels.WARN)
+    return
   end
 
-  M._complete_challenge(result.success, false, result)
+  -- Write initial content back to file
+  local file = io.open(M._filepath, "w")
+  if file then
+    file:write(M._current.initial_buffer or "")
+    file:close()
+  end
+
+  -- Reload buffer from file
+  if M._challenge_buf and vim.api.nvim_buf_is_valid(M._challenge_buf) then
+    vim.api.nvim_buf_call(M._challenge_buf, function()
+      vim.cmd("edit!")
+    end)
+
+    -- Reset cursor if specified
+    if M._current.cursor_start and #M._current.cursor_start == 2 then
+      local row = (M._current.cursor_start[1] or 0) + 1
+      local col = M._current.cursor_start[2] or 0
+      pcall(vim.api.nvim_win_set_cursor, M._challenge_win, { row, col })
+    end
+  end
+
+  -- Reset initial content for next validation
+  M._initial_content = vim.split(M._current.initial_buffer or "", "\n")
+
+  -- Restart keystroke tracking
+  challenges.start_tracking()
+
+  vim.notify("Challenge reset. Try again!", vim.log.levels.INFO)
 end
 
 --- Cancel the current challenge
@@ -480,6 +529,7 @@ function M._cleanup()
   M._challenge_win = nil
   M._challenge_tab = nil
   M._initial_content = nil
+  M._last_result = nil
 
   -- Update keyforge state
   keyforge._current_challenge_id = nil

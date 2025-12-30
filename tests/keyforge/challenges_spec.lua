@@ -36,7 +36,8 @@ describe("challenges", function()
         expected_buffer = "hello world",
       }
       local final = { "hello world" }
-      assert.is_true(challenges._validate_exact_match(challenge, final))
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.is_true(result.success)
     end)
 
     it("should fail when content differs", function()
@@ -44,7 +45,8 @@ describe("challenges", function()
         expected_buffer = "hello world",
       }
       local final = { "goodbye world" }
-      assert.is_false(challenges._validate_exact_match(challenge, final))
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.is_false(result.success)
     end)
 
     it("should handle multiline content", function()
@@ -52,7 +54,38 @@ describe("challenges", function()
         expected_buffer = "line 1\nline 2\nline 3",
       }
       local final = { "line 1", "line 2", "line 3" }
-      assert.is_true(challenges._validate_exact_match(challenge, final))
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.is_true(result.success)
+    end)
+
+    it("should return diff_lines on failure", function()
+      local challenge = {
+        expected_buffer = "hello world",
+      }
+      local final = { "goodbye world" }
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.is_false(result.success)
+      assert.is_not_nil(result.diff_lines)
+      assert.is_true(#result.diff_lines > 0)
+    end)
+
+    it("should return validation_type on failure", function()
+      local challenge = {
+        expected_buffer = "hello world",
+      }
+      local final = { "goodbye world" }
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.equals("exact_match", result.validation_type)
+    end)
+
+    it("should return message on failure", function()
+      local challenge = {
+        expected_buffer = "hello world",
+      }
+      local final = { "goodbye world" }
+      local result = challenges._validate_exact_match(challenge, final)
+      assert.is_not_nil(result.message)
+      assert.is_true(#result.message > 0)
     end)
   end)
 
@@ -62,7 +95,8 @@ describe("challenges", function()
         expected_content = "function test",
       }
       local final = { "const x = 1;", "function test() {", "  return 42;", "}" }
-      assert.is_true(challenges._validate_contains(challenge, final))
+      local result = challenges._validate_contains(challenge, final)
+      assert.is_true(result.success)
     end)
 
     it("should fail when content does not contain expected", function()
@@ -70,7 +104,19 @@ describe("challenges", function()
         expected_content = "function missing",
       }
       local final = { "function present() {}" }
-      assert.is_false(challenges._validate_contains(challenge, final))
+      local result = challenges._validate_contains(challenge, final)
+      assert.is_false(result.success)
+    end)
+
+    it("should return failure details when content does not contain expected", function()
+      local challenge = {
+        expected_content = "function missing",
+      }
+      local final = { "function present() {}" }
+      local result = challenges._validate_contains(challenge, final)
+      assert.is_false(result.success)
+      assert.equals("contains", result.validation_type)
+      assert.is_not_nil(result.message)
     end)
   end)
 
@@ -78,31 +124,39 @@ describe("challenges", function()
     it("should find JavaScript function declaration", function()
       local challenge = { function_name = "myFunc" }
       local final = { "function myFunc() {", "  return 1;", "}" }
-      assert.is_true(challenges._validate_function_exists(challenge, final))
+      local result = challenges._validate_function_exists(challenge, final)
+      assert.is_true(result.success)
     end)
 
     it("should find Python function", function()
       local challenge = { function_name = "my_func" }
       local final = { "def my_func():", "    pass" }
-      assert.is_true(challenges._validate_function_exists(challenge, final))
+      local result = challenges._validate_function_exists(challenge, final)
+      assert.is_true(result.success)
     end)
 
     it("should find Go function", function()
       local challenge = { function_name = "MyFunc" }
       local final = { "func MyFunc() int {", "    return 42", "}" }
-      assert.is_true(challenges._validate_function_exists(challenge, final))
+      local result = challenges._validate_function_exists(challenge, final)
+      assert.is_true(result.success)
     end)
 
     it("should find const arrow function", function()
       local challenge = { function_name = "myFunc" }
       local final = { "const myFunc = () => 42;" }
-      assert.is_true(challenges._validate_function_exists(challenge, final))
+      local result = challenges._validate_function_exists(challenge, final)
+      assert.is_true(result.success)
     end)
 
-    it("should return false when function not found", function()
+    it("should return failure details when function not found", function()
       local challenge = { function_name = "missingFunc" }
       local final = { "function otherFunc() {}" }
-      assert.is_false(challenges._validate_function_exists(challenge, final))
+      local result = challenges._validate_function_exists(challenge, final)
+      assert.is_false(result.success)
+      assert.equals("function_exists", result.validation_type)
+      assert.equals("missingFunc", result.expected)
+      assert.is_not_nil(result.message)
     end)
   end)
 
@@ -110,13 +164,17 @@ describe("challenges", function()
     it("should match regex pattern", function()
       local challenge = { pattern = "const%s+%w+%s*=" }
       local final = { "const myVar = 42;" }
-      assert.is_true(challenges._validate_pattern(challenge, final))
+      local result = challenges._validate_pattern(challenge, final)
+      assert.is_true(result.success)
     end)
 
-    it("should fail when pattern not matched", function()
+    it("should return failure details when pattern not matched", function()
       local challenge = { pattern = "^function" }
       local final = { "const x = 1;" }
-      assert.is_false(challenges._validate_pattern(challenge, final))
+      local result = challenges._validate_pattern(challenge, final)
+      assert.is_false(result.success)
+      assert.equals("pattern", result.validation_type)
+      assert.is_not_nil(result.message)
     end)
   end)
 
@@ -168,6 +226,46 @@ describe("challenges", function()
       -- Efficiency should be between 0 and 1
       assert.is_true(result.efficiency >= 0)
       assert.is_true(result.efficiency <= 1)
+    end)
+
+    it("should return failure_details on failure", function()
+      local challenge = {
+        validation_type = "exact_match",
+        expected_buffer = "expected",
+      }
+      local initial = { "initial" }
+      local final = { "wrong" }
+
+      local result = challenges.validate(challenge, initial, final)
+      assert.is_false(result.success)
+      assert.is_not_nil(result.failure_details)
+      assert.equals("exact_match", result.failure_details.validation_type)
+    end)
+
+    it("should not return failure_details on success", function()
+      local challenge = {
+        validation_type = "exact_match",
+        expected_buffer = "expected",
+      }
+      local initial = { "initial" }
+      local final = { "expected" }
+
+      local result = challenges.validate(challenge, initial, final)
+      assert.is_true(result.success)
+      assert.is_nil(result.failure_details)
+    end)
+
+    it("should return failure_details for different validation when unchanged", function()
+      local challenge = {
+        validation_type = "different",
+      }
+      local initial = { "same" }
+      local final = { "same" }
+
+      local result = challenges.validate(challenge, initial, final)
+      assert.is_false(result.success)
+      assert.is_not_nil(result.failure_details)
+      assert.equals("different", result.failure_details.validation_type)
     end)
   end)
 
