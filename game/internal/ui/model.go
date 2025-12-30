@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -305,23 +306,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 		// Process pending challenge results from RPC channel (non-blocking)
 		select {
 		case result := <-m.ChallengeResultChan:
-			// Check if this is for the current challenge (ignore stale results)
-			if result.RequestID != m.NvimChallengeID {
-				// Stale result, ignore
-			} else {
-				if result.Success {
-					// Award gold - Neovim already calculated it
-					gold := result.GoldEarned
-					if gold < 1 {
-						gold = 1
-					}
-					m.Game.AddChallengeGold(gold)
-				}
-
-				// Clear challenge state and resume game
-				m.NvimChallengeID = ""
-				m.Game.EndChallenge()
-			}
+			m.handleChallengeResult(result)
 		default:
 			// No pending result, continue
 		}
@@ -899,6 +884,59 @@ func (m *Model) completeChallenge(success bool) {
 	m.VimEditor = nil
 	m.CurrentChallenge = nil
 	m.Game.EndChallenge()
+}
+
+// handleChallengeResult processes a challenge result from Neovim RPC.
+func (m *Model) handleChallengeResult(result *nvim.ChallengeResult) {
+	// Check if this is for the current challenge (ignore stale results)
+	if result.RequestID != m.NvimChallengeID {
+		return // Stale result, ignore
+	}
+
+	// Award gold if successful
+	if result.Success {
+		gold := result.GoldEarned
+		if gold < 1 {
+			gold = 1
+		}
+		m.Game.AddChallengeGold(gold)
+	}
+
+	// Handle based on mode (determined by challenge ID prefix)
+	m.NvimChallengeID = ""
+
+	if strings.HasPrefix(result.RequestID, "challenge_mode_") {
+		// Challenge Mode: update streak and start next challenge
+		if result.Success {
+			m.ChallengeModeStreak++
+			m.ShowNotification("Success!", true)
+		} else {
+			m.ChallengeModeStreak = 0
+			m.ShowNotification("Try again!", false)
+		}
+		m.CurrentChallenge = nil
+		m.Game.State = engine.StateChallengeMode
+		m.startChallengeModeChallenge()
+	} else if strings.HasPrefix(result.RequestID, "challenge_selection_") {
+		// Challenge Selection: show result and start next challenge
+		if result.Success {
+			m.ShowNotification("Success!", true)
+		} else {
+			m.ShowNotification("Try again!", false)
+		}
+		m.CurrentChallenge = nil
+		// Move to next challenge in list
+		m.SelectedChallengeIndex++
+		if m.SelectedChallengeIndex >= len(m.ChallengeList) {
+			m.SelectedChallengeIndex = 0
+		}
+		m.ChallengeListIndex = m.SelectedChallengeIndex
+		m.Game.State = engine.StateChallengeSelection
+		m.startChallengeSelectionChallenge()
+	} else {
+		// Tower defense mode: return to playing
+		m.Game.EndChallenge()
+	}
 }
 
 // buildChallengeData creates a ChallengeData struct from a Challenge.
