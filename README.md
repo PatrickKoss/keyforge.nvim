@@ -1,17 +1,130 @@
 # keyforge.nvim
 
-A tower defense game integrated into Neovim that gamifies learning vim keybindings and plugin workflows. Defend against waves of bugs by completing kata-style editing challenges!
+[![Neovim](https://img.shields.io/badge/Neovim-0.11+-green?logo=neovim)](https://neovim.io)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://go.dev)
+[![Build](https://img.shields.io/github/actions/workflow/status/patrickkoss/keyforge.nvim/ci.yml?branch=main)](https://github.com/patrickkoss/keyforge.nvim/actions)
+[![Release](https://img.shields.io/github/v/release/patrickkoss/keyforge.nvim)](https://github.com/patrickkoss/keyforge.nvim/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/patrickkoss/keyforge.nvim?style=social)](https://github.com/patrickkoss/keyforge.nvim)
+
+![Keyforge Title Screen](media/title-screen.png)
+
+**Master Vim through tower defense. Fight bugs with keystrokes.**
+
+A tower defense game integrated into Neovim that gamifies learning vim keybindings and plugin workflows. Place towers, complete kata-style editing challenges to earn gold, and defend against waves of enemies across 10 unique levels.
 
 ## Features
 
-- **Tower Defense Gameplay**: Place towers, defeat enemies, survive waves
-- **Challenge-Based Economy**: Gold primarily comes from completing vim kata challenges
-- **Speed Bonuses**: Complete challenges faster for up to 2x gold multiplier
-- **Plugin-Aware Challenges**: Challenges adapt to your installed plugins (Telescope, nvim-surround, etc.)
-- **Keymap Hints**: See your actual keybindings in challenge hints, not just defaults
-- **Difficulty Presets**: Easy (50% mob gold), Normal (25%), Hard (0% - challenges only)
-- **Beautiful TUI**: Smooth 60fps rendering with emoji support
-- **30+ Challenges**: Covering movement, text objects, LSP, search/replace, and refactoring
+- **10 Unique Levels** - From beginner straight paths to advanced labyrinths
+- **7 Enemy Types** - Mites, Bugs, Gremlins, Crawlers, Specters, Daemons, and Bosses
+- **3 Tower Types** - Arrow, LSP, and Refactor towers with upgrades
+- **150+ Challenges** - Across 15 categories (movement, text objects, LSP, git, etc.)
+- **Challenge Mode** - Endless practice with streak tracking
+- **Tutorial System** - Guided introduction for new players
+- **Plugin-Aware** - Challenges adapt to your installed plugins (Telescope, nvim-surround, etc.)
+- **Speed Bonuses** - Complete challenges faster for up to 2x gold multiplier
+- **Configurable** - Difficulty presets, game speed, starting resources
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="media/tower-defense-screen.png" alt="Tower Defense Gameplay" width="400"/><br/>
+      <em>Tower Defense Gameplay</em>
+    </td>
+    <td align="center">
+      <img src="media/challenge-screen.png" alt="Challenge Screen" width="400"/><br/>
+      <em>Vim Kata Challenge</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="media/challenge-selection-screen.png" alt="Level Selection" width="400"/><br/>
+      <em>Level Selection</em>
+    </td>
+    <td align="center">
+      <img src="media/challenge-mode-screen.png" alt="Challenge Mode" width="400"/><br/>
+      <em>Endless Challenge Mode</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="media/settings-screen.png" alt="Settings" width="400"/><br/>
+      <em>Game Settings</em>
+    </td>
+  </tr>
+</table>
+
+## Game Modes
+
+### Campaign Mode
+Progress through 10 levels with increasing difficulty. Each level features unique map layouts, enemy compositions, and wave patterns. Complete all waves to unlock the next level.
+
+### Challenge Mode
+Endless vim kata practice with streak tracking. Perfect for warming up or drilling specific skills without tower defense pressure. Track your best streaks and efficiency scores.
+
+### Tutorial
+A step-by-step introduction covering movement, tower placement, upgrades, and wave mechanics. Great for first-time players.
+
+## Game Content
+
+### Levels
+
+| Level | Name | Difficulty | Waves |
+|-------|------|------------|-------|
+| 1 | The Straight Path | Beginner | 5 |
+| 2 | The Corner | Beginner | 5 |
+| 3 | The Serpent | Beginner | 6 |
+| 4 | Zigzag Valley | Intermediate | 7 |
+| 5 | Classic | Intermediate | 8 |
+| 6 | The Spiral | Intermediate | 8 |
+| 7 | The Labyrinth | Advanced | 9 |
+| 8 | The Serpent's Lair | Advanced | 9 |
+| 9 | The Gauntlet | Advanced | 10 |
+| 10 | The Ultimate Challenge | Advanced | 10 |
+
+### Tower Types
+
+| Tower | Cost | Damage | Range | Challenge Categories |
+|-------|------|--------|-------|---------------------|
+| Arrow 🏹 | 50g | 8 | 2.5 | Movement, Buffer, Window, Quickfix, Folding |
+| LSP 🔮 | 100g | 20 | 5.0 | LSP Navigation, Telescope, Diagnostics, Formatting, Harpoon |
+| Refactor ⚡ | 150g | 12 | 3.0 | Text Objects, Search/Replace, Refactoring, Surround, Git |
+
+Each tower can be upgraded twice for increased damage, range, and attack speed.
+
+### Enemy Types
+
+| Enemy | Health | Speed | Gold | Description |
+|-------|--------|-------|------|-------------|
+| Mite 🦟 | 5 | 2.0 | 2 | Weakest, very fast |
+| Bug 🐛 | 10 | 1.5 | 5 | Baseline enemy |
+| Gremlin 👹 | 25 | 2.5 | 10 | Fast, medium health |
+| Crawler 🐌 | 40 | 0.6 | 15 | Slow tank |
+| Specter 👻 | 15 | 3.5 | 8 | Very fast, fragile |
+| Daemon 👿 | 100 | 0.8 | 25 | Late-game tank |
+| Boss 💀 | 500 | 0.5 | 100 | Final boss (Level 10) |
+
+### Challenge Categories (15 total)
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| Movement | 20 | `$`, `w`, `f`, `G`, `%`, `Ctrl-O` |
+| Text Objects | 18 | `ciw`, `da(`, `yi"`, `vib` |
+| LSP Navigation | 15 | `gd`, `gr`, `K`, `<leader>rn` |
+| Search & Replace | 12 | `*`, `:s`, `:%s/g`, `:g/d` |
+| Refactoring | 10 | Extract variable, inline, rename |
+| Git Operations | 12 | Stage hunks, blame, diff |
+| Window Management | 10 | Splits, resize, navigation |
+| Buffer Management | 8 | Buffer switching, delete, list |
+| Folding | 8 | `za`, `zo`, `zc`, `zR`, `zM` |
+| Quickfix | 8 | `]q`, `[q`, `:copen` |
+| Diagnostics | 6 | `]d`, `[d`, `<leader>e` |
+| Telescope | 10 | Find files, grep, buffers |
+| Surround | 8 | Change quotes, wrap, delete |
+| Harpoon | 5 | Mark files, quick navigation |
+| Formatting | 5 | `<leader>f`, `=ip`, `:retab` |
 
 ## Requirements
 
@@ -101,6 +214,16 @@ make build
 | `q` | Quit game |
 | `r` | Restart (on game over) |
 
+#### Menu Navigation
+
+| Key | Action |
+|-----|--------|
+| `j/k` or Arrow Keys | Navigate options |
+| `Space` or `Enter` | Select option |
+| `h/l` or Arrow Keys | Adjust settings values |
+| `q` or `Esc` | Back / Quit |
+| `m` | Return to mode selection |
+
 #### Challenge Controls
 
 | Key | Action |
@@ -108,35 +231,6 @@ make build
 | `<leader>kn` | Start next challenge |
 | `<leader>kc` | Complete current challenge (validate) |
 | `<leader>ks` | Skip current challenge |
-
-### Tower Types
-
-| Tower | Cost | Category | Description |
-|-------|------|----------|-------------|
-| Arrow | 50g | Movement | Basic tower, triggers movement challenges |
-| LSP | 100g | LSP Navigation | Long range, triggers go-to-definition challenges |
-| Refactor | 150g | Text Objects | Area damage, triggers text manipulation challenges |
-
-### Challenge Categories
-
-1. **Movement Mastery**: `$`, `^`, `w`, `f`, `G`, `%`, etc.
-2. **Text Objects**: `ciw`, `da(`, `yi"`, etc.
-3. **LSP Navigation**: `gd`, `gr`, `K`, rename
-4. **Search & Replace**: `/`, `:s`, `:g`
-5. **Refactoring**: Extract function, inline variable
-
-### Plugin-Aware Challenges
-
-Keyforge detects your installed plugins and shows challenges tailored to your setup:
-
-| Plugin | Challenges Unlocked |
-|--------|---------------------|
-| Telescope | Fuzzy find files, live grep, buffer search |
-| nvim-surround / mini.surround | Change quotes, add/remove surroundings |
-| fugitive / gitsigns | Git status, stage hunks, blame |
-| nvim-tree / neo-tree | File navigation, create/delete files |
-
-Challenge hints show **your actual keybindings**, not just defaults!
 
 ## Economy System
 
@@ -147,7 +241,7 @@ Keyforge uses a challenge-based economy where completing vim kata challenges is 
 | Source | Normal Difficulty |
 |--------|-------------------|
 | Mob Kills | 25% of base gold value |
-| Wave Completion | 75% of bonus |
+| Wave Completion | 50% of bonus |
 | **Challenge Completion** | **100% (primary source)** |
 
 ### Speed Bonus
@@ -163,11 +257,11 @@ Complete challenges faster for bonus gold:
 
 ### Difficulty Presets
 
-| Difficulty | Mob Gold | Description |
-|------------|----------|-------------|
-| Easy | 50% | Good for learning, some buffer from mobs |
-| **Normal** | **25%** | Balanced, challenges are main income |
-| Hard | 0% | Pure challenge mode, no mob gold |
+| Difficulty | Mob Gold | Wave Bonus | Description |
+|------------|----------|------------|-------------|
+| Easy | 50% | 75% | Good for learning |
+| **Normal** | **25%** | **50%** | Balanced gameplay |
+| Hard | 0% | 25% | Pure challenge mode |
 
 ## Configuration
 
@@ -185,6 +279,9 @@ require("keyforge").setup({
 
   -- Difficulty level: "easy", "normal", "hard"
   difficulty = "normal",
+
+  -- Game speed: 0.5, 1.0, 1.5, 2.0
+  game_speed = 1.0,
 
   -- Starting resources
   starting_gold = 200,
@@ -283,9 +380,23 @@ gold_base: 50
 
 - `exact_match`: Buffer must exactly match `expected_buffer`
 - `contains`: Buffer must contain `expected_content`
+- `cursor_position`: Cursor must be at expected position
 - `function_exists`: A function named `function_name` must exist
 - `pattern`: Buffer must match Lua pattern
 - `different`: Buffer must be different from initial
+
+## Plugin-Aware Challenges
+
+Keyforge detects your installed plugins and shows challenges tailored to your setup:
+
+| Plugin | Challenges Unlocked |
+|--------|---------------------|
+| Telescope | Fuzzy find files, live grep, buffer search |
+| nvim-surround / mini.surround | Change quotes, add/remove surroundings |
+| fugitive / gitsigns | Git status, stage hunks, blame |
+| Harpoon | Mark files, quick navigation |
+
+Challenge hints show **your actual keybindings**, not just defaults!
 
 ## Contributing
 
