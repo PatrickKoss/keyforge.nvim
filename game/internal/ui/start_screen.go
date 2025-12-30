@@ -541,7 +541,8 @@ func renderChallengeModeContent(m *Model) string {
 
 	// Buffer preview or editor
 	if m.VimEditor != nil {
-		b.WriteString(renderVimBuffer(m.VimEditor))
+		maxHeight := m.calculateBufferHeight()
+		b.WriteString(renderVimBuffer(m.VimEditor, m.BufferScroll, maxHeight))
 		b.WriteString("\n\n")
 		// Mode line
 		b.WriteString(renderModeLine(m.VimEditor, c))

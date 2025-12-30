@@ -86,6 +86,11 @@ type Model struct {
 	ChallengeListOffset    int                // Scroll offset for long lists
 	SelectedChallengeIndex int                // Which challenge is being practiced
 
+	// Terminal and viewport state
+	TerminalWidth  int // Terminal width in columns
+	TerminalHeight int // Terminal height in rows
+	BufferScroll   int // Scroll offset for challenge buffer content
+
 	// Neovim integration
 	NvimMode           bool
 	NvimClient         *nvim.Client       // Legacy stdin/stderr RPC
@@ -152,6 +157,9 @@ func NewModelWithSettings(settings engine.GameSettings) Model {
 		ChallengeList:       challengeList,
 		ChallengeListIndex:  0,
 		ChallengeListOffset: 0,
+		TerminalWidth:       80,
+		TerminalHeight:      24,
+		BufferScroll:        0,
 		ChallengeResultChan: make(chan *nvim.ChallengeResult, 10),
 		RestartChan:         make(chan struct{}, 1),
 		LevelSelectChan:     make(chan struct{}, 1),
@@ -367,7 +375,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) { //nolint:gocritic // h
 		return m, tickCmd()
 
 	case tea.WindowSizeMsg:
-		// Could adapt to window size
+		m.TerminalWidth = msg.Width
+		m.TerminalHeight = msg.Height
 		return m, nil
 	}
 
@@ -737,6 +746,7 @@ func (m *Model) startChallenge() {
 	}
 
 	m.CurrentChallenge = challenge
+	m.BufferScroll = 0 // Reset scroll for new challenge
 
 	// Initialize vim editor with challenge buffer
 	m.VimEditor = vim.NewEditor(challenge.InitialBuffer)
@@ -810,6 +820,7 @@ func (m Model) handleChallengeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) { //noli
 
 	// Forward key to vim editor
 	m.VimEditor.HandleKey(key)
+	m.updateBufferScroll() // Keep cursor in viewport
 
 	return m, nil
 }
@@ -1025,6 +1036,7 @@ func (m *Model) startChallengeModeChallenge() {
 	}
 
 	m.CurrentChallenge = challenge
+	m.BufferScroll = 0 // Reset scroll for new challenge
 	m.Game.State = engine.StateChallengeModePractice
 
 	// In Neovim mode, send challenge to Neovim
@@ -1061,6 +1073,7 @@ func (m *Model) startChallengeSelectionChallenge() {
 
 	challenge := &m.ChallengeList[m.ChallengeListIndex]
 	m.CurrentChallenge = challenge
+	m.BufferScroll = 0 // Reset scroll for new challenge
 	m.SelectedChallengeIndex = m.ChallengeListIndex
 	m.Game.State = engine.StateChallengeSelectionPractice
 
@@ -1139,6 +1152,7 @@ func (m Model) handleChallengeModePracticeKeys(msg tea.KeyMsg) (tea.Model, tea.C
 	}
 
 	m.VimEditor.HandleKey(key)
+	m.updateBufferScroll() // Keep cursor in viewport
 	return m, nil
 }
 
@@ -1249,6 +1263,7 @@ func (m Model) handleChallengeSelectionPracticeKeys(msg tea.KeyMsg) (tea.Model, 
 	}
 
 	m.VimEditor.HandleKey(key)
+	m.updateBufferScroll() // Keep cursor in viewport
 	return m, nil
 }
 
@@ -1287,6 +1302,43 @@ func (m *Model) submitChallengeSelectionChallenge() {
 
 	// Start next challenge
 	m.startChallengeSelectionChallenge()
+}
+
+// calculateBufferHeight returns the available height for the challenge buffer
+// based on terminal size and fixed UI elements.
+func (m *Model) calculateBufferHeight() int {
+	// Fixed UI elements in Challenge Mode:
+	// - Header (CHALLENGE MODE Streak: X): 1 line
+	// - Blank line: 1 line
+	// - Challenge name + separator: 2 lines
+	// - Description: 1 line
+	// - Blank line: 1 line
+	// - Mode line: 1 line
+	// - Blank lines: 2 lines
+	// - Help text: 1 line
+	// Total fixed: ~10 lines
+	const fixedUIHeight = 10
+	available := m.TerminalHeight - fixedUIHeight
+	if available < 3 {
+		return 3 // Minimum 3 lines visible
+	}
+	return available
+}
+
+// updateBufferScroll adjusts BufferScroll to keep the cursor visible in the viewport.
+func (m *Model) updateBufferScroll() {
+	if m.VimEditor == nil {
+		return
+	}
+	state := m.VimEditor.GetRenderState()
+	maxVisible := m.calculateBufferHeight()
+
+	// Keep cursor visible in viewport
+	if state.CursorLine < m.BufferScroll {
+		m.BufferScroll = state.CursorLine
+	} else if state.CursorLine >= m.BufferScroll+maxVisible {
+		m.BufferScroll = state.CursorLine - maxVisible + 1
+	}
 }
 
 // View renders the model.

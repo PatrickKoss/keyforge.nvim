@@ -362,7 +362,8 @@ func renderChallenge(m *Model) string {
 
 	// Render vim editor if available, otherwise show static buffer
 	if m.VimEditor != nil {
-		b.WriteString(renderVimBuffer(m.VimEditor))
+		maxHeight := m.calculateBufferHeight()
+		b.WriteString(renderVimBuffer(m.VimEditor, m.BufferScroll, maxHeight))
 		b.WriteString("\n\n")
 
 		// Mode line
@@ -385,8 +386,10 @@ func renderChallenge(m *Model) string {
 	return b.String()
 }
 
-// renderVimBuffer renders the vim buffer with cursor.
-func renderVimBuffer(e *vim.Editor) string {
+// renderVimBuffer renders the vim buffer with cursor, respecting viewport limits.
+// ScrollOffset is the first line to display, maxHeight is the maximum number of lines to show.
+// If maxHeight is 0 or negative, all lines are shown (legacy behavior).
+func renderVimBuffer(e *vim.Editor, scrollOffset, maxHeight int) string {
 	state := e.GetRenderState()
 	var b strings.Builder
 
@@ -394,10 +397,38 @@ func renderVimBuffer(e *vim.Editor) string {
 		Background(lipgloss.Color("#1a1a1a")).
 		Padding(0, 1)
 
+	totalLines := len(state.Lines)
+
+	// Calculate visible range
+	startLine := scrollOffset
+	if startLine < 0 {
+		startLine = 0
+	}
+	endLine := totalLines
+	if maxHeight > 0 && startLine+maxHeight < totalLines {
+		endLine = startLine + maxHeight
+	}
+	if endLine > totalLines {
+		endLine = totalLines
+	}
+
 	var lines []string
-	for lineNum, line := range state.Lines {
+
+	// Show scroll indicator at top if scrolled down
+	if startLine > 0 {
+		lines = append(lines, HelpStyle.Render(fmt.Sprintf("↑ (%d lines above)", startLine)))
+	}
+
+	// Render visible lines
+	for lineNum := startLine; lineNum < endLine; lineNum++ {
+		line := state.Lines[lineNum]
 		renderedLine := renderVimLine(line, lineNum, &state)
 		lines = append(lines, renderedLine)
+	}
+
+	// Show scroll indicator at bottom if more lines below
+	if endLine < totalLines {
+		lines = append(lines, HelpStyle.Render(fmt.Sprintf("↓ (%d lines below)", totalLines-endLine)))
 	}
 
 	content := strings.Join(lines, "\n")
