@@ -18,6 +18,32 @@ M._info_buf = nil -- Buffer for challenge info
 M._timeout_timer = nil -- Timeout timer handle
 M._last_result = nil -- Last validation result (for skip after failure)
 
+--- Wrap text to fit within a maximum width
+---@param text string The text to wrap
+---@param max_width number Maximum line width
+---@return table lines Array of wrapped lines
+local function wrap_text(text, max_width)
+  local lines = {}
+  local current_line = ""
+
+  for word in text:gmatch("%S+") do
+    if current_line == "" then
+      current_line = word
+    elseif #current_line + 1 + #word <= max_width then
+      current_line = current_line .. " " .. word
+    else
+      table.insert(lines, current_line)
+      current_line = word
+    end
+  end
+
+  if current_line ~= "" then
+    table.insert(lines, current_line)
+  end
+
+  return lines
+end
+
 -- File extension mapping by filetype
 local filetype_extensions = {
   lua = ".lua",
@@ -117,6 +143,9 @@ local function create_info_window(challenge, challenge_data)
   local keyforge = require("keyforge")
   local config = keyforge.config
 
+  -- Maximum width for info window (leaves room for buffer content on the left)
+  local max_width = 50
+
   -- Determine cancel keybind to show (use <leader>q if <Esc> is configured)
   local cancel_key = config.keybind_cancel
   if cancel_key == "<Esc>" then
@@ -129,18 +158,25 @@ local function create_info_window(challenge, challenge_data)
   -- Challenge info
   table.insert(lines, "Challenge: " .. (challenge.name or "Unknown"))
   table.insert(lines, "")
-  table.insert(lines, "Goal: " .. (challenge.description or "Complete the challenge"))
+
+  -- Wrap the goal/description text to fit within max width
+  local goal_text = "Goal: " .. (challenge.description or "Complete the challenge")
+  local wrapped_goal = wrap_text(goal_text, max_width - 4)
+  for _, line in ipairs(wrapped_goal) do
+    table.insert(lines, line)
+  end
+
   table.insert(lines, "")
   table.insert(lines, string.format("Par: %d keystrokes | Reward: %dg", challenge.par_keystrokes or 10, challenge.gold_base or 50))
   table.insert(lines, "")
-  table.insert(lines, string.format("Submit: %s (normal mode) | Cancel: %s", config.keybind_submit, cancel_key))
+  table.insert(lines, string.format("Submit: %s | Cancel: %s", config.keybind_submit, cancel_key))
 
-  -- Calculate window size
+  -- Calculate window size using display width, capped at max_width
   local width = 0
   for _, line in ipairs(lines) do
-    width = math.max(width, #line)
+    width = math.max(width, vim.fn.strdisplaywidth(line))
   end
-  width = math.min(width + 4, vim.o.columns - 4)
+  width = math.min(width + 4, max_width)
   local height = #lines
 
   -- Create buffer
@@ -149,7 +185,7 @@ local function create_info_window(challenge, challenge_data)
   vim.api.nvim_buf_set_option(M._info_buf, "modifiable", false)
   vim.api.nvim_buf_set_option(M._info_buf, "buftype", "nofile")
 
-  -- Position at top right
+  -- Position at top right corner
   local row = 1
   local col = vim.o.columns - width - 2
 
