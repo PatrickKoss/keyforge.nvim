@@ -286,7 +286,7 @@ challenges:
     name: "Jump Back"
     category: movement
     difficulty: 3
-    description: "Use Ctrl-O to jump back in the jump list"
+    description: "Use Ctrl-O to jump back to a previous location. First navigate somewhere (e.g., G to end), then Ctrl-O returns you."
     filetype: text
     initial_buffer: |
       First location
@@ -302,7 +302,7 @@ challenges:
     name: "Jump Forward"
     category: movement
     difficulty: 3
-    description: "Use Ctrl-I to jump forward in the jump list"
+    description: "Use Ctrl-I to jump forward after using Ctrl-O. First jump back with Ctrl-O, then Ctrl-I moves forward again."
     filetype: text
     initial_buffer: |
       First location
@@ -444,7 +444,7 @@ challenges:
     name: "Change Inside Quotes"
     category: text-objects
     difficulty: 2
-    description: "Change the text inside quotes to 'updated'"
+    description: "Change the text inside quotes to 'updated' using ci\" then type 'updated' and Esc"
     filetype: javascript
     initial_buffer: |
       const message = "old value";
@@ -473,7 +473,7 @@ challenges:
     name: "Change Inside Brackets"
     category: text-objects
     difficulty: 2
-    description: "Change array contents using ci["
+    description: "Change array contents using ci[ then type '4, 5, 6' and Esc"
     filetype: javascript
     initial_buffer: |
       const items = [1, 2, 3];
@@ -507,7 +507,7 @@ challenges:
     name: "Yank Paragraph"
     category: text-objects
     difficulty: 2
-    description: "Yank paragraph and paste at end using yipGp"
+    description: "Yank paragraph and paste at end: 1) yip to yank inner paragraph, 2) G to go to end, 3) p to paste below"
     filetype: text
     initial_buffer: |
       First paragraph
@@ -530,7 +530,7 @@ challenges:
     name: "Change Tag Content"
     category: text-objects
     difficulty: 2
-    description: "Change text inside HTML tag using cit"
+    description: "Change text inside HTML tag using cit, then type 'New content' and Esc"
     filetype: html
     initial_buffer: |
       <p>Old content here</p>
@@ -545,7 +545,7 @@ challenges:
     name: "Change Around Quotes"
     category: text-objects
     difficulty: 3
-    description: "Change text including quotes using ca\""
+    description: "Change text including quotes using ca\", then type 'world' with single quotes and Esc"
     filetype: javascript
     initial_buffer: |
       const msg = "hello";
@@ -560,7 +560,7 @@ challenges:
     name: "Visual Inner Block"
     category: text-objects
     difficulty: 3
-    description: "Select and delete inner block using vibd"
+    description: "Select and delete inner block: 1) vib to visually select inner block, 2) d to delete"
     filetype: javascript
     initial_buffer: |
       if (condition) {
@@ -594,7 +594,7 @@ challenges:
     name: "Rewrite Sentence"
     category: text-objects
     difficulty: 3
-    description: "Change entire sentence using cis"
+    description: "Change entire sentence using cis, then type 'Hello there.' and Esc"
     filetype: text
     initial_buffer: |
       This is the old sentence. Keep this one.
@@ -631,7 +631,7 @@ challenges:
     name: "Signature Help"
     category: lsp-navigation
     difficulty: 1
-    description: "View function signature in insert mode"
+    description: "View function signature using Ctrl-K in insert mode (or your signature help keymap). A popup shows parameter info."
     hint_action: "signature_help"
     hint_fallback: "Use Ctrl-K in insert mode"
     filetype: typescript
@@ -732,7 +732,7 @@ challenges:
     name: "Type Definition"
     category: lsp-navigation
     difficulty: 2
-    description: "Go to type definition"
+    description: "Go to the type definition using gy (or your type definition keymap). Cursor moves to where the type is defined."
     hint_action: "type_definition"
     hint_fallback: "Use your type definition keymap"
     filetype: typescript
@@ -752,7 +752,7 @@ challenges:
     name: "Code Action"
     category: lsp-navigation
     difficulty: 2
-    description: "Trigger code action menu"
+    description: "Open the code action menu using <leader>ca (or your code action keymap). A menu of available fixes/refactors appears."
     hint_action: "code_action"
     hint_fallback: "Use your code action keymap"
     filetype: typescript
@@ -768,7 +768,7 @@ challenges:
     name: "Rename Symbol"
     category: lsp-navigation
     difficulty: 2
-    description: "Rename 'oldName' to 'newName' using LSP rename"
+    description: "Rename 'oldName' to 'newName': 1) Cursor on 'oldName', 2) Press <leader>rn (or your rename keymap), 3) Type 'newName', 4) Confirm."
     hint_action: "rename"
     hint_fallback: "Use your rename keymap"
     filetype: javascript
@@ -789,7 +789,7 @@ challenges:
     name: "Document Symbols"
     category: lsp-navigation
     difficulty: 2
-    description: "Open document symbols picker"
+    description: "Open document symbols using <leader>ds (or your document symbols keymap). Pick a function/class to jump to it."
     hint_action: "document_symbols"
     hint_fallback: "Use your document symbols keymap"
     filetype: javascript
@@ -806,7 +806,7 @@ challenges:
     name: "Workspace Symbols"
     category: lsp-navigation
     difficulty: 2
-    description: "Search workspace symbols"
+    description: "Search workspace symbols using <leader>ws (or your workspace symbols keymap). Type to filter symbols across all files."
     hint_action: "workspace_symbols"
     hint_fallback: "Use your workspace symbols keymap"
     filetype: javascript
@@ -821,7 +821,7 @@ challenges:
     name: "Show Diagnostic"
     category: lsp-navigation
     difficulty: 2
-    description: "Show diagnostic in floating window"
+    description: "Show diagnostic details using <leader>e or gl (or your diagnostic float keymap). A popup shows the full error message."
     hint_action: "diagnostic_float"
     hint_fallback: "Use your diagnostic float keymap"
     filetype: typescript
@@ -837,7 +837,7 @@ challenges:
     name: "Go to Interface"
     category: lsp-navigation
     difficulty: 3
-    description: "Navigate to the interface definition"
+    description: "Navigate to interface definition using gd on 'Printable'. Cursor should jump to line 1 where interface is defined."
     hint_action: "goto_definition"
     hint_fallback: "Use gd on the type"
     filetype: typescript
@@ -859,7 +859,7 @@ challenges:
     name: "Find Implementations"
     category: lsp-navigation
     difficulty: 3
-    description: "Find all implementations of interface"
+    description: "Find implementations using gi (or your implementation keymap). A list shows all classes implementing this interface."
     hint_action: "goto_implementation"
     hint_fallback: "Use gi or implementations keymap"
     filetype: typescript
@@ -884,7 +884,7 @@ challenges:
     name: "Organize Imports"
     category: lsp-navigation
     difficulty: 3
-    description: "Auto-organize imports via code action"
+    description: "Organize imports: 1) Press <leader>ca (code action), 2) Select 'Organize Imports'. Imports get sorted/cleaned."
     hint_action: "code_action"
     hint_fallback: "Use code action to organize imports"
     filetype: typescript
@@ -938,7 +938,7 @@ challenges:
     name: "Next Match"
     category: search-replace
     difficulty: 1
-    description: "Go to next search match using n"
+    description: "Go to next search match using n. First search with / or * to have an active pattern, then n jumps to next match."
     filetype: text
     initial_buffer: |
       First match here.
@@ -952,7 +952,7 @@ challenges:
     name: "Previous Match"
     category: search-replace
     difficulty: 1
-    description: "Go to previous search match using N"
+    description: "Go to previous search match using N. First search with / or * to have an active pattern, then N jumps backward."
     filetype: text
     initial_buffer: |
       First match here.
@@ -1038,7 +1038,7 @@ challenges:
     name: "Search Selection"
     category: search-replace
     difficulty: 2
-    description: "Search for visually selected text"
+    description: "Search for selected text: 1) v to start visual, 2) Select 'phrase', 3) y to yank, 4) / then Ctrl-R 0 to paste, 5) Enter."
     filetype: text
     initial_buffer: |
       Find this phrase here.
@@ -1053,7 +1053,7 @@ challenges:
     name: "Regex with Groups"
     category: search-replace
     difficulty: 3
-    description: "Swap first and last name using regex capture groups"
+    description: "Swap names using :s/\\(\\w\\+\\) \\(\\w\\+\\)/\\2 \\1/ - \\1 captures 'John', \\2 captures 'Smith', then \\2 \\1 outputs 'Smith John'."
     filetype: text
     initial_buffer: |
       John Smith
@@ -1067,7 +1067,7 @@ challenges:
     name: "Replace in Selection"
     category: search-replace
     difficulty: 3
-    description: "Replace only within visual selection"
+    description: "Replace in selection: 1) V to select line 2 only, 2) Type :s/foo/baz/g, 3) Enter. Only the selected line changes."
     hint_action: "visual_replace"
     hint_fallback: "Select text, then use :s/old/new/g"
     filetype: text
@@ -1087,7 +1087,7 @@ challenges:
     name: "Very Magic Regex"
     category: search-replace
     difficulty: 3
-    description: "Use very magic mode for cleaner regex"
+    description: "Format phone with :s/\\v(\\d{3})-(\\d{3})-(\\d{4})/(\\1) \\2-\\3/ - \\v enables very magic so () don't need escaping."
     filetype: text
     initial_buffer: |
       phone: 123-456-7890
@@ -1141,7 +1141,7 @@ challenges:
     name: "Extract Variable"
     category: refactoring
     difficulty: 2
-    description: "Extract the calculation into a variable called 'total'"
+    description: "Extract to 'total': 1) v to visual select the expression, 2) d to cut, 3) O for new line above, 4) Type 'const total = ' then p to paste, 5) Replace original expression with 'total'."
     filetype: javascript
     initial_buffer: |
       function getPrice(items) {
@@ -1156,7 +1156,7 @@ challenges:
     name: "Inline Variable"
     category: refactoring
     difficulty: 2
-    description: "Inline the 'temp' variable"
+    description: "Inline 'temp': 1) yiw on 'x * 2' to yank expression, 2) Go to line 3, 3) ciw on 'temp' to change it, 4) Ctrl-R 0 to paste, 5) dd on line 2 to delete it."
     filetype: javascript
     initial_buffer: |
       function process(x) {
@@ -1175,7 +1175,7 @@ challenges:
     name: "Rename Function"
     category: refactoring
     difficulty: 2
-    description: "Rename 'fn' to 'calculateTotal' everywhere"
+    description: "Rename 'fn' to 'calculateTotal' everywhere using :%s/fn/calculateTotal/g or use LSP rename (<leader>rn)."
     filetype: javascript
     initial_buffer: |
       function fn(items) {
@@ -1197,7 +1197,7 @@ challenges:
     name: "Add Parameter"
     category: refactoring
     difficulty: 2
-    description: "Add 'multiplier' parameter with default 1"
+    description: "Add 'multiplier' parameter: 1) f) to find closing paren, 2) i to insert, 3) Type ', multiplier = 1', 4) Update function body to use multiplier."
     filetype: javascript
     initial_buffer: |
       function calculate(value) {
@@ -1212,7 +1212,7 @@ challenges:
     name: "Change Signature"
     category: refactoring
     difficulty: 2
-    description: "Swap parameter order in function"
+    description: "Swap parameter order: 1) f, to find comma, 2) dt) to delete 'greeting', 3) f( to find opening paren, 4) a to append, 5) Type 'greeting, ' to insert before name."
     filetype: javascript
     initial_buffer: |
       function greet(name, greeting) {
@@ -1231,7 +1231,7 @@ challenges:
     name: "Extract Function"
     category: refactoring
     difficulty: 3
-    description: "Extract validation into 'validateEmail' function"
+    description: "Extract function: 1) V to select lines 2-4 (the if block), 2) d to cut, 3) Go above, create 'function validateEmail(email) { }', 4) p to paste inside, 5) Replace original with 'validateEmail(data.email);'."
     filetype: javascript
     initial_buffer: |
       function processForm(data) {
@@ -1249,7 +1249,7 @@ challenges:
     name: "Convert to Arrow"
     category: refactoring
     difficulty: 3
-    description: "Convert function to arrow function"
+    description: "Convert to arrow: 1) Delete 'function', 2) Change '(x) {' to '(x) =>', 3) Remove 'return' and replace with expression, 4) Delete closing brace. Result: 'const double = (x) => x * 2;'."
     filetype: javascript
     initial_buffer: |
       const double = function(x) {
@@ -1265,7 +1265,7 @@ challenges:
     name: "Destructure Object"
     category: refactoring
     difficulty: 3
-    description: "Use destructuring for cleaner code"
+    description: "Destructure: 1) Change 'person' to '{ name, age }' in params, 2) Replace 'person.name' with 'name' and 'person.age' with 'age' using :%s/person\\.//g."
     filetype: javascript
     initial_buffer: |
       function greet(person) {
@@ -1289,7 +1289,7 @@ challenges:
     name: "Next Hunk"
     category: git-operations
     difficulty: 1
-    description: "Jump to next git hunk"
+    description: "Jump to next git hunk using ]h or ]c (or your next hunk keymap). Cursor moves to the next changed section."
     hint_action: "next_hunk"
     hint_fallback: "Use ]h or ]c for next hunk"
     filetype: javascript
@@ -1306,7 +1306,7 @@ challenges:
     name: "Previous Hunk"
     category: git-operations
     difficulty: 1
-    description: "Jump to previous git hunk"
+    description: "Jump to previous git hunk using [h or [c (or your prev hunk keymap). Cursor moves to the previous changed section."
     hint_action: "prev_hunk"
     hint_fallback: "Use [h or [c for previous hunk"
     filetype: javascript
@@ -1323,7 +1323,7 @@ challenges:
     name: "Stage Hunk"
     category: git-operations
     difficulty: 1
-    description: "Stage the current hunk"
+    description: "Stage the current hunk using <leader>hs (or your stage hunk keymap). The gutter sign changes to show it's staged."
     hint_action: "stage_hunk"
     hint_fallback: "Use your stage hunk keymap"
     filetype: javascript
@@ -1338,7 +1338,7 @@ challenges:
     name: "Reset Hunk"
     category: git-operations
     difficulty: 1
-    description: "Reset (undo) the current hunk"
+    description: "Reset (undo) the current hunk using <leader>hr (or your reset hunk keymap). The changes are reverted to the git version."
     hint_action: "reset_hunk"
     hint_fallback: "Use your reset hunk keymap"
     filetype: javascript
@@ -1354,7 +1354,7 @@ challenges:
     name: "Preview Hunk"
     category: git-operations
     difficulty: 2
-    description: "Preview the current hunk diff"
+    description: "Preview hunk diff using <leader>hp (or your preview hunk keymap). A popup shows the before/after changes."
     hint_action: "preview_hunk"
     hint_fallback: "Use your preview hunk keymap"
     filetype: javascript
@@ -1369,7 +1369,7 @@ challenges:
     name: "Blame Line"
     category: git-operations
     difficulty: 2
-    description: "Show git blame for current line"
+    description: "Show git blame using <leader>gb (or your blame keymap). See who last modified this line and when."
     hint_action: "blame_line"
     hint_fallback: "Use your blame keymap"
     filetype: text
@@ -1385,7 +1385,7 @@ challenges:
     name: "Toggle Blame"
     category: git-operations
     difficulty: 2
-    description: "Toggle inline git blame"
+    description: "Toggle inline git blame using <leader>tb (or your toggle blame keymap). Blame info appears/disappears on all lines."
     hint_action: "toggle_blame"
     hint_fallback: "Use your toggle blame keymap"
     filetype: text
@@ -1401,7 +1401,7 @@ challenges:
     name: "Diff This"
     category: git-operations
     difficulty: 2
-    description: "Show diff for current file"
+    description: "Show diff for current file using <leader>hd (or your diff keymap). Opens a split showing changes vs git version."
     hint_action: "diff_this"
     hint_fallback: "Use your diff keymap"
     filetype: javascript
@@ -1416,7 +1416,7 @@ challenges:
     name: "Stage Buffer"
     category: git-operations
     difficulty: 2
-    description: "Stage entire buffer"
+    description: "Stage entire buffer using <leader>hS (or your stage buffer keymap). All changes in the file are staged for commit."
     hint_action: "stage_buffer"
     hint_fallback: "Use your stage buffer keymap"
     filetype: javascript
@@ -1432,7 +1432,7 @@ challenges:
     name: "Choose Ours"
     category: git-operations
     difficulty: 3
-    description: "Resolve conflict by choosing our version"
+    description: "Choose our version: cursor on conflict, use <leader>co (or your conflict ours keymap). Conflict markers are removed, our code stays."
     hint_action: "conflict_ours"
     hint_fallback: "Use your conflict ours keymap"
     filetype: text
@@ -1450,7 +1450,7 @@ challenges:
     name: "Choose Theirs"
     category: git-operations
     difficulty: 3
-    description: "Resolve conflict by choosing their version"
+    description: "Choose their version: cursor on conflict, use <leader>ct (or your conflict theirs keymap). Conflict markers are removed, their code stays."
     hint_action: "conflict_theirs"
     hint_fallback: "Use your conflict theirs keymap"
     filetype: text
@@ -1468,7 +1468,7 @@ challenges:
     name: "Open Diffview"
     category: git-operations
     difficulty: 3
-    description: "Open the diffview panel"
+    description: "Open the diffview panel using <leader>dv or :DiffviewOpen (or your diffview keymap). See all file changes in a side-by-side view."
     hint_action: "diffview_open"
     hint_fallback: "Use your diffview keymap"
     filetype: text
@@ -1488,7 +1488,7 @@ challenges:
     name: "Window Left"
     category: window-management
     difficulty: 1
-    description: "Go to the left window"
+    description: "Go to left window using Ctrl-h or Ctrl-w h (or your window left keymap). Focus moves to the window on the left."
     hint_action: "window_left"
     hint_fallback: "Use Ctrl-h or Ctrl-w h"
     filetype: text
@@ -1502,7 +1502,7 @@ challenges:
     name: "Window Down"
     category: window-management
     difficulty: 1
-    description: "Go to the window below"
+    description: "Go to window below using Ctrl-j or Ctrl-w j (or your window down keymap). Focus moves to the window below."
     hint_action: "window_down"
     hint_fallback: "Use Ctrl-j or Ctrl-w j"
     filetype: text
@@ -1516,7 +1516,7 @@ challenges:
     name: "Window Up"
     category: window-management
     difficulty: 1
-    description: "Go to the window above"
+    description: "Go to window above using Ctrl-k or Ctrl-w k (or your window up keymap). Focus moves to the window above."
     hint_action: "window_up"
     hint_fallback: "Use Ctrl-k or Ctrl-w k"
     filetype: text
@@ -1530,7 +1530,7 @@ challenges:
     name: "Window Right"
     category: window-management
     difficulty: 1
-    description: "Go to the right window"
+    description: "Go to right window using Ctrl-l or Ctrl-w l (or your window right keymap). Focus moves to the window on the right."
     hint_action: "window_right"
     hint_fallback: "Use Ctrl-l or Ctrl-w l"
     filetype: text
@@ -1544,7 +1544,7 @@ challenges:
     name: "Horizontal Split"
     category: window-management
     difficulty: 1
-    description: "Create a horizontal split"
+    description: "Create horizontal split using :split or Ctrl-w s (or your split keymap). The window splits into top and bottom."
     hint_action: "split_horizontal"
     hint_fallback: "Use :split or Ctrl-w s"
     filetype: text
@@ -1559,7 +1559,7 @@ challenges:
     name: "Vertical Split"
     category: window-management
     difficulty: 2
-    description: "Create a vertical split"
+    description: "Create vertical split using :vsplit or Ctrl-w v (or your vsplit keymap). The window splits into left and right."
     hint_action: "split_vertical"
     hint_fallback: "Use :vsplit or Ctrl-w v"
     filetype: text
@@ -1573,7 +1573,7 @@ challenges:
     name: "Resize Height"
     category: window-management
     difficulty: 2
-    description: "Increase window height"
+    description: "Increase window height using Ctrl-w + or Ctrl-Up (or your resize keymap). The window becomes taller."
     hint_action: "resize_up"
     hint_fallback: "Use Ctrl-Up or Ctrl-w +"
     filetype: text
@@ -1587,7 +1587,7 @@ challenges:
     name: "Resize Width"
     category: window-management
     difficulty: 2
-    description: "Decrease window width"
+    description: "Decrease window width using Ctrl-w < or Ctrl-Left (or your resize keymap). The window becomes narrower."
     hint_action: "resize_left"
     hint_fallback: "Use Ctrl-Left or Ctrl-w <"
     filetype: text
@@ -1601,7 +1601,7 @@ challenges:
     name: "Close Window"
     category: window-management
     difficulty: 2
-    description: "Close the current window"
+    description: "Close current window using :q or Ctrl-w q (or your close window keymap). The window disappears, buffer remains open."
     filetype: text
     initial_buffer: |
       Close this window
@@ -1614,7 +1614,7 @@ challenges:
     name: "Rotate Windows"
     category: window-management
     difficulty: 3
-    description: "Rotate window layout"
+    description: "Rotate window layout using Ctrl-w r (rotate) or Ctrl-w R (reverse). Windows swap positions in the layout."
     filetype: text
     initial_buffer: |
       Rotate the window positions
@@ -1631,7 +1631,7 @@ challenges:
     name: "Next Buffer"
     category: buffer-management
     difficulty: 1
-    description: "Switch to the next buffer"
+    description: "Switch to next buffer using ]b or :bn (or your next buffer keymap). Must have multiple buffers open."
     hint_action: "buffer_next"
     hint_fallback: "Use :bn or your next buffer keymap"
     filetype: text
@@ -1645,7 +1645,7 @@ challenges:
     name: "Previous Buffer"
     category: buffer-management
     difficulty: 1
-    description: "Switch to the previous buffer"
+    description: "Switch to previous buffer using [b or :bp (or your prev buffer keymap). Must have multiple buffers open."
     hint_action: "buffer_prev"
     hint_fallback: "Use :bp or your prev buffer keymap"
     filetype: text
@@ -1659,7 +1659,7 @@ challenges:
     name: "Close Buffer"
     category: buffer-management
     difficulty: 1
-    description: "Close the current buffer"
+    description: "Close current buffer using :bd or <leader>x (or your close buffer keymap). The buffer is removed from the list."
     hint_action: "buffer_close"
     hint_fallback: "Use :bd or your close buffer keymap"
     filetype: text
@@ -1673,7 +1673,7 @@ challenges:
     name: "Save Buffer"
     category: buffer-management
     difficulty: 1
-    description: "Save the current buffer"
+    description: "Save current buffer using :w or <leader>w (or your save keymap). Changes are written to disk."
     hint_action: "save"
     hint_fallback: "Use :w or your save keymap"
     filetype: text
@@ -1688,7 +1688,7 @@ challenges:
     name: "Close Other Buffers"
     category: buffer-management
     difficulty: 2
-    description: "Close all buffers except current"
+    description: "Close all buffers except current using :%bd|e# or <leader>bo (or your close others keymap). Only this buffer remains."
     hint_action: "buffer_close_others"
     hint_fallback: "Use your close other buffers keymap"
     filetype: text
@@ -1702,7 +1702,7 @@ challenges:
     name: "Close Keep Window"
     category: buffer-management
     difficulty: 2
-    description: "Close buffer but keep the window"
+    description: "Close buffer but keep window using :bp|bd# (or your close-keep keymap). Buffer closes, window shows another buffer."
     hint_action: "buffer_close_keep"
     hint_fallback: "Use bp|bd# or similar"
     filetype: text
@@ -1716,7 +1716,7 @@ challenges:
     name: "List Buffers"
     category: buffer-management
     difficulty: 2
-    description: "Show list of open buffers"
+    description: "Show list of open buffers using :ls or :buffers. A list appears showing all open buffer numbers and names."
     filetype: text
     initial_buffer: |
       List all open buffers
@@ -1729,7 +1729,7 @@ challenges:
     name: "Reopen Closed"
     category: buffer-management
     difficulty: 3
-    description: "Reopen the last closed buffer"
+    description: "Reopen last closed buffer using :e# or Ctrl-^ (switch to alternate). The previously edited file returns."
     filetype: text
     initial_buffer: |
       Reopen the buffer you just closed
@@ -1746,7 +1746,7 @@ challenges:
     name: "Toggle Fold"
     category: folding
     difficulty: 1
-    description: "Toggle fold under cursor using za"
+    description: "Toggle fold using za. Cursor must be on a foldable line (function/block). The code collapses or expands."
     filetype: javascript
     initial_buffer: |
       function example() {
@@ -1763,7 +1763,7 @@ challenges:
     name: "Open Fold"
     category: folding
     difficulty: 1
-    description: "Open fold under cursor using zo"
+    description: "Open fold using zo. If the code is collapsed, it expands to show the contents inside."
     filetype: javascript
     initial_buffer: |
       function example() {
@@ -1779,7 +1779,7 @@ challenges:
     name: "Close Fold"
     category: folding
     difficulty: 1
-    description: "Close fold under cursor using zc"
+    description: "Close fold using zc. The code block under cursor collapses into a single line showing fold info."
     filetype: javascript
     initial_buffer: |
       function example() {
@@ -1796,7 +1796,7 @@ challenges:
     name: "Open All Folds"
     category: folding
     difficulty: 2
-    description: "Open all folds using zR"
+    description: "Open all folds using zR. All collapsed code blocks in the file expand to show their contents."
     hint_action: "fold_open_all"
     hint_fallback: "Use zR to open all folds"
     filetype: javascript
@@ -1813,7 +1813,7 @@ challenges:
     name: "Close All Folds"
     category: folding
     difficulty: 2
-    description: "Close all folds using zM"
+    description: "Close all folds using zM. All code blocks in the file collapse to single lines."
     hint_action: "fold_close_all"
     hint_fallback: "Use zM to close all folds"
     filetype: javascript
@@ -1833,7 +1833,7 @@ challenges:
     name: "Peek Fold"
     category: folding
     difficulty: 2
-    description: "Preview fold contents without opening"
+    description: "Peek fold using zK or K (with nvim-ufo). See folded content in a floating window without expanding it."
     hint_action: "fold_peek"
     hint_fallback: "Use zK or your peek keymap"
     filetype: javascript
@@ -1852,7 +1852,7 @@ challenges:
     name: "Open Recursive"
     category: folding
     difficulty: 2
-    description: "Open folds recursively using zO"
+    description: "Open folds recursively using zO. Opens this fold and all nested folds inside it."
     filetype: javascript
     initial_buffer: |
       function outer() {
@@ -1871,7 +1871,7 @@ challenges:
     name: "Close Recursive"
     category: folding
     difficulty: 3
-    description: "Close folds recursively using zC"
+    description: "Close folds recursively using zC. Closes this fold and all nested folds inside it."
     filetype: javascript
     initial_buffer: |
       function outer() {
@@ -1897,7 +1897,7 @@ challenges:
     name: "Next Quickfix"
     category: quickfix
     difficulty: 1
-    description: "Go to next quickfix item"
+    description: "Go to next quickfix using ]q or :cnext (or your quickfix next keymap). Must have quickfix list populated."
     hint_action: "quickfix_next"
     hint_fallback: "Use ]q or :cnext"
     filetype: text
@@ -1911,7 +1911,7 @@ challenges:
     name: "Previous Quickfix"
     category: quickfix
     difficulty: 1
-    description: "Go to previous quickfix item"
+    description: "Go to previous quickfix using [q or :cprev (or your quickfix prev keymap). Must have quickfix list populated."
     hint_action: "quickfix_prev"
     hint_fallback: "Use [q or :cprev"
     filetype: text
@@ -1925,7 +1925,7 @@ challenges:
     name: "Close Quickfix"
     category: quickfix
     difficulty: 1
-    description: "Close the quickfix window"
+    description: "Close the quickfix window using :cclose or <leader>xq (or your quickfix close keymap). The quickfix panel disappears."
     hint_action: "quickfix_close"
     hint_fallback: "Use :cclose or your keymap"
     filetype: text
@@ -1940,7 +1940,7 @@ challenges:
     name: "Open Quickfix"
     category: quickfix
     difficulty: 2
-    description: "Open the quickfix window"
+    description: "Open the quickfix window using :copen or <leader>xo (or your quickfix open keymap). Shows the list of items."
     hint_action: "quickfix_open"
     hint_fallback: "Use :copen or your keymap"
     filetype: text
@@ -1954,7 +1954,7 @@ challenges:
     name: "First Quickfix"
     category: quickfix
     difficulty: 2
-    description: "Go to first quickfix item"
+    description: "Go to first quickfix item using [Q or :cfirst (or your quickfix first keymap). Jumps to the first item in the list."
     hint_action: "quickfix_first"
     hint_fallback: "Use [Q or :cfirst"
     filetype: text
@@ -1968,7 +1968,7 @@ challenges:
     name: "Last Quickfix"
     category: quickfix
     difficulty: 2
-    description: "Go to last quickfix item"
+    description: "Go to last quickfix item using ]Q or :clast (or your quickfix last keymap). Jumps to the last item in the list."
     hint_action: "quickfix_last"
     hint_fallback: "Use ]Q or :clast"
     filetype: text
@@ -1982,7 +1982,7 @@ challenges:
     name: "Next Location"
     category: quickfix
     difficulty: 2
-    description: "Go to next location list item"
+    description: "Go to next location list item using ]l or :lnext (or your location next keymap). Location list is buffer-local."
     hint_action: "location_next"
     hint_fallback: "Use ]l or :lnext"
     filetype: text
@@ -1997,7 +1997,7 @@ challenges:
     name: "Quickfix Do"
     category: quickfix
     difficulty: 3
-    description: "Run command on all quickfix items using :cdo"
+    description: "Run on all quickfix items: e.g., :cdo s/old/new/g | update - replaces 'old' with 'new' in every quickfix file."
     filetype: text
     initial_buffer: |
       Apply a change to all quickfix items
@@ -2014,7 +2014,7 @@ challenges:
     name: "Next Diagnostic"
     category: diagnostics
     difficulty: 1
-    description: "Go to next diagnostic"
+    description: "Go to next diagnostic using ]d (or your next diagnostic keymap). Cursor jumps to the next error/warning."
     hint_action: "diagnostic_next"
     hint_fallback: "Use ]d or your next diagnostic keymap"
     filetype: typescript
@@ -2029,7 +2029,7 @@ challenges:
     name: "Previous Diagnostic"
     category: diagnostics
     difficulty: 1
-    description: "Go to previous diagnostic"
+    description: "Go to previous diagnostic using [d (or your prev diagnostic keymap). Cursor jumps to the previous error/warning."
     hint_action: "diagnostic_prev"
     hint_fallback: "Use [d or your prev diagnostic keymap"
     filetype: typescript
@@ -2046,7 +2046,7 @@ challenges:
     name: "Show Diagnostic"
     category: diagnostics
     difficulty: 2
-    description: "Show diagnostic in floating window"
+    description: "Show diagnostic using <leader>e or gl (or your diagnostic float keymap). Full error message appears in popup."
     hint_action: "diagnostic_float"
     hint_fallback: "Use your show diagnostic keymap"
     filetype: typescript
@@ -2061,7 +2061,7 @@ challenges:
     name: "Go to Error"
     category: diagnostics
     difficulty: 2
-    description: "Jump to next error (skip warnings)"
+    description: "Jump to next error (skip warnings) using ]e or diagnostic_goto_next({severity = ERROR}). Ignores warnings."
     filetype: typescript
     initial_buffer: |
       // warning here
@@ -2074,7 +2074,7 @@ challenges:
     name: "Set Location List"
     category: diagnostics
     difficulty: 2
-    description: "Populate location list with diagnostics"
+    description: "Set location list using :lua vim.diagnostic.setloclist() or <leader>q. Opens a list of all diagnostics in this file."
     filetype: typescript
     initial_buffer: |
       const a: number = "1";
@@ -2088,7 +2088,7 @@ challenges:
     name: "Disable Diagnostics"
     category: diagnostics
     difficulty: 3
-    description: "Disable diagnostics for current buffer"
+    description: "Disable diagnostics using :lua vim.diagnostic.disable(0) or your toggle keymap. The red squiggles disappear."
     filetype: typescript
     initial_buffer: |
       // Disable the red squiggles
@@ -2106,7 +2106,7 @@ challenges:
     name: "Find Files"
     category: telescope
     difficulty: 1
-    description: "Open file finder"
+    description: "Open file finder using <leader>ff (or your find files keymap). Type to fuzzy-search filenames in your project."
     hint_action: "find_files"
     hint_fallback: "Use your find files keymap"
     filetype: text
@@ -2121,7 +2121,7 @@ challenges:
     name: "Find Buffers"
     category: telescope
     difficulty: 1
-    description: "Open buffer picker"
+    description: "Open buffer picker using <leader>fb (or your buffers keymap). Type to fuzzy-search open buffers."
     hint_action: "find_buffers"
     hint_fallback: "Use your buffers keymap"
     filetype: text
@@ -2136,7 +2136,7 @@ challenges:
     name: "Recent Files"
     category: telescope
     difficulty: 1
-    description: "Open recent files picker"
+    description: "Open recent files picker using <leader>fr (or your recent files keymap). Shows files you've recently edited."
     hint_action: "oldfiles"
     hint_fallback: "Use your recent files keymap"
     filetype: text
@@ -2151,7 +2151,7 @@ challenges:
     name: "Resume Picker"
     category: telescope
     difficulty: 1
-    description: "Resume last telescope picker"
+    description: "Resume last telescope picker using <leader>f. (or your resume keymap). Returns to your previous search."
     hint_action: "telescope_resume"
     hint_fallback: "Use your resume keymap"
     filetype: text
@@ -2167,7 +2167,7 @@ challenges:
     name: "Live Grep"
     category: telescope
     difficulty: 2
-    description: "Search text in project"
+    description: "Live grep project using <leader>fg (or your live grep keymap). Type to search content across all files."
     hint_action: "live_grep"
     hint_fallback: "Use your live grep keymap"
     filetype: text
@@ -2182,7 +2182,7 @@ challenges:
     name: "Find Keymaps"
     category: telescope
     difficulty: 2
-    description: "Search keymaps"
+    description: "Search keymaps using <leader>fk (or your keymaps keymap). Find any keybinding by description or keys."
     hint_action: "find_keymaps"
     hint_fallback: "Use your keymaps keymap"
     filetype: text
@@ -2197,7 +2197,7 @@ challenges:
     name: "Search Buffer"
     category: telescope
     difficulty: 2
-    description: "Fuzzy find in current buffer"
+    description: "Fuzzy find in current buffer using <leader>/ (or your buffer search keymap). Search within this file only."
     hint_action: "buffer_fuzzy"
     hint_fallback: "Use your buffer search keymap"
     filetype: text
@@ -2214,7 +2214,7 @@ challenges:
     name: "Search Help"
     category: telescope
     difficulty: 2
-    description: "Search help tags"
+    description: "Search help tags using <leader>fh (or your help tags keymap). Find documentation for any vim topic."
     hint_action: "help_tags"
     hint_fallback: "Use your help tags keymap"
     filetype: text
@@ -2230,7 +2230,7 @@ challenges:
     name: "Find from Directory"
     category: telescope
     difficulty: 3
-    description: "Find files starting from a specific directory"
+    description: "Find files from a specific directory using telescope with cwd option. Narrows search to a folder."
     hint_action: "find_from_dir"
     hint_fallback: "Use your find from directory keymap"
     filetype: text
@@ -2245,7 +2245,7 @@ challenges:
     name: "LSP References"
     category: telescope
     difficulty: 3
-    description: "Find LSP references via telescope"
+    description: "Find LSP references using gr or <leader>gr (or your references keymap). Shows all usages of symbol under cursor."
     hint_action: "find_references"
     hint_fallback: "Use gr or telescope LSP references"
     filetype: javascript
@@ -2268,7 +2268,7 @@ challenges:
     name: "Delete Quotes"
     category: surround
     difficulty: 1
-    description: "Delete surrounding double quotes"
+    description: "Delete quotes using sd\" (mini.surround) or ds\" (vim-surround). \"hello\" becomes hello without quotes."
     filetype: javascript
     initial_buffer: |
       const msg = "hello";
@@ -2284,7 +2284,7 @@ challenges:
     name: "Delete Parens"
     category: surround
     difficulty: 1
-    description: "Delete surrounding parentheses"
+    description: "Delete parens using sd( (mini.surround) or ds( (vim-surround). (value + 10) becomes value + 10."
     filetype: javascript
     initial_buffer: |
       const result = (value + 10);
@@ -2300,7 +2300,7 @@ challenges:
     name: "Change Quotes"
     category: surround
     difficulty: 1
-    description: "Change single quotes to double quotes"
+    description: "Change quotes using sr'\" (mini.surround) or cs'\" (vim-surround). 'hello' becomes \"hello\"."
     filetype: javascript
     initial_buffer: |
       const msg = 'hello';
@@ -2317,7 +2317,7 @@ challenges:
     name: "Add Quotes"
     category: surround
     difficulty: 2
-    description: "Surround word with double quotes"
+    description: "Add quotes using saiw\" (mini.surround) or ysiw\" (vim-surround). hello becomes \"hello\"."
     filetype: javascript
     initial_buffer: |
       const msg = hello;
@@ -2333,7 +2333,7 @@ challenges:
     name: "Add Parentheses"
     category: surround
     difficulty: 2
-    description: "Surround word with parentheses"
+    description: "Add parens using saiw( (mini.surround) or ysiw( (vim-surround). value becomes (value)."
     filetype: javascript
     initial_buffer: |
       return value;
@@ -2349,7 +2349,7 @@ challenges:
     name: "Visual Surround"
     category: surround
     difficulty: 2
-    description: "Surround visual selection with brackets"
+    description: "Surround selection: 1) v to visual, 2) Select '1, 2, 3', 3) sa[ (mini.surround) or S[ (vim-surround). Result: [1, 2, 3]."
     filetype: javascript
     initial_buffer: |
       const arr = 1, 2, 3;
@@ -2365,7 +2365,7 @@ challenges:
     name: "Change Tag"
     category: surround
     difficulty: 2
-    description: "Change HTML tag from div to span"
+    description: "Change tag using srt (mini.surround) or cst (vim-surround). Change div to span, then type span."
     filetype: html
     initial_buffer: |
       <div>content</div>
@@ -2382,7 +2382,7 @@ challenges:
     name: "Wrap with Function"
     category: surround
     difficulty: 3
-    description: "Wrap expression with function call"
+    description: "Wrap with function: select 'value * 2', then saf (mini.surround) or ysf (vim-surround), then type Math.abs."
     filetype: javascript
     initial_buffer: |
       const result = value * 2;
@@ -2404,7 +2404,7 @@ challenges:
     name: "Add to Harpoon"
     category: harpoon
     difficulty: 1
-    description: "Add current file to harpoon list"
+    description: "Add current file to harpoon using <leader>a (or your harpoon add keymap). File is now in your quick-nav list."
     hint_action: "harpoon_add"
     hint_fallback: "Use your harpoon add keymap"
     filetype: text
@@ -2419,7 +2419,7 @@ challenges:
     name: "Harpoon Menu"
     category: harpoon
     difficulty: 1
-    description: "Toggle harpoon quick menu"
+    description: "Toggle harpoon menu using Ctrl-e (or your harpoon menu keymap). Shows your quick-nav file list."
     hint_action: "harpoon_menu"
     hint_fallback: "Use your harpoon menu keymap"
     filetype: text
@@ -2435,7 +2435,7 @@ challenges:
     name: "Harpoon File 1"
     category: harpoon
     difficulty: 2
-    description: "Navigate to harpoon file 1"
+    description: "Navigate to harpoon file 1 using <leader>1 or Ctrl-h (or your harpoon 1 keymap). Instantly opens first file."
     hint_action: "harpoon_1"
     hint_fallback: "Use your harpoon 1 keymap"
     filetype: text
@@ -2450,7 +2450,7 @@ challenges:
     name: "Harpoon File 2"
     category: harpoon
     difficulty: 2
-    description: "Navigate to harpoon file 2"
+    description: "Navigate to harpoon file 2 using <leader>2 or Ctrl-t (or your harpoon 2 keymap). Instantly opens second file."
     hint_action: "harpoon_2"
     hint_fallback: "Use your harpoon 2 keymap"
     filetype: text
@@ -2466,7 +2466,7 @@ challenges:
     name: "Reorder Harpoon"
     category: harpoon
     difficulty: 3
-    description: "Reorder files in harpoon menu"
+    description: "Reorder files in harpoon menu: 1) Open menu, 2) Use j/k or dd/p to move files around, 3) Close to save."
     hint_action: "harpoon_menu"
     hint_fallback: "Open menu and reorder with j/k"
     filetype: text
@@ -2486,7 +2486,7 @@ challenges:
     name: "Format Buffer"
     category: formatting
     difficulty: 1
-    description: "Format the entire buffer"
+    description: "Format entire buffer using <leader>f or :lua vim.lsp.buf.format() (or your format keymap). Code gets prettified."
     hint_action: "format"
     hint_fallback: "Use your format keymap"
     filetype: javascript
@@ -2500,7 +2500,7 @@ challenges:
     name: "Auto Indent"
     category: formatting
     difficulty: 1
-    description: "Auto-indent a block using ="
+    description: "Auto-indent a block using =ip (indent paragraph) or =G (indent to end). Fixes indentation of selected code."
     filetype: javascript
     initial_buffer: |
       function example() {
@@ -2525,7 +2525,7 @@ challenges:
     name: "Organize Imports"
     category: formatting
     difficulty: 2
-    description: "Organize imports via code action"
+    description: "Organize imports: 1) Press <leader>ca (code action), 2) Select 'Organize Imports'. Imports get sorted/grouped."
     hint_action: "code_action"
     hint_fallback: "Use code action to organize imports"
     filetype: typescript
@@ -2541,7 +2541,7 @@ challenges:
     name: "Convert Tabs"
     category: formatting
     difficulty: 2
-    description: "Convert tabs to spaces using :retab"
+    description: "Convert tabs to spaces using :retab. This replaces all tab characters with spaces based on 'tabstop' setting."
     filetype: javascript
     initial_buffer: "function example() {\n\treturn true;\n}"
     validation_type: different
@@ -2553,7 +2553,7 @@ challenges:
     name: "Format Selection"
     category: formatting
     difficulty: 3
-    description: "Format only the selected range"
+    description: "Format selection: 1) V to select the ugly line, 2) Use gq or your range format keymap. Only the selected code is formatted."
     filetype: javascript
     initial_buffer: |
       const good = true;
