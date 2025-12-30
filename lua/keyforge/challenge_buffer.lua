@@ -16,31 +16,6 @@ M._info_win = nil -- Floating window for challenge info
 M._info_buf = nil -- Buffer for challenge info
 M._timeout_timer = nil -- Timeout timer handle
 
---- Show feedback notification from previous challenge result
----@param challenge_data table Challenge data containing prev_success, prev_streak, prev_gold, mode
-local function show_previous_challenge_feedback(challenge_data)
-  if not challenge_data or challenge_data.prev_success == nil then
-    return
-  end
-
-  local msg
-  if challenge_data.prev_success then
-    if challenge_data.mode == "challenge_mode" then
-      msg = string.format("✓ Success! Streak: %d (+%d gold)", challenge_data.prev_streak or 0, challenge_data.prev_gold or 0)
-    else
-      msg = string.format("✓ Success! (+%d gold)", challenge_data.prev_gold or 0)
-    end
-    vim.notify(msg, vim.log.levels.INFO)
-  else
-    if challenge_data.mode == "challenge_mode" then
-      msg = "✗ Try again! Streak reset"
-    else
-      msg = "✗ Try again!"
-    end
-    vim.notify(msg, vim.log.levels.WARN)
-  end
-end
-
 -- File extension mapping by filetype
 local filetype_extensions = {
   lua = ".lua",
@@ -101,9 +76,42 @@ local function delete_temp_file(filepath)
   end
 end
 
+--- Build mode header lines for info window
+---@param challenge_data table|nil RPC data containing mode, prev_success, prev_streak, prev_gold
+---@return table lines Header lines to prepend
+local function build_mode_header(challenge_data)
+  local lines = {}
+  if not challenge_data or not challenge_data.mode then
+    return lines
+  end
+
+  -- Mode title line
+  if challenge_data.mode == "challenge_mode" then
+    table.insert(lines, string.format("CHALLENGE MODE  Streak: %d", challenge_data.prev_streak or 0))
+  elseif challenge_data.mode == "challenge_selection" then
+    table.insert(lines, "CHALLENGE SELECTION")
+  end
+
+  -- Previous result feedback
+  if challenge_data.prev_success ~= nil then
+    local feedback = challenge_data.prev_success
+        and string.format("✓ Last: +%dg", challenge_data.prev_gold or 0)
+        or "✗ Last: Failed"
+    table.insert(lines, feedback)
+  end
+
+  -- Separator if we added any header lines
+  if #lines > 0 then
+    table.insert(lines, string.rep("─", 28))
+  end
+
+  return lines
+end
+
 --- Create the challenge info floating window
----@param challenge table
-local function create_info_window(challenge)
+---@param challenge table Challenge data
+---@param challenge_data table|nil RPC data containing mode, prev_success, prev_streak, prev_gold
+local function create_info_window(challenge, challenge_data)
   local keyforge = require("keyforge")
   local config = keyforge.config
 
@@ -113,16 +121,17 @@ local function create_info_window(challenge)
     cancel_key = "<leader>q"
   end
 
-  -- Build info content
-  local lines = {
-    "Challenge: " .. (challenge.name or "Unknown"),
-    "",
-    "Goal: " .. (challenge.description or "Complete the challenge"),
-    "",
-    string.format("Par: %d keystrokes | Reward: %dg", challenge.par_keystrokes or 10, challenge.gold_base or 50),
-    "",
-    string.format("Submit: %s (normal mode) | Cancel: %s", config.keybind_submit, cancel_key),
-  }
+  -- Build info content starting with mode header
+  local lines = build_mode_header(challenge_data)
+
+  -- Challenge info
+  table.insert(lines, "Challenge: " .. (challenge.name or "Unknown"))
+  table.insert(lines, "")
+  table.insert(lines, "Goal: " .. (challenge.description or "Complete the challenge"))
+  table.insert(lines, "")
+  table.insert(lines, string.format("Par: %d keystrokes | Reward: %dg", challenge.par_keystrokes or 10, challenge.gold_base or 50))
+  table.insert(lines, "")
+  table.insert(lines, string.format("Submit: %s (normal mode) | Cancel: %s", config.keybind_submit, cancel_key))
 
   -- Calculate window size
   local width = 0
@@ -238,9 +247,6 @@ function M.start_challenge(request_id, challenge_data)
     return
   end
 
-  -- Show feedback from previous challenge if available
-  show_previous_challenge_feedback(challenge_data)
-
   -- Use challenge from game engine (Go), or fallback to local sample challenges
   local challenge
   if challenge_data and challenge_data.challenge_id then
@@ -320,8 +326,8 @@ function M.start_challenge(request_id, challenge_data)
   -- Start keystroke tracking
   challenges.start_tracking()
 
-  -- Create info window
-  create_info_window(challenge)
+  -- Create info window with mode/streak/feedback
+  create_info_window(challenge, challenge_data)
 
   -- Set up timeout using vim.fn.timer_start (returns timer ID)
   local timeout_seconds = keyforge.config.challenge_timeout or 300
@@ -367,16 +373,11 @@ function M.submit_challenge()
   local result = challenges.validate(M._current, M._initial_content, final_content)
 
   if result.success then
-    -- Calculate gold
+    -- Calculate gold (feedback shown in next challenge's info window)
     local gold = challenges.calculate_reward(M._current, result.efficiency)
     result.gold_earned = gold
-    vim.notify(
-      string.format("Challenge complete! +%dg (efficiency: %.0f%%)", gold, result.efficiency * 100),
-      vim.log.levels.INFO
-    )
   else
     result.gold_earned = 0
-    vim.notify("Challenge failed! Buffer content doesn't match expected result.", vim.log.levels.WARN)
   end
 
   M._complete_challenge(result.success, false, result)
