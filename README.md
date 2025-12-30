@@ -404,7 +404,7 @@ Contributions are welcome! Please read the contributing guidelines first.
 
 ## License
 
-MIT License
+[Apache License Version 2.0, January 2004](./LICENSE)
 
 ## Credits
 
