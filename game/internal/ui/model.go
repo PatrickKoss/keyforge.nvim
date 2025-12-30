@@ -915,6 +915,16 @@ func (m *Model) handleChallengeResult(result *nvim.ChallengeResult) {
 	m.NvimChallengeID = ""
 
 	if strings.HasPrefix(result.RequestID, "challenge_mode_") {
+		// Challenge Mode: handle skipped/canceled
+		if result.Skipped {
+			// User canceled - return to level select
+			m.Game.State = engine.StateLevelSelect
+			m.StartSection = SectionModes
+			m.ModeMenuIndex = 0
+			m.CurrentChallenge = nil
+			m.Notification = nil
+			return
+		}
 		// Challenge Mode: update streak and start next challenge
 		if result.Success {
 			m.ChallengeModeStreak++
@@ -933,6 +943,14 @@ func (m *Model) handleChallengeResult(result *nvim.ChallengeResult) {
 		m.Game.State = engine.StateChallengeMode
 		m.startChallengeModeChallenge()
 	} else if strings.HasPrefix(result.RequestID, "challenge_selection_") {
+		// Challenge Selection: handle skipped/canceled
+		if result.Skipped {
+			// User canceled - return to challenge list
+			m.Game.State = engine.StateChallengeSelection
+			m.CurrentChallenge = nil
+			m.Notification = nil
+			return
+		}
 		// Challenge Selection: show result and start next challenge
 		if result.Success {
 			m.ShowNotification("Success!", true)
